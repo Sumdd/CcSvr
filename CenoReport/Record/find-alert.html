@@ -1,0 +1,128 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="../Styles/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../Styles/admin-all.css" />
+    <script type="text/javascript" src="../Scripts/jquery-1.7.2.js"></script>
+    <script type="text/javascript" src="../Scripts/jquery-ui-1.8.22.custom.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../Styles/ui-lightness/jquery-ui-1.8.22.custom.css" />
+    <script type="text/javascript">
+        $(function ()
+        {
+            $(".datepicker").datepicker();
+
+            $('#allRecord').(function ()
+            {
+                $('#alert-win').dialog({
+                    width: 650,
+                    height: 400,
+                    buttons: { "关闭": function () { $(this).dialog("close"); } }
+                });
+            })
+        })
+
+    </script>
+</head>
+<body>
+    <div class="alert alert-info">
+        当前位置<b class="tip"></b>PBX基本设置<b class="tip"></b>录音设置</div>
+    <table class="table table-striped table-bordered table-condensed">
+        <thead>
+            <tr>
+                <td colspan="6" class="auto-style2">
+                    &nbsp;录音设置
+                </td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding-left: 10px; vertical-align: middle;" width="15%">
+                    录音模式
+                </td>
+                <td>
+                    <div class="input-append">
+                        <input id="allRecord" name="record" type="radio" checked="checked" title="全部录音"style="margin-left: 20px"  />&nbsp;&nbsp;<span
+                            style="vertical-align: middle;">全部录音</span>
+                    </div>
+                </td>
+                <td colspan="4">
+                    <div class="input-append">
+                        <input id="noRecord" name="record" type="radio" title="不录音" style="margin-left: 20px" />&nbsp;&nbsp;<span
+                            style="vertical-align: middle;">不录音</span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-left: 10px; vertical-align: middle;" width="15%">
+                    录音开始时间
+                </td>
+                <td>
+                    <select size="1" name="select2">
+                        <option value="10401"></option>
+                        <option value="10388">开始拨号</option>
+                        <option value="10388">拨号完成</option>
+                        <option value="10388">接收到回铃声</option>
+                        <option value="10388">被叫方摘机</option>
+                    </select>
+                </td>
+                <td style="padding-left: 10px; vertical-align: middle;" width="15%">
+                    录音结束时间
+                </td>
+                <td>
+                    <select size="1" name="select2">
+                        <option value="10401"></option>
+                        <option value="10388">开始拨号</option>
+                        <option value="10388">拨号完成</option>
+                        <option value="10388">接收到回铃声</option>
+                        <option value="10388">被叫方摘机</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-left: 10px; vertical-align: middle;" width="15%">
+                    录音文件大小
+                </td>
+                <td style="padding-left: 10px; vertical-align: middle;">
+                    最大
+                    <input class="span2" id="Text2" size="5" type="text" />
+                    MB
+                </td>
+                <td style="padding-left: 10px; vertical-align: middle;" width="15%">
+                    录音文件保存路径
+                </td>
+                <td style="padding-left: 10px; vertical-align: middle;">
+                    <input class="span2" id="Text1" size="16" type="text" />
+                    <input class="btn btn-inverse" id="Button1" type="button" value="浏览" />
+                </td>
+            </tr>
+            <tr>
+                <td style="padding-left: 10px; vertical-align: middle;" width="15%">
+                    录音文件名格式
+                </td>
+                <td>
+                    <input id="Radio1" name="recordName" type="radio" title="不录音" style="margin-left: 20px" />&nbsp;&nbsp;<span
+                        style="vertical-align: middle;">Rec_yyyyMMddHHmmss_****</span>
+                </td>
+                <td colspan="2">
+                    <input id="Radio2" name="recordName" type="radio" title="不录音" style="margin-left: 20px" />&nbsp;&nbsp;<span
+                        style="vertical-align: middle;">Rec_yyyyMMddHHmmss_****</span>
+                </td>
+            </tr>
+        </tbody>
+        <tr>
+            <td colspan="4" align="right">
+                <input class="btn btn-inverse" id="find" type="button" value="保存" />
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <input class="btn btn-inverse" type="button" value="恢复初始设置" />
+            </td>
+        </tr>
+        <tfoot>
+        </tfoot>
+    </table>
+    <div id="alert-win" title="弹出窗口查询模式" style="display: none;">
+        <iframe style="border: 0; width: 100%; height: 100%;" src="find-alert-win.html">
+        </iframe>
+    </div>
+</body>
+</html>

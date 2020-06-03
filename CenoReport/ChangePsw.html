@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="Styles/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="Styles/admin-all.css" />
+    <script type="text/javascript" src="Scripts/jquery-1.7.2.js"></script>
+    <script type="text/javascript" src="Scripts/jquery-ui-1.8.22.custom.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="Styles/ui-lightness/jquery-ui-1.8.22.custom.css" />
+    <script type="text/javascript" src="Scripts/tip.js"></script>
+    <script type="text/javascript">
+        $(function ()
+        {
+            $(".datepicker").datepicker();
+
+            $('#list').hide();
+            $('#find').click(function ()
+            {
+                $('#list').show();
+            })
+            $('#BeforePsw').tooltip({ title: '输入原密码' });
+            $('#NewPsw').tooltip({ title: '输入新密码' });
+            $('#ConfirmPsw').tooltip({ title: '确认新密码' });
+        })
+
+    </script>
+</head>
+<body>
+    <div>
+    </div>
+    <div class="alert alert-info">
+        当前位置<b class="tip"></b>修改密码</div>
+    <table class="table table-striped table-bordered table-condensed">
+        <thead>
+            <tr>
+                <td colspan="6" class="auto-style2" style="text-align:center;">
+                    &nbsp;修改密码
+                </td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="text-align:center;">
+                    请输入原密码
+                </td>
+                <td class="detail" style="text-align:center;">
+                    <input id="BeforePsw" />
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:center;">
+                    请输入新密码
+                </td>
+                <td class="detail" style="text-align:center;">
+                    <input id="NewPsw" />
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:center;">
+                    请确认新密码
+                </td>
+                <td class="detail" style="text-align:center;">
+                    <input id="ConfirmPsw" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan="6" style="text-align:center;">
+                    <input class="btn btn-inverse" id="Button1" type="button" value="保存" />
+                    <input class="btn btn-inverse" type="button" value="返回" />
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

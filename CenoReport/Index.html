@@ -1,0 +1,405 @@
+﻿<html>
+<head>
+	<title>后台管理系统</title>
+	<link rel="stylesheet" type="text/css" href="Styles/admin-all.css" />
+	<link rel="stylesheet" type="text/css" href="Styles/base.css" />
+	<link rel="stylesheet" type="text/css" href="Styles/bootstrap.min.css" />
+	<link rel="stylesheet" type="text/css" href="Styles/ui-lightness/jquery-ui-1.8.22.custom.css" />
+	<link rel="stylesheet" type="text/css" href="Styles/chur.css" />
+	<script type="text/javascript" src="Scripts/jquery-1.7.2.js"></script>
+	<script type="text/javascript" src="Scripts/jquery-ui-1.8.22.custom.min.js"></script>
+	<script type="text/javascript" src="Scripts/index.js"></script>
+	<script type="text/javascript" src="Scripts/ChurAlert.min.js?skin=blue"></script>
+	<script type="text/javascript" src="Scripts/chur-alert.1.0.js"></script>
+	<script type="text/javascript">
+		gettime = function () {
+			var d = new Date()
+			var vYear = d.getFullYear()
+			var vMon = d.getMonth() + 1
+			var vDay = d.getDate()
+			var h = d.getHours();
+			var m = d.getMinutes();
+			var se = d.getSeconds();
+			s = vYear + '-' + (vMon < 10 ? "0" + vMon : vMon) + '-' + (vDay < 10 ? "0" + vDay : vDay) + ' ' + (h < 10 ? "0" + h : h) + ':' + (m < 10 ? "0" + m : m) + ':' + (se < 10 ? "0" + se : se);
+			$('.Gettime').text(s);
+		}
+		setInterval("gettime()", 1000);
+	</script>
+</head>
+<body>
+	<div class="warp">
+		<!--头部开始-->
+		<div class="top_c">
+			<div class="top-menu">
+				<ul class="top-menu-nav">
+					<li><a href="javascript:;">CMCP通讯</a><i class="tip-up"></i></li>
+					<li><a href="javascript:;">PBX设置<i class="tip-up"></i></a>
+						<ul class="kidc">
+							<li><a target="Conframe" href="call_manage/pbxset/CustomManage.html">用户管理</a></li>
+						</ul>
+					</li>
+					<li><a href="javascript:;">ACD管理<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">IVR管理<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">自动拨号<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">问卷评价<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">监控会议<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">传真服务<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">费用管理<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">统计表<i class="tip-up"></i></a>
+					</li>
+					<li><a href="javascript:;">系统管理<i class="tip-up"></i></a>
+						<ul class="kidc">
+							<li><b class="tip"></b><a target="Conframe" href="Template/formstyle.html">帐号设置</a></li>
+							<li><b class="tip"></b><a target="Conframe" href="Template/formstyle.html">网关设置</a></li>
+							<li><b class="tip"></b><a target="Conframe" href="Template/formstyle.html">拨号计划</a></li>
+							<li><b class="tip"></b><a target="Conframe" href="Template/formstyle.html">电话策略</a></li>
+							<li><b class="tip"></b><a target="Conframe" href="Template/formstyle.html">系统参数</a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+			<div class="top-nav">
+				<span class="input-append">
+					<input style="height: 28px; width: 130px; background-color: Blue; border: 0px;" id="Text2" type="text" /><span class="add-on" style="color: Black; margin-right: 30px">拨号盘</span></span>
+				<a href="" class="note_link">
+					<img title="记事本" alt="记事本" src="img/note.png" width="30px" height="25px" /></a>
+				<a href="" class="custome_link">
+					<img title="新建客户" alt="新建客户" src="img/custome.png" width="30px" height="25px" /></a>
+				<a href="" class="remind_link">
+					<img title="新建提醒" alt="新建提醒" src="img/remind.png" width="30px" height="25px" /></a>
+				<a href="" class="mail_link">
+					<img title="邮件" alt="邮件" src="img/mail.png" width="30px" height="25px" /></a>
+				<a href="" class="record_link">
+					<img title="新建录音" alt="新建录音" src="img/record.png" width="30px" height="25px" /></a>
+				<a href="" class="note_link">
+					<img title="记事本" alt="记事本" src="img/note.png" width="30px" height="25px" /></a>
+				<a href="" class="custome_link">
+					<img title="新建客户" alt="新建客户" src="img/custome.png" width="30px" height="25px" /></a>
+				<a href="" class="remind_link">
+					<img title="新建提醒" alt="新建提醒" src="img/remind.png" width="30px" height="25px" /></a>
+				<a href="" class="mail_link">
+					<img title="邮件" alt="邮件" src="img/mail.png" width="30px" height="25px" /></a>
+				<a href="" class="record_link">
+					<img title="新建录音" alt="新建录音" src="img/record.png" width="30px" height="25px" /></a>
+				<script type="text/javascript">
+					$(function () {
+						$(".note_link").hover(
+						function () {
+							$(".note_link").find('img')[0].src = "img/note_hover.png";
+						},
+						function () {
+							$(".note_link").find('img')[0].src = "img/note.png";
+						});
+
+						$(".custome_link").hover(
+						function () {
+							$(".custome_link").find('img')[0].src = "img/custome_hover.png";
+						},
+						function () {
+							$(".custome_link").find('img')[0].src = "img/custome.png";
+						});
+
+						$(".remind_link").hover(
+						function () {
+							$(".remind_link").find('img')[0].src = "img/remind_hover.png";
+						},
+						function () {
+							$(".remind_link").find('img')[0].src = "img/remind.png";
+						});
+
+						$(".mail_link").hover(
+						function () {
+							$(".mail_link").find('img')[0].src = "img/mail_hover.png";
+						},
+						function () {
+							$(".mail_link").find('img')[0].src = "img/mail.png";
+						});
+
+						$(".record_link").hover(
+						function () {
+							$(".record_link").find('img')[0].src = "img/record_hover.png";
+						},
+						function () {
+							$(".record_link").find('img')[0].src = "img/record.png";
+						});
+					});
+				</script>
+			</div>
+		</div>
+		<!--头部结束-->
+		<!--左边菜单开始-->
+		<div class="left_c left">
+			<h1>
+				<span class="Gettime">1999-99-99 99:99:99</span></h1>
+			<div class="acc">
+				<div>
+					<a class="one"><b class="tip"></b>个人信息</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='PersonalInfo/P_Overview/PersonalInfo.aspx';">
+							<a href="javascript:;">今日统计</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='SystemStatus/ProductInfo.html';">
+							<a href="javascript:;">工作日报</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='SystemStatus/ProductInfo.html';">
+							<a href="javascript:;">内部通讯录</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='SystemStatus/ProductInfo.html';">
+							<a href="javascript:;">任务计划</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='SystemStatus/ProductInfo.html';">
+							<a href="javascript:;">我的请求</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>客户管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">客户信息</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">联系人信息</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">跟进记录</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">预约回访</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">数据导入</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">数据类别</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">数据委派</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Custom/CustomManage.html';">
+							<a href="javascript:;">数据回收</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>订单管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-edit.html';">
+							<a href="javascript:;">新增订单</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">我的订单</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-edit.html';">
+							<a href="javascript:;">优秀订单</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>产品管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/form-Master-slave.html';">
+							<a href="javascript:;">产品分类</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/form-collapse.html';">
+							<a href="javascript:;">产品信息</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>业务管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">产品供应商</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">客户代理商</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">业务合作伙伴</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">竞争对手</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>流程管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">生产计划</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">采购管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">库存管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">销售管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>服务管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">满意度调查</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">客户投诉</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">积分兑换</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>财务管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">资金收入</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">资金支出</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">发票管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">员工工资</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">税务管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>通讯平台</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">短信</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">邮件</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">传真</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">电话</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>用户管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">员工资料</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">人事变动</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">部门管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">职位管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>统计</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">客户来源</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">拜访客户</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>文档管理</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">合同模版</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">需求文档</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">企业内部文档</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>系统设置</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">登录记录</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">操作记录</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">角色管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">权限管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">微信接口</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">文档设置</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">企业文化</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<div>
+					<a class="one"><b class="tip"></b>知识库</a>
+					<ul class="kid">
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">话术管理</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+						<li onclick="javascript:window.parent.Conframe.location.href='Template/Maintain-add.html';">
+							<a href="javascript:;">优质订单</a><img alt="" src="img/info.png" width="20px" height="20px"
+								style="margin-right: 10px; float: right" /></li>
+					</ul>
+				</div>
+				<!--                <div id="datepicker">
+				</div>-->
+				<br />
+				&nbsp;&nbsp;上午好，administrator<br />
+				&nbsp;&nbsp;<a href="ChangePsw.html">修改密码</a> | <a href="Login.html">安全退出</a>
+			</div>
+		</div>
+		<!--左边菜单结束-->
+		<!--右边框架开始-->
+		<div class="right_c">
+			<div class="nav-tip" onclick="javascript:void(0)">
+				&nbsp;
+			</div>
+		</div>
+		<div class="Conframe">
+			<iframe name="Conframe" id="Conframe" src="SystemStatus/RunInfo.html"></iframe>
+		</div>
+		<!--右边框架结束-->
+		<!--底部开始-->
+		<div class="bottom_c">
+			Copyright &copy;2011-2016 青岛新生代软件有限公司 版权所有
+		</div>
+		<!--底部结束-->
+	</div>
+</body>
+</html>

@@ -1,0 +1,418 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{F68F44A0-30BF-43A9-98B8-1378E49445B2}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>WebApplication2</RootNamespace>
+    <AssemblyName>WebApplication2</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ColoredConsole, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ColoredConsole.0.5.0\lib\net45\ColoredConsole.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="DevExpress.Charts.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Dashboard.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Dashboard.v15.2.Web, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Data.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.DataAccess.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Map.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Office.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.PivotGrid.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Printing.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.RichEdit.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Sparkline.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.SpellChecker.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Utils.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.ASPxHtmlEditor.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.ASPxPivotGrid.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.ASPxScheduler.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.ASPxSpellChecker.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.ASPxThemes.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.ASPxTreeList.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Web.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.Xpo.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraCharts.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraCharts.v15.2.Web, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraEditors.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraGauges.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraGauges.v15.2.Presets, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraGauges.v15.2.Win, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraMap.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraPrinting.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraReports.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraReports.v15.2.Web, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraScheduler.v15.2.Core, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="DevExpress.XtraTreeList.v15.2, Version=15.2.4.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.EnterpriseServices" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="318768-14111R31P325.jpg" />
+    <Content Include="call_manage\pbxset\agent_manage.aspx" />
+    <Content Include="call_manage\pbxset\CustomManage.html" />
+    <Content Include="ChangePsw.html" />
+    <Content Include="Custom\CustomManage.html" />
+    <Content Include="DialPan.html" />
+    <Content Include="HtmlPage.html" />
+    <Content Include="img\chur\0.png" />
+    <Content Include="img\chur\1.png" />
+    <Content Include="img\chur\2.png" />
+    <Content Include="img\chur\3.png" />
+    <Content Include="img\chur\4.png" />
+    <Content Include="img\chur\5.png" />
+    <Content Include="img\cloud.jpg" />
+    <Content Include="img\cloud1.png" />
+    <Content Include="img\code.gif" />
+    <Content Include="img\custome.png" />
+    <Content Include="img\custome_hover.png" />
+    <Content Include="img\danger.png" />
+    <Content Include="img\footer-bg.jpg" />
+    <Content Include="img\glyphicons-halflings-white.png" />
+    <Content Include="img\glyphicons-halflings.png" />
+    <Content Include="img\info.png" />
+    <Content Include="img\leaf4.png" />
+    <Content Include="img\leaf5.png" />
+    <Content Include="img\leaf6.png" />
+    <Content Include="img\leaf7.png" />
+    <Content Include="img\leaf8.png" />
+    <Content Include="img\logo.png" />
+    <Content Include="img\logo1.png" />
+    <Content Include="img\mail.png" />
+    <Content Include="img\mail_hover.png" />
+    <Content Include="img\nav-tip.gif" />
+    <Content Include="img\note.png" />
+    <Content Include="img\note_hover.png" />
+    <Content Include="img\primary.png" />
+    <Content Include="img\record.png" />
+    <Content Include="img\record_hover.png" />
+    <Content Include="img\remind.png" />
+    <Content Include="img\remind_hover.png" />
+    <Content Include="img\success.png" />
+    <Content Include="img\top-menu-bg-left.gif" />
+    <Content Include="img\top-menu-con.gif" />
+    <Content Include="img\warning.png" />
+    <Content Include="Index.html" />
+    <Content Include="Login.html" />
+    <Content Include="PersonalInfo\Memo\MemoList.html" />
+    <Content Include="PersonalInfo\P_Overview\PersonalInfo.aspx" />
+    <Content Include="Record\find-alert-win.html" />
+    <Content Include="Record\find-alert.html" />
+    <Content Include="Scripts\alert.js" />
+    <Content Include="Scripts\bootstrap.min.js" />
+    <Content Include="Scripts\chur-alert.1.0.js" />
+    <Content Include="Scripts\chur.min.js" />
+    <Content Include="Scripts\ChurAlert.min.js" />
+    <Content Include="Scripts\collapse.js" />
+    <Content Include="Scripts\dropdown.js" />
+    <Content Include="Scripts\index.js" />
+    <Content Include="Scripts\jquery-1.7.2.js" />
+    <Content Include="Scripts\jquery-ui-1.8.22.custom.min.js" />
+    <Content Include="Scripts\jquery.easyui.min.js" />
+    <Content Include="Scripts\jquery.spritely-0.6.js" />
+    <Content Include="Scripts\SipAgent\SipUser.js" />
+    <Content Include="Scripts\SipAgent\XmlOperate.js" />
+    <Content Include="Scripts\skins\blue.css" />
+    <Content Include="Scripts\skins\blue\blue_s.png" />
+    <Content Include="Scripts\skins\blue\blue_s2.png" />
+    <Content Include="Scripts\skins\blue\ie6\blue_titbtn.gif" />
+    <Content Include="Scripts\skins\blue\ie6\ui_b.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_l.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_lb.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_lt.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_lt2.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_r.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_rb.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_rt.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_rt2.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_t.png" />
+    <Content Include="Scripts\skins\blue\ie6\ui_t2.png" />
+    <Content Include="Scripts\skins\icons\32X32\fail.png" />
+    <Content Include="Scripts\skins\icons\32X32\hits.png" />
+    <Content Include="Scripts\skins\icons\32X32\i.png" />
+    <Content Include="Scripts\skins\icons\32X32\succ.png" />
+    <Content Include="Scripts\skins\icons\discuz_bg.gif" />
+    <Content Include="Scripts\skins\icons\error.png" />
+    <Content Include="Scripts\skins\icons\face-sad.png" />
+    <Content Include="Scripts\skins\icons\face-smile.png" />
+    <Content Include="Scripts\skins\icons\gb_tip_layer.png" />
+    <Content Include="Scripts\skins\icons\gb_tip_layer_ie6.png" />
+    <Content Include="Scripts\skins\icons\info.png" />
+    <Content Include="Scripts\skins\icons\loading.gif" />
+    <Content Include="Scripts\skins\icons\primary.png" />
+    <Content Include="Scripts\skins\icons\success.png" />
+    <Content Include="Scripts\skins\icons\tips.gif" />
+    <Content Include="Scripts\skins\icons\warning.png" />
+    <Content Include="Scripts\sqlite3.js" />
+    <Content Include="Scripts\tip.js" />
+    <Content Include="Scripts\Xml\XmlOperate.js" />
+    <Content Include="SipAgent\AgentManage.html" />
+    <Content Include="SipAgent\Group\default.xml" />
+    <Content Include="SipAgent\UserAgent\1000.xml" />
+    <Content Include="SipAgent\UserAgent\1001.xml" />
+    <Content Include="SipAgent\UserAgent\1002.xml" />
+    <Content Include="SipAgent\UserAgent\1003.xml" />
+    <Content Include="SipAgent\UserAgent\1004.xml" />
+    <Content Include="SipAgent\UserAgent\1005.xml" />
+    <Content Include="SipAgent\UserAgent\1006.xml" />
+    <Content Include="SipAgent\UserAgent\1007.xml" />
+    <Content Include="SipAgent\UserAgent\1008.xml" />
+    <Content Include="SipAgent\UserAgent\1009.xml" />
+    <Content Include="SipAgent\UserAgent\1010.xml" />
+    <Content Include="SipAgent\UserAgent\1011.xml" />
+    <Content Include="SipAgent\UserAgent\1012.xml" />
+    <Content Include="SipAgent\UserAgent\1013.xml" />
+    <Content Include="SipAgent\UserAgent\1014.xml" />
+    <Content Include="SipAgent\UserAgent\1015.xml" />
+    <Content Include="SipAgent\UserAgent\1016.xml" />
+    <Content Include="SipAgent\UserAgent\1017.xml" />
+    <Content Include="SipAgent\UserAgent\1018.xml" />
+    <Content Include="SipAgent\UserAgent\1019.xml" />
+    <Content Include="Styles\admin-all.css" />
+    <Content Include="Styles\base.css" />
+    <Content Include="Styles\bootstrap-responsive.min.css" />
+    <Content Include="Styles\bootstrap.min.css" />
+    <Content Include="Styles\chur.css" />
+    <Content Include="Styles\login.css" />
+    <Content Include="Styles\ui-all\easyui.css" />
+    <Content Include="Styles\ui-all\images\accordion_collapse.png" />
+    <Content Include="Styles\ui-all\images\accordion_expand.png" />
+    <Content Include="Styles\ui-all\images\blank.gif" />
+    <Content Include="Styles\ui-all\images\button_a_bg.gif" />
+    <Content Include="Styles\ui-all\images\button_plain_hover.png" />
+    <Content Include="Styles\ui-all\images\button_span_bg.gif" />
+    <Content Include="Styles\ui-all\images\calendar_nextmonth.gif" />
+    <Content Include="Styles\ui-all\images\calendar_nextyear.gif" />
+    <Content Include="Styles\ui-all\images\calendar_prevmonth.gif" />
+    <Content Include="Styles\ui-all\images\calendar_prevyear.gif" />
+    <Content Include="Styles\ui-all\images\combo_arrow.gif" />
+    <Content Include="Styles\ui-all\images\datagrid_header_bg.gif" />
+    <Content Include="Styles\ui-all\images\datagrid_row_collapse.gif" />
+    <Content Include="Styles\ui-all\images\datagrid_row_expand.gif" />
+    <Content Include="Styles\ui-all\images\datagrid_sort_asc.gif" />
+    <Content Include="Styles\ui-all\images\datagrid_sort_desc.gif" />
+    <Content Include="Styles\ui-all\images\datagrid_title_bg.gif" />
+    <Content Include="Styles\ui-all\images\datebox_arrow.png" />
+    <Content Include="Styles\ui-all\images\layout_arrows.png" />
+    <Content Include="Styles\ui-all\images\menu.gif" />
+    <Content Include="Styles\ui-all\images\menu_downarrow.png" />
+    <Content Include="Styles\ui-all\images\menu_rightarrow.png" />
+    <Content Include="Styles\ui-all\images\menu_sep.png" />
+    <Content Include="Styles\ui-all\images\menu_split_downarrow.png" />
+    <Content Include="Styles\ui-all\images\messager_error.gif" />
+    <Content Include="Styles\ui-all\images\messager_info.gif" />
+    <Content Include="Styles\ui-all\images\messager_question.gif" />
+    <Content Include="Styles\ui-all\images\messager_warning.gif" />
+    <Content Include="Styles\ui-all\images\pagination_first.gif" />
+    <Content Include="Styles\ui-all\images\pagination_last.gif" />
+    <Content Include="Styles\ui-all\images\pagination_load.png" />
+    <Content Include="Styles\ui-all\images\pagination_loading.gif" />
+    <Content Include="Styles\ui-all\images\pagination_next.gif" />
+    <Content Include="Styles\ui-all\images\pagination_prev.gif" />
+    <Content Include="Styles\ui-all\images\panel_loading.gif" />
+    <Content Include="Styles\ui-all\images\panel_title.gif" />
+    <Content Include="Styles\ui-all\images\panel_tools.gif" />
+    <Content Include="Styles\ui-all\images\panel_tool_collapse.gif" />
+    <Content Include="Styles\ui-all\images\panel_tool_expand.gif" />
+    <Content Include="Styles\ui-all\images\searchbox_button.png" />
+    <Content Include="Styles\ui-all\images\slider_handle.png" />
+    <Content Include="Styles\ui-all\images\spinner_arrow_down.gif" />
+    <Content Include="Styles\ui-all\images\spinner_arrow_up.gif" />
+    <Content Include="Styles\ui-all\images\tabs_close.gif" />
+    <Content Include="Styles\ui-all\images\tabs_enabled.gif" />
+    <Content Include="Styles\ui-all\images\tabs_leftarrow.png" />
+    <Content Include="Styles\ui-all\images\tabs_rightarrow.png" />
+    <Content Include="Styles\ui-all\images\tree_arrows.gif" />
+    <Content Include="Styles\ui-all\images\tree_checkbox_0.gif" />
+    <Content Include="Styles\ui-all\images\tree_checkbox_1.gif" />
+    <Content Include="Styles\ui-all\images\tree_checkbox_2.gif" />
+    <Content Include="Styles\ui-all\images\tree_dnd_no.png" />
+    <Content Include="Styles\ui-all\images\tree_dnd_yes.png" />
+    <Content Include="Styles\ui-all\images\tree_elbow.png" />
+    <Content Include="Styles\ui-all\images\tree_file.gif" />
+    <Content Include="Styles\ui-all\images\tree_folder.gif" />
+    <Content Include="Styles\ui-all\images\tree_folder_open.gif" />
+    <Content Include="Styles\ui-all\images\tree_loading.gif" />
+    <Content Include="Styles\ui-all\images\validatebox_pointer.gif" />
+    <Content Include="Styles\ui-all\images\validatebox_warning.png" />
+    <Content Include="Styles\ui-all\tree.css" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_diagonals-thick_18_b81900_40x40.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_diagonals-thick_20_666666_40x40.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_flat_10_000000_40x100.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_glass_100_f6f6f6_1x400.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_glass_100_fdf5ce_1x400.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_glass_65_ffffff_1x400.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_gloss-wave_35_f6a828_500x100.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_highlight-soft_100_eeeeee_1x100.png" />
+    <Content Include="Styles\ui-lightness\images\ui-bg_highlight-soft_75_ffe45c_1x100.png" />
+    <Content Include="Styles\ui-lightness\images\ui-icons_222222_256x240.png" />
+    <Content Include="Styles\ui-lightness\images\ui-icons_228ef1_256x240.png" />
+    <Content Include="Styles\ui-lightness\images\ui-icons_ef8c08_256x240.png" />
+    <Content Include="Styles\ui-lightness\images\ui-icons_ffd27a_256x240.png" />
+    <Content Include="Styles\ui-lightness\images\ui-icons_ffffff_256x240.png" />
+    <Content Include="Styles\ui-lightness\jquery-ui-1.8.22.custom.css" />
+    <Content Include="SystemStatus\ProductInfo.html" />
+    <Content Include="SystemStatus\RunInfo.html" />
+    <Content Include="Template\Alert.html" />
+    <Content Include="Template\CallInfo.html" />
+    <Content Include="Template\data.html" />
+    <Content Include="Template\find-1.html" />
+    <Content Include="Template\find-2.html" />
+    <Content Include="Template\find-alert-win.html" />
+    <Content Include="Template\find-alert.html" />
+    <Content Include="Template\find-form.html" />
+    <Content Include="Template\find-order.html" />
+    <Content Include="Template\form-collapse.html" />
+    <Content Include="Template\form-guide.html" />
+    <Content Include="Template\form-Master-slave.html" />
+    <Content Include="Template\form-tabs-list.html" />
+    <Content Include="Template\form-tabs.html" />
+    <Content Include="Template\form-tree.html" />
+    <Content Include="Template\Maintain-add.html" />
+    <Content Include="Template\Maintain-del.html" />
+    <Content Include="Template\Maintain-edit.html" />
+    <Content Include="Test.xml" />
+    <Content Include="Web.config" />
+    <Content Include="XmlFile\Test.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="call_manage\pbxset\agent_manage.aspx.cs">
+      <DependentUpon>agent_manage.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="call_manage\pbxset\agent_manage.aspx.designer.cs">
+      <DependentUpon>agent_manage.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="PersonalInfo\P_Overview\PersonalInfo.aspx.cs">
+      <DependentUpon>PersonalInfo.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="PersonalInfo\P_Overview\PersonalInfo.aspx.designer.cs">
+      <DependentUpon>PersonalInfo.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Data\Fsm1000.db" />
+    <Content Include="img\logo.psd" />
+    <Content Include="Styles\font\fzqt.ttf" />
+    <Content Include="Styles\font\Vani.ttf" />
+    <Content Include="Styles\font\Vanib.ttf" />
+    <Content Include="Styles\ui-all\images\Thumbs.db" />
+    <Content Include="packages.config" />
+    <None Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <None Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <Content Include="新建 Microsoft Office Word 文档.docx" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Properties\licenses.licx" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <PlatformTarget>x86</PlatformTarget>
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <PlatformTarget>x86</PlatformTarget>
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\Debug\x64\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>True</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>0</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:19391/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>
+          </CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

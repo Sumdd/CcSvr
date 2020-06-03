@@ -1,0 +1,30 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="DB.Basic.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="DB_Server" Type="System.String" Scope="User">
+      <Value Profile="(Default)">localhost</Value>
+    </Setting>
+    <Setting Name="DB_Name" Type="System.String" Scope="User">
+      <Value Profile="(Default)">cmcp10</Value>
+    </Setting>
+    <Setting Name="DB_Uid" Type="System.String" Scope="User">
+      <Value Profile="(Default)">root</Value>
+    </Setting>
+    <Setting Name="DB_Pwd" Type="System.String" Scope="User">
+      <Value Profile="(Default)">cccccc</Value>
+    </Setting>
+    <Setting Name="fs_db_server" Type="System.String" Scope="User">
+      <Value Profile="(Default)">localhost</Value>
+    </Setting>
+    <Setting Name="fs_db_name" Type="System.String" Scope="User">
+      <Value Profile="(Default)">cmcp10</Value>
+    </Setting>
+    <Setting Name="fs_db_uid" Type="System.String" Scope="User">
+      <Value Profile="(Default)">root</Value>
+    </Setting>
+    <Setting Name="fs_db_pwd" Type="System.String" Scope="User">
+      <Value Profile="(Default)">cccccc</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

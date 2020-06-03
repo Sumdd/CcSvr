@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<title></title>
+    <link rel="stylesheet" type="text/css" href="../../Styles/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../Styles/admin-all.css" />
+    <script type="text/javascript" src="../../Scripts/jquery-1.7.2.js"></script>
+    <script type="text/javascript" src="../../Scripts/jquery-ui-1.8.22.custom.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../Styles/ui-lightness/jquery-ui-1.8.22.custom.css" />
+
+</head>
+<body>
+	<div class="alert alert-info">
+		当前位置<b class="tip"></b>PBX基本设置<b class="tip"></b>用户管理
+	</div>
+	<table class="table table-striped table-bordered table-condensed">
+		<thead>
+			<tr>
+				<td colspan="6" class="auto-style2">&nbsp;请填写查询条件 </td>
+			</tr>
+		</thead>
+		<tbody>
+
+			<tr>
+				<td>单据号</td>
+				<td class="detail">
+					<input name="Name" value="" type="text" />
+
+				</td>
+				<td>单据类型</td>
+				<td class="td_detail">
+					<input id="finishTime" /></td>
+				<td>部门 </td>
+				<td>
+					<select
+						size="1" name="ENTPdept">
+						<option value="10401"></option>
+						<option value="10388">第二营销事业部</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>提交日期起 </td>
+				<td>
+					<div class="input-append">
+						<input class="span2 datepicker" type="text" /><span class="add-on"><i class="icon-calendar"></i></span>
+					</div>
+				</td>
+				<td>报销人 </td>
+				<td>
+					<select size="1" name="select2">
+						<option value="10401"></option>
+						<option value="10388">第二营销事业部</option>
+					</select></td>
+				<td>所属项目</td>
+				<td>
+					<select
+						size="1" name="select3"
+						s>
+						<option value="10401"></option>
+						<option value="10388">第二营销事业部</option>
+					</select></td>
+			</tr>
+			<tr>
+				<td>本币金额</td>
+				<td>
+					<div class="input-append">
+						<input class="span2" id="Text2" size="16" type="text" /><span class="add-on">$</span>至<input class="span2" id="Text3" size="16" type="text" /><span class="add-on">$</span>
+					</div>
+				</td>
+				<td>申请人 </td>
+				<td colspan="3">
+					<input
+						id="finishTime2"></td>
+			</tr>
+			<tr>
+				<td>提交财务审核日期 </td>
+				<td>
+					<div class="input-append">
+						<input class="span2 datepicker" size="16" type="text" /><span class="add-on"><i class="icon-calendar"></i></span>至<input class="span2 datepicker" size="16" type="text" /><span class="add-on"><i class="icon-calendar"></i></span>
+					</div>
+				</td>
+				<td>单据状态 </td>
+				<td colspan="3">
+					<select
+						size="1" name="select4">
+						<option value="10401"></option>
+						<option value="10388">第二营销事业部</option>
+					</select>
+					至 
+                    <select
+						size="1" name="select5">
+						<option value="10401"></option>
+						<option value="10388">第二营销事业部</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="6" align="right">
+					<input class="btn btn-inverse" id="find" type="button" value="查询" />
+					<input class="btn btn-inverse" type="button" value="清空" /></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<table id="list" class="table table-striped table-bordered table-condensed list">
+		<thead>
+			<tr>
+				<td>帐号
+				</td>
+				<td>密码
+				</td>
+				<td>用户
+				</td>
+				<td>登录状态
+				</td>
+				<td>用户号码
+				</td>
+				<td>号码密码
+				</td>
+				<td>登录IP
+				</td>
+				<td>团队名称
+				</td>
+				<td>状态
+				</td>
+				<td>权限
+				</td>
+				<td>通道
+				</td>
+				<td>客户端参数
+				</td>
+				<td>可用
+				</td>
+				<td>绑定帐号
+				</td>
+				<td>绑定帐号密码
+				</td>
+				<td>备注
+				</td>
+				<td>操作
+				</td>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">nihao
+				</td>
+				<td style="text-align: center; ">
+					<button class="btn btn-mini btn-danger edit">
+						查询</button>
+					<button class="btn btn-mini btn-danger edit">
+						编辑</button>
+					<button class="btn btn-mini btn-danger del">
+						删除</button>
+				</td>
+			</tr>
+		</tbody>
+		<tfoot>
+			<tr class="tr_pagenumber">
+				<td colspan="17">当前第5页/共55页&nbsp;&nbsp;共650条记录&nbsp;&nbsp;<a class="badge badge-inverse">首页</a>&nbsp;<a class="badge badge-inverse">下一页</a>&nbsp;
+                    <a class="badge badge-inverse">1</a>&nbsp;<a class="badge badge-inverse">2</a>&nbsp;<a class="badge badge-inverse">3</a>&nbsp;<a class="badge badge-inverse">4</a>&nbsp;
+                    <a class="badge badge-warning">5</a>&nbsp;<a class="badge badge-inverse">...</a>&nbsp;<a class="badge badge-inverse">55</a>&nbsp;<a class="badge badge-inverse">上一页</a>&nbsp;<a class="badge badge-inverse">尾页</a></td>
+			</tr>
+			<tr>
+                <td colspan="17"><a class="btn btn-mini btn-primary add">添加新用户</a></td>
+            </tr>
+		</tfoot>
+	</table>
+</body>
+</html>
