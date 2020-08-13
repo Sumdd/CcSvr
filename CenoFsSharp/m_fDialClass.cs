@@ -99,12 +99,14 @@ namespace CenoFsSharp
                     ///<![CDATA[
                     /// <2>查找号码表,是否由此号码,如果有,路由到呼入
                     /// 为了稳妥,这里使用仅号码表
+                    /// 兼容了某次调试注册文件在5060端口的情况,其余暂无走此分支的情况
+                    /// 优化为一次查询即可
                     /// ]]>
                     int _m_uAgentID = m_fDialLimit.m_fGetAgentID(m_sRealCalleeNumberStr, out m_stNumberStr, true, string.Empty);
                     if (_m_uAgentID > -1)
                     {
                         Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} dial -> call]");
-                        m_fCallClass.m_fCall(m_pOutboundSocket);
+                        m_fCallClass.m_fCall(m_pOutboundSocket, null, 0, null, _m_uAgentID);
                         return;
                     }
 
@@ -355,6 +357,7 @@ namespace CenoFsSharp
                             /// 空也做强制加拨处理
                             /// ]]>
 
+                            ///强制加拨前缀只使用外地加拨即可
                             if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
                             {
                                 if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
@@ -372,20 +375,23 @@ namespace CenoFsSharp
                                     case Special.Mobile:
                                         if (!m_sRealCalleeNumberStr.Contains('*') && !m_sRealCalleeNumberStr.Contains('#'))
                                         {
-                                            if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
+                                            if (_m_mDialLimit.m_bZflag)
                                             {
-                                                if (_m_mDialLimit.m_bZflag)
+
+                                                ///<![CDATA[
+                                                /// 当被叫号码未找到归属地时,不加拨前缀
+                                                /// ]]>
+
+                                                if (!string.IsNullOrWhiteSpace(m_lStrings[4]) && _m_mDialLimit.m_sAreaCodeStr != m_lStrings[4])
                                                 {
-
-                                                    ///<![CDATA[
-                                                    /// 当被叫号码未找到归属地时,不加拨前缀
-                                                    /// ]]>
-
-                                                    if (!string.IsNullOrWhiteSpace(m_lStrings[4]) && _m_mDialLimit.m_sAreaCodeStr != m_lStrings[4])
-                                                    {
-                                                        m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[0]}";
-                                                    }
+                                                    m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[0]}";
                                                 }
+                                                else
+                                                {
+                                                    m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_lStrings[0]}";
+                                                }
+                                                //原号码
+                                                m_sCalleeRemove0000Prefix = $"{m_lStrings[0]}";
                                             }
                                         }
                                         break;

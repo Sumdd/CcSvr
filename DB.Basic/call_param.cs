@@ -1296,5 +1296,125 @@ namespace DB.Basic {
             }
         }
         #endregion
+        #region ***新生代续联HTTP接口
+        public static string _m_sXxHttp;
+        public static string m_sXxHttp
+        {
+            get
+            {
+                try
+                {
+                    if (_m_sXxHttp == null)
+                    {
+                        Call_ParamUtil._m_sXxHttp = Call_ParamUtil.GetParamValueByName("_m_sXxHttp".Replace("_m_s", "").Replace("m_s", ""));
+                    }
+                    return _m_sXxHttp;
+                }
+                catch
+                {
+                    return _m_sXxHttp = "";
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_sXxHttp".Replace("_m_s", "").Replace("m_s", ""), value);
+                    _m_sXxHttp = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
+        #region ***是否开启追加独立服务中的共享号码,申请式
+        public static bool? _m_bUseApply;
+        public static bool m_bUseApply
+        {
+            get
+            {
+                try
+                {
+                    if (_m_bUseApply == null)
+                    {
+                        _m_bUseApply = Call_ParamUtil.GetParamValueByName("UseApply") == "1";
+                    }
+                    return Convert.ToBoolean(_m_bUseApply);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("UseApply", value ? "1" : "0");
+                    _m_bUseApply = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
+        #region ***独立申请式的出局Ua
+        public static string _m_sApiUa;
+        public static string m_sApiUa
+        {
+            get
+            {
+                try
+                {
+                    if (_m_sApiUa == null)
+                    {
+                        Call_ParamUtil._m_sApiUa = Call_ParamUtil.GetParamValueByName("_m_sApiUa".Replace("_m_s", "").Replace("m_s", ""));
+                    }
+                    return _m_sApiUa;
+                }
+                catch
+                {
+                    return _m_sApiUa = "external";
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_sApiUa".Replace("_m_s", "").Replace("m_s", ""), value);
+                    _m_sApiUa = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
+        #region ***To拼接至主叫名称
+        public static int? _m_uAppendTo;
+        public static int m_uAppendTo
+        {
+            get
+            {
+                try
+                {
+                    if (_m_uAppendTo == null)
+                    {
+                        Call_ParamUtil._m_uAppendTo = Convert.ToInt32(Call_ParamUtil.GetParamValueByName("_m_uAppendTo".Replace("_m_u", "").Replace("m_u", "")));
+                    }
+                    return Call_ParamUtil._m_uAppendTo.Value;
+                }
+                catch
+                {
+                    return 2;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_uAppendTo".Replace("_m_u", "").Replace("m_u", ""), value.ToString());
+                    _m_uAppendTo = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
     }
 }

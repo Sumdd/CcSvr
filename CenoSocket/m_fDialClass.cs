@@ -83,7 +83,8 @@ namespace CenoSocket
 
                 #region ***拨号Socket命令自定义数据
                 ///自定义分割式数据|&
-                string m_sUsrData = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[9]);
+                string m_sUsrData = string.Empty;
+                if (m_aSocketCmdArray.Length > 9) m_sUsrData = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[9]);
                 ///是否兼容加密号码
                 bool m_bQNRegexNumber = false;
                 ///号码归属地时间
@@ -94,13 +95,43 @@ namespace CenoSocket
                 string m_sZipCode = string.Empty;
                 ///分割数据
                 string[] m_lUsrData = m_sUsrData.Split('|');
+                ///是否为32位加密号码
                 if (m_lUsrData.Length > 0) m_bQNRegexNumber = m_lUsrData[0] == "1";
+                ///归属地详情直接传入
                 if (m_lUsrData.Length > 1)
                 {
                     string[] m_lPm = m_lUsrData[1].Split('&');
                     if (m_lPm.Length > 0) m_sDt = m_lPm[0];
                     if (m_lPm.Length > 1) m_sCardType = m_lPm[1];
                     if (m_lPm.Length > 2) m_sZipCode = m_lPm[2];
+                }
+                ///拨号前客户端向服务端发送唯一性ID
+                string m_sRecUUID = string.Empty;
+                if (m_lUsrData.Length > 2)
+                {
+                    m_sRecUUID = m_lUsrData[2];
+                }
+                ///后续追加拓展字段,存储入通话表数据库
+                #endregion
+
+                #region ***独立服务号码命令拓展
+                string m_sGwName = string.Empty;
+                string m_sGwIP = string.Empty;
+                if (m_lUsrData.Length > 3)
+                {
+                    string[] m_lPm = m_lUsrData[3].Split('&');
+                    if (m_lPm.Length > 0) m_sGwName = m_lPm[0];
+                    if (m_lPm.Length > 1) m_sGwIP = m_lPm[1];
+
+                    if (m_sNumberType == Special.ApiShare)
+                    {
+                        if (string.IsNullOrWhiteSpace(m_sGwName) || string.IsNullOrWhiteSpace(m_sGwIP))
+                        {
+                            Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} no number or ip]");
+                            m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Api信息缺失"));
+                            return;
+                        }
+                    }
                 }
                 #endregion
 
@@ -158,7 +189,31 @@ namespace CenoSocket
                     return;
                 }
 
+                ///等待强断完成
+                if (
+                    (m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
+                    m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP)
+                    )
+                {
+                    DateTime m_dtWait = DateTime.Now;
+                    while (true)
+                    {
+                        if (m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_IDLE)
+                            break;
+                        if (((TimeSpan)(DateTime.Now - m_dtWait)).TotalSeconds > 3)
+                            break;
+                    }
+                    if (m_mChannel.channel_call_status != APP_USER_STATUS.FS_USER_IDLE)
+                    {
+                        m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Warn请重拨"));
+                        return;
+                    }
+                }
+
+                ///状态拨号前
                 m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_BF_DIAL;
+                m_mChannel.channel_call_uuid_after = uuid;
+
                 call_record_model m_mRecord = new call_record_model(m_mChannel.channel_id);
                 m_mRecord.AgentID = m_uAgentID;
                 m_mRecord.UAID = m_sUAID;
@@ -179,101 +234,114 @@ namespace CenoSocket
 
                 if (!m_bStar)
                 {
-                    #region ***拨号限制,增加号码池逻辑
-                    switch (m_sNumberType)
+                    if (m_sNumberType == Special.ApiShare)
                     {
-                        case Special.Common:
-                            {
-                                _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sTypeUUID);
-                                break;
-                            }
-                        case Special.Share:
-                            {
-                                //跳转至号码池逻辑,需要持久化至数据库,录音记录都进行保存
-                                string m_sErrMsg = string.Empty;
-                                m_pShareNumber = Redis2.m_fGetTheShareNumber(uuid, m_uAgentID, m_sTypeUUID, m_sDealWithRealPhoneNumberStr, DB.Basic.Call_ParamUtil.m_uShareNumSetting, out m_sErrMsg);
-                                _m_mDialLimit = m_fDialLimit.m_fGetDialLimitByShare(m_pShareNumber);
-                                if (_m_mDialLimit == null)
+                        m_mRecord.LocalNum = m_sGwName;
+                        m_mRecord.CallType = 1;
+                        //保证号码真实性,确保可以直接回呼
+                        m_mRecord.T_PhoneNum = m_sCalleeNumberStr;
+                        m_mRecord.C_PhoneNum = m_sDealWithPhoneNumberStr;
+                        m_mRecord.PhoneAddress = m_sPhoneAddressStr;
+                    }
+                    else
+                    {
+                        #region ***拨号限制,增加号码池逻辑
+                        switch (m_sNumberType)
+                        {
+                            case Special.Common:
                                 {
-                                    Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} get share error]");
-                                    if (string.IsNullOrWhiteSpace(m_sErrMsg)) m_sErrMsg = "Err获取号码";
-                                    m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail(m_sErrMsg));
+                                    _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sTypeUUID);
+                                    break;
+                                }
+                            case Special.Share:
+                                {
+                                    //跳转至号码池逻辑,需要持久化至数据库,录音记录都进行保存
+                                    string m_sErrMsg = string.Empty;
+                                    m_pShareNumber = Redis2.m_fGetTheShareNumber(uuid, m_uAgentID, m_sTypeUUID, m_sDealWithRealPhoneNumberStr, DB.Basic.Call_ParamUtil.m_uShareNumSetting, out m_sErrMsg);
+                                    _m_mDialLimit = m_fDialLimit.m_fGetDialLimitByShare(m_pShareNumber);
+                                    if (_m_mDialLimit == null)
+                                    {
+                                        Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} get share error]");
+                                        if (string.IsNullOrWhiteSpace(m_sErrMsg)) m_sErrMsg = "Err获取号码";
+                                        m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail(m_sErrMsg));
+
+                                        m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                                        m_mChannel.channel_call_uuid = null;
+                                        m_mChannel.channel_call_uuid_after = null;
+                                        m_mChannel.channel_call_other_uuid = null;
+
+                                        return;
+                                    }
+                                    //如果可以出来,任何需要解锁的地方都要加逻辑
+                                    m_mRecord.isshare = 1;
+                                    m_mRecord.FreeSWITCHIPv4 = m_sFreeSWITCHIPv4;
+                                    break;
+                                }
+                            default:
+                                {
+                                    Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} unknown number type]");
+                                    m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err号码类别"));
 
                                     m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                                     m_mChannel.channel_call_uuid = null;
+                                    m_mChannel.channel_call_uuid_after = null;
                                     m_mChannel.channel_call_other_uuid = null;
 
                                     return;
                                 }
-                                //如果可以出来,任何需要解锁的地方都要加逻辑
-                                m_mRecord.isshare = 1;
-                                m_mRecord.FreeSWITCHIPv4 = m_sFreeSWITCHIPv4;
-                                break;
-                            }
-                        default:
-                            {
-                                Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} unknown number type]");
-                                m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err号码类别"));
+                        }
 
+                        if (_m_mDialLimit?.m_sDtmf == Call_ParamUtil.inbound || _m_mDialLimit?.m_sDtmf == Call_ParamUtil.bothSignal)
+                        {
+                            m_sDTMFSendMethod = _m_mDialLimit.m_sDtmf;
+                        }
+
+                        if (_m_mDialLimit != null && !string.IsNullOrWhiteSpace(_m_mDialLimit.m_sNumberStr))
+                        {
+                            #region 网关有误
+                            if (string.IsNullOrWhiteSpace(_m_mDialLimit.m_sGatewayNameStr))
+                            {
                                 m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                                 m_mChannel.channel_call_uuid = null;
+                                m_mChannel.channel_call_uuid_after = null;
                                 m_mChannel.channel_call_other_uuid = null;
+                                Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} gateway fail]");
+                                m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err网关有误"));
+
+                                if (m_bShare && !m_bDeleteRedisLock)
+                                {
+                                    m_bDeleteRedisLock = true;
+                                    Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                                }
 
                                 return;
                             }
-                    }
+                            #endregion
 
-                    if (_m_mDialLimit?.m_sDtmf == Call_ParamUtil.inbound || _m_mDialLimit?.m_sDtmf == Call_ParamUtil.bothSignal)
-                    {
-                        m_sDTMFSendMethod = _m_mDialLimit.m_sDtmf;
-                    }
+                            m_mRecord.LocalNum = _m_mDialLimit.m_sNumberStr;
+                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} dialcount:{_m_mDialLimit.m_uDialCount}]");
 
-                    if (_m_mDialLimit != null && !string.IsNullOrWhiteSpace(_m_mDialLimit.m_sNumberStr))
-                    {
-                        #region 网关有误
-                        if (string.IsNullOrWhiteSpace(_m_mDialLimit.m_sGatewayNameStr))
-                        {
-                            m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
-                            m_mChannel.channel_call_uuid = null;
-                            m_mChannel.channel_call_other_uuid = null;
-                            Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} gateway fail]");
-                            m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err网关有误"));
+                            ///<![CDATA[
+                            /// 空也做强制加拨处理
+                            /// ]]>
 
-                            if (m_bShare && !m_bDeleteRedisLock)
+                            ///强制加拨前缀只使用外地加拨即可
+                            if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
                             {
-                                m_bDeleteRedisLock = true;
-                                Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                                if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
+                                {
+                                    Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} add prefix:{_m_mDialLimit.m_sDialPrefixStr}]");
+                                }
+                                m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
+                                //原号码
+                                m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
                             }
-
-                            return;
-                        }
-                        #endregion
-
-                        m_mRecord.LocalNum = _m_mDialLimit.m_sNumberStr;
-                        Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} dialcount:{_m_mDialLimit.m_uDialCount}]");
-
-                        ///<![CDATA[
-                        /// 空也做强制加拨处理
-                        /// ]]>
-
-                        if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
-                        {
-                            if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
+                            else
                             {
-                                Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} add prefix:{_m_mDialLimit.m_sDialPrefixStr}]");
-                            }
-                            m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
-                            //原号码
-                            m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
-                        }
-                        else
-                        {
-                            switch (m_sDealWithStr)
-                            {
-                                case Special.Mobile:
-                                    if (!m_sDealWithRealPhoneNumberStr.Contains('*') && !m_sDealWithRealPhoneNumberStr.Contains('#'))
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
+                                switch (m_sDealWithStr)
+                                {
+                                    case Special.Mobile:
+                                        if (!m_sDealWithRealPhoneNumberStr.Contains('*') && !m_sDealWithRealPhoneNumberStr.Contains('#'))
                                         {
                                             if (_m_mDialLimit.m_bZflag)
                                             {
@@ -286,37 +354,44 @@ namespace CenoSocket
                                                 {
                                                     m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
                                                 }
+                                                else
+                                                {
+                                                    m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_sDealWithRealPhoneNumberStr}";
+                                                }
+                                                //原号码
+                                                m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
                                             }
                                         }
-                                    }
-                                    break;
-                                default:
-                                    break;
+                                        break;
+                                    default:
+                                        break;
+                                }
                             }
+                            m_mRecord.CallType = 1;
+                            //保证号码真实性,确保可以直接回呼
+                            m_mRecord.T_PhoneNum = string.IsNullOrWhiteSpace(m_sCalleeRemove0000Prefix) ? m_sCalleeNumberStr : m_sCalleeRemove0000Prefix;
+                            m_mRecord.C_PhoneNum = m_sDealWithPhoneNumberStr;
+                            m_mRecord.PhoneAddress = m_sPhoneAddressStr;
                         }
-                        m_mRecord.CallType = 1;
-                        //保证号码真实性,确保可以直接回呼
-                        m_mRecord.T_PhoneNum = string.IsNullOrWhiteSpace(m_sCalleeRemove0000Prefix) ? m_sCalleeNumberStr : m_sCalleeRemove0000Prefix;
-                        m_mRecord.C_PhoneNum = m_sDealWithPhoneNumberStr;
-                        m_mRecord.PhoneAddress = m_sPhoneAddressStr;
-                    }
-                    else
-                    {
-                        m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
-                        m_mChannel.channel_call_uuid = null;
-                        m_mChannel.channel_call_other_uuid = null;
-                        Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} no phone number]");
-                        m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err拨号限制"));
-
-                        if (m_bShare && !m_bDeleteRedisLock)
+                        else
                         {
-                            m_bDeleteRedisLock = true;
-                            Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
-                        }
+                            m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_uuid_after = null;
+                            m_mChannel.channel_call_other_uuid = null;
+                            Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} no phone number]");
+                            m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err拨号限制"));
 
-                        return;
+                            if (m_bShare && !m_bDeleteRedisLock)
+                            {
+                                m_bDeleteRedisLock = true;
+                                Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                            }
+
+                            return;
+                        }
+                        #endregion
                     }
-                    #endregion
                 }
                 else
                 {
@@ -330,41 +405,52 @@ namespace CenoSocket
                 bool m_bInboundTest = Call_ParamUtil.InboundTest;
                 string m_sEndPointStrA = $"user/{m_mChannel.channel_number}";
                 string m_sEndPointStrB = string.Empty;
-                if (m_bStar) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";
+
+                if (m_sNumberType == Special.ApiShare)
+                {
+                    ///Api出局Ua,已写到文件里
+                    m_sEndPointStrB = $"sofia/{Call_ParamUtil.m_sApiUa}/sip:{m_sCalleeNumberStr}@{m_sGwIP}";
+                }
                 else
                 {
-                    if (m_bInboundTest) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";
+                    #region ***原终点表达式
+                    if (m_bStar) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";
                     else
                     {
-                        if (_m_mDialLimit.m_bGatewayType)
+                        if (m_bInboundTest) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";
+                        else
                         {
-                            //加一个拨号计划
-                            //m_sEndPointStrB = $"sofia/gateway/{_m_mDialLimit.m_sGatewayNameStr}/{m_sCalleeNumberStr}";
-                            if (_m_mDialLimit.m_sGatewayNameStr == "haoshunhz")
+                            if (_m_mDialLimit.m_bGatewayType)
                             {
-                                if (
-                                    m_mRecord.T_PhoneNum == "114"
-                                    ||
-                                    (m_mRecord.T_PhoneNum.StartsWith("0") && m_mRecord.T_PhoneNum.EndsWith("114"))
-                                    ||
-                                    m_sDealWithStr == Special.Telephone
-                                    )
+                                //加一个拨号计划
+                                //m_sEndPointStrB = $"sofia/gateway/{_m_mDialLimit.m_sGatewayNameStr}/{m_sCalleeNumberStr}";
+                                if (_m_mDialLimit.m_sGatewayNameStr == "haoshunhz")
                                 {
-                                    string m_sPrefixCallee = m_sCalleeNumberStr.StartsWith("3303") ? m_sCalleeNumberStr : $"3303{m_sCalleeNumberStr}";
-                                    m_sEndPointStrB = $"sofia/gateway/haoshunhzgh/{m_sPrefixCallee}";
+                                    if (
+                                        m_mRecord.T_PhoneNum == "114"
+                                        ||
+                                        (m_mRecord.T_PhoneNum.StartsWith("0") && m_mRecord.T_PhoneNum.EndsWith("114"))
+                                        ||
+                                        m_sDealWithStr == Special.Telephone
+                                        )
+                                    {
+                                        string m_sPrefixCallee = m_sCalleeNumberStr.StartsWith("3303") ? m_sCalleeNumberStr : $"3303{m_sCalleeNumberStr}";
+                                        m_sEndPointStrB = $"sofia/gateway/haoshunhzgh/{m_sPrefixCallee}";
+                                    }
+                                    else
+                                    {
+                                        m_sEndPointStrB = $"sofia/gateway/{_m_mDialLimit.m_sGatewayNameStr}/{m_sCalleeNumberStr}";
+                                    }
                                 }
                                 else
                                 {
                                     m_sEndPointStrB = $"sofia/gateway/{_m_mDialLimit.m_sGatewayNameStr}/{m_sCalleeNumberStr}";
                                 }
                             }
-                            else
-                            {
-                                m_sEndPointStrB = $"sofia/gateway/{_m_mDialLimit.m_sGatewayNameStr}/{m_sCalleeNumberStr}";
-                            }
+                            else m_sEndPointStrB = $"sofia/{_m_mDialLimit.m_sGatewayType}/sip:{m_sCalleeNumberStr}@{_m_mDialLimit.m_sGatewayNameStr}";
                         }
-                        else m_sEndPointStrB = $"sofia/{_m_mDialLimit.m_sGatewayType}/sip:{m_sCalleeNumberStr}@{_m_mDialLimit.m_sGatewayNameStr}";
                     }
+                    #endregion
                 }
 
                 Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} a-leg-endpoint:{m_sEndPointStrA},number:{m_mRecord.LocalNum}]");
@@ -377,12 +463,12 @@ namespace CenoSocket
                 bool m_bIsLinked = false;
                 string m_sExtensionStr = Call_ParamUtil._rec_t;
                 string m_sWhoHangUpStr = string.Empty;
-                m_mChannel.channel_call_uuid = uuid;
                 //真实号码赋值
-                if (!m_bStar) m_stNumberStr = _m_mDialLimit.m_stNumberStr;
+                if (!m_bStar) m_stNumberStr = _m_mDialLimit?.m_stNumberStr;
                 //录音中真实号码赋值
                 m_mRecord.tnumber = m_stNumberStr;
 
+                if (m_fDoStatus(m_mChannel, null, 0, m_uAgentID)) return;
                 InboundSocket m_sClient = await InboundMain.fs_cli().ContinueWith(task =>
                 {
                     try
@@ -401,6 +487,7 @@ namespace CenoSocket
                 {
                     m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                     m_mChannel.channel_call_uuid = null;
+                    m_mChannel.channel_call_uuid_after = null;
                     m_mChannel.channel_call_other_uuid = null;
                     Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} miss InboundSocket]");
                     m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("ErrESL"));
@@ -414,7 +501,10 @@ namespace CenoSocket
                     return;
                 }
 
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                 bool m_bIsDispose = false;
+                IDisposable m_eEventChannelCreate = null;
                 IDisposable m_eEventChannelPark = null;
                 IDisposable m_eChannel200 = null;
                 IDisposable m_eEventMessage = null;
@@ -431,7 +521,7 @@ namespace CenoSocket
                         }
                         if (m_eEventMessage != null)
                         {
-                            m_eEventChannelPark.Dispose();
+                            m_eEventMessage.Dispose();
                             Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} event Message dispose]");
                         }
 
@@ -439,6 +529,12 @@ namespace CenoSocket
                         {
                             m_eChannel200.Dispose();
                             Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} event ChannelAnswer dispose]");
+                        }
+
+                        if (m_eEventChannelCreate != null)
+                        {
+                            m_eEventChannelCreate.Dispose();
+                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} event ChannelCreate dispose]");
                         }
 
                         if (m_bShare && !m_bDeleteRedisLock)
@@ -454,6 +550,8 @@ namespace CenoSocket
                     }
                 };
 
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                 if (m_bIsDispose) return;
                 await m_sClient.SubscribeEvents(EventName.ChannelPark).ContinueWith(task =>
                 {
@@ -471,6 +569,8 @@ namespace CenoSocket
                 #region 订阅消息
                 if (m_bSubMessage)
                 {
+                    ///强断
+                    if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                     if (m_bIsDispose) return;
                     await m_sClient.SubscribeEvents(EventName.Message).ContinueWith(task =>
                     {
@@ -496,6 +596,8 @@ namespace CenoSocket
                 #region ***修改根据200计算通话时长
                 bool Channel200 = false;
 
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                 if (m_bIsDispose) return;
                 await m_sClient.SubscribeEvents(EventName.ChannelAnswer).ContinueWith(task =>
                 {
@@ -510,6 +612,8 @@ namespace CenoSocket
                     }
                 });
 
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                 //200消息处理,得到真实的拨打时间
                 m_eChannel200 = m_sClient.ChannelEvents.Where(x => x.UUID == bridgeUUID && (x.EventName == EventName.ChannelAnswer)).Take(1).Subscribe(x =>
                 {
@@ -525,6 +629,8 @@ namespace CenoSocket
                 });
                 #endregion
 
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                 //通道停泊
                 if (m_bIsDispose) return;
                 m_eEventChannelPark = m_sClient.ChannelEvents.Where(x => x.UUID == uuid && x.EventName == EventName.ChannelPark).Take(1).Subscribe(async x =>
@@ -577,7 +683,7 @@ namespace CenoSocket
                             Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} insert record]");
                             call_record.Insert(m_mRecord, !m_bStar && m_bShare, m_pDialArea);
 
-                            if (!m_bStar)
+                            if (!m_bStar && _m_mDialLimit != null)
                             {
                                 m_fDialLimit.m_fSetDialLimit(_m_mDialLimit.m_sNumberStr, m_uAgentID, m_mRecord.C_SpeakTime, m_pDialArea);
                                 Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} update diallimit]");
@@ -585,6 +691,7 @@ namespace CenoSocket
 
                             m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                             m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_uuid_after = null;
                             m_mChannel.channel_call_other_uuid = null;
 
                             if (m_bIsDispose) return;
@@ -721,7 +828,7 @@ namespace CenoSocket
                             Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} insert record]");
                             call_record.Insert(m_mRecord, !m_bStar && m_bShare, m_pDialArea);
 
-                            if (!m_bStar)
+                            if (!m_bStar && _m_mDialLimit != null)
                             {
                                 m_fDialLimit.m_fSetDialLimit(_m_mDialLimit.m_sNumberStr, m_uAgentID, 0, m_pDialArea);
                                 Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} update diallimit]");
@@ -729,6 +836,7 @@ namespace CenoSocket
 
                             m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                             m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_uuid_after = null;
                             m_mChannel.channel_call_other_uuid = null;
 
                             if (m_bIsDispose) return;
@@ -941,7 +1049,7 @@ namespace CenoSocket
                                 Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} insert record]");
                                 call_record.Insert(m_mRecord, !m_bStar && m_bShare, m_pDialArea);
 
-                                if (!m_bStar)
+                                if (!m_bStar && _m_mDialLimit != null)
                                 {
                                     m_fDialLimit.m_fSetDialLimit(_m_mDialLimit.m_sNumberStr, m_uAgentID, m_mRecord.C_SpeakTime, m_pDialArea);
                                     Log.Instance.Success($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} update diallimit]");
@@ -949,6 +1057,7 @@ namespace CenoSocket
 
                                 m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                                 m_mChannel.channel_call_uuid = null;
+                                m_mChannel.channel_call_uuid_after = null;
                                 m_mChannel.channel_call_other_uuid = null;
 
                                 if (m_bIsDispose) return;
@@ -989,6 +1098,8 @@ namespace CenoSocket
                 #region 根据消息内容以及商定的方式发送dtmf
                 if (m_bSubMessage)
                 {
+                    ///强断
+                    if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                     if (m_bIsDispose) return;
                     m_eEventMessage = m_sClient.ChannelEvents.Where(x => x.UUID == uuid && x.EventName == EventName.Message).Subscribe(async x =>
                     {
@@ -1102,6 +1213,35 @@ namespace CenoSocket
                 }
                 #endregion
 
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
+                if (m_bIsDispose) return;
+                await m_sClient.SubscribeEvents(EventName.ChannelCreate).ContinueWith(task =>
+                {
+                    try
+                    {
+                        if (m_bIsDispose) return;
+                        if (task.IsCanceled) Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} event ChannelCreate cancel]");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Instance.Error($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} event ChannelCreate error:{ex.Message}]");
+                    }
+                });
+
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
+                if (m_bIsDispose) return;
+                m_eEventChannelCreate = m_sClient.ChannelEvents.Where(x => x.UUID == uuid && (x.EventName == EventName.ChannelCreate)).Take(1).Subscribe(x =>
+                {
+                    m_mChannel.channel_call_uuid = uuid;
+                    ///强断
+                    if (m_fDoStatus(m_mChannel, m_sClient, 3, m_uAgentID, false)) return;
+
+                });
+
+                ///强断
+                if (m_fDoStatus(m_mChannel, m_sClient, 1, m_uAgentID)) return;
                 //呼叫主叫
                 if (m_bIsDispose) return;
                 OriginateResult m_pOriginateResult = await m_sClient.Originate(m_sEndPointStrA, new OriginateOptions()
@@ -1156,7 +1296,12 @@ namespace CenoSocket
                         string m_sEndTimeNowString = Cmn.m_fDateTimeString(m_dtEndTimeNow);
                         m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_dtEndTimeNow, m_dtStartTimeNow);
                         m_mRecord.C_EndTime = m_sEndTimeNowString;
-                        m_mRecord.CallResultID = m_bStar ? 40 : 13;
+
+                        if (m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP)
+                            m_mRecord.CallResultID = m_bStar ? 55 : 56;
+                        else
+                            m_mRecord.CallResultID = m_bStar ? 40 : 13;
+
                         m_mRecord.Remark = m_sMsgStr;
 
                         dial_area m_pDialArea = null;
@@ -1171,6 +1316,7 @@ namespace CenoSocket
 
                         m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                         m_mChannel.channel_call_uuid = null;
+                        m_mChannel.channel_call_uuid_after = null;
                         m_mChannel.channel_call_other_uuid = null;
 
                         if (m_bIsDispose) return;
@@ -1196,6 +1342,7 @@ namespace CenoSocket
             {
                 m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                 m_mChannel.channel_call_uuid = null;
+                m_mChannel.channel_call_uuid_after = null;
                 m_mChannel.channel_call_other_uuid = null;
                 Log.Instance.Error($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} unfinished error:{ex.Message}]");
                 m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err未完成"));
@@ -1218,6 +1365,67 @@ namespace CenoSocket
             {
                 Log.Instance.Error($"[CenoSocket][m_fDialClass][m_fSend][Exception][{ex.Message}]");
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="m_mChannel"></param>
+        /// <param name="m_pClient"></param>
+        /// <param name="m_uWay">
+        /// 0.不处理
+        /// 1.Dispose
+        /// 2.Hang
+        /// 3.Kill
+        /// </param>
+        /// <returns></returns>
+        private static bool m_fDoStatus(ChannelInfo m_mChannel, InboundSocket m_sClient, int m_uWay, int m_uAgentID, bool m_bReStatus = true)
+        {
+            if (
+                m_mChannel != null &&
+                (m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
+                m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP)
+                )
+            {
+                string m_sUUID = m_mChannel.channel_call_uuid;
+                m_mChannel.channel_call_uuid = null;
+                switch (m_uWay)
+                {
+                    case 0:
+                        break;
+                    case 1:
+                        {
+                            ///强断
+                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} hangup]");
+                            if (m_sClient != null && m_sClient.IsConnected)
+                            {
+                                m_sClient.Exit().ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} exit cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} exit error:{ex.Message}]");
+                                    }
+                                });
+                            }
+                        }
+                        break;
+                    case 3:
+                        SocketMain.m_fKill(m_uAgentID, m_sUUID);
+                        break;
+                }
+                if (m_bReStatus)
+                {
+                    m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                    m_mChannel.channel_call_uuid_after = null;
+                    m_mChannel.channel_call_other_uuid = null;
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

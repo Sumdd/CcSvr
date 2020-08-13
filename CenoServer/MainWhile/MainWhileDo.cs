@@ -83,6 +83,10 @@ namespace CenoServer
    12.转码后最终扩展名:EndExt
    13.归属地表自动更新间隔参数:TaskUpdPhoneInterval
    14.归属地表自动更新HTTP路径:TaskUpdPhoneURL
+   15.新生代续联HTTP接口:XxHttp
+   16.是否开启追加独立服务中的共享号码,申请式:UseApply
+   18.独立申请式出局Ua:ApiUa
+   19.To拼接至主叫名称:AppendTo
 
   case play [count(>=-1)] `来电无法接听原因播报次数,-1表示支持早期媒体`
 
@@ -294,6 +298,14 @@ namespace CenoServer
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][TaskUpdPhoneInterval:{Call_ParamUtil.m_uTaskUpdPhoneInterval}]");
                             Call_ParamUtil._m_sTaskUpdPhoneURL = null;
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][TaskUpdPhoneURL:{Call_ParamUtil.m_sTaskUpdPhoneURL}]");
+                            Call_ParamUtil._m_sXxHttp = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][XxHttp:{Call_ParamUtil.m_sXxHttp}]");
+                            Call_ParamUtil._m_bUseApply = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][UseApply:{Call_ParamUtil.m_bUseApply}]");
+                            Call_ParamUtil._m_sApiUa = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][ApiUa:{Call_ParamUtil.m_sApiUa}]");
+                            Call_ParamUtil._m_uAppendTo = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][AppendTo:{Call_ParamUtil.m_uAppendTo}]");
                             break;
                         #endregion
 

@@ -111,6 +111,7 @@ namespace CenoFsSharp
                         /// 空也做强制加拨处理
                         /// ]]>
 
+                        ///强制加拨前缀只使用外地加拨即可
                         if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
                         {
                             if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
@@ -129,20 +130,23 @@ namespace CenoFsSharp
                                 case Special.Mobile:
                                     if (!m_sDealWithRealPhoneNumberStr.Contains('*') && !m_sDealWithRealPhoneNumberStr.Contains('#'))
                                     {
-                                        if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
+                                        if (_m_mDialLimit.m_bZflag)
                                         {
-                                            if (_m_mDialLimit.m_bZflag)
+
+                                            ///<![CDATA[
+                                            /// 当被叫号码未找到归属地时,不加拨前缀
+                                            /// ]]>
+
+                                            if (!string.IsNullOrWhiteSpace(m_lStrings[4]) && _m_mDialLimit.m_sAreaCodeStr != m_lStrings[4])
                                             {
-
-                                                ///<![CDATA[
-                                                /// 当被叫号码未找到归属地时,不加拨前缀
-                                                /// ]]>
-
-                                                if (!string.IsNullOrWhiteSpace(m_lStrings[4]) && _m_mDialLimit.m_sAreaCodeStr != m_lStrings[4])
-                                                {
-                                                    m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[0]}";
-                                                }
+                                                m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[0]}";
                                             }
+                                            else
+                                            {
+                                                m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_lStrings[0]}";
+                                            }
+                                            //原号码
+                                            m_sCalleeRemove0000Prefix = $"{m_lStrings[0]}";
                                         }
                                     }
                                     break;

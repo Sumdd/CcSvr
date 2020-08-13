@@ -50,6 +50,22 @@ namespace DB.Basic {
             }
         }
 
+        public static string m_fConnStr(string m_sIP)
+        {
+            try
+            {
+                if (m_sIP == null)
+                    throw new ArgumentNullException("m_pDialArea");
+
+                return $"server={Cmn.m_fRemoveSpace(m_sIP)};database=cmcp10;user id=root;password=123;Charset=utf8";
+            }
+            catch (Exception ex)
+            {
+                Core_v1.Log.Instance.Error($"[DB.Basic][MySQLDBConnectionString][m_fConnStr][Exception][{ex.Message}]");
+                return null;
+            }
+        }
+
         public static string DB_Server {
             get {
                 return Properties.Settings.Default.DB_Server;

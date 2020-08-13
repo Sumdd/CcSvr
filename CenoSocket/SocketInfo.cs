@@ -37,13 +37,14 @@ namespace CenoSocket
 				if (!string.IsNullOrEmpty(Info[i].ToString()))
 				{
 					string[] HTinfo = Info[i].ToString().Split(':');
+                    string m_sValue = HTinfo[1];
 					char[] NewChar = call_socketcommand_util.GetNewChar(HTinfo[0]).ToCharArray();
 					char[] OldChar = call_socketcommand_util.GetOldChar(HTinfo[0]).ToCharArray();
 					for (int j = 0; j < NewChar.Length; j++)
 					{
-						HTinfo[1].ToString().Replace(NewChar[j], OldChar[j]);
+                        m_sValue = m_sValue.Replace(NewChar[j], OldChar[j]);
 					}
-					Content.Add(HTinfo[0].ToString(), HTinfo[1].ToString());
+                    Content.Add(HTinfo[0].ToString(), m_sValue);
 				}
 			}
 		}

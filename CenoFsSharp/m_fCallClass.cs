@@ -24,12 +24,20 @@ namespace CenoFsSharp
 {
     public class m_fCallClass
     {
-        public static async void m_fCall(OutboundSocket m_pOutboundSocket, string m_sTransfer = null, int m_uShare = 0, share_number m_pShareNumber = null)
+        public delegate void m_dBusySendMsg(IWebSocketConnection m_pWebSocket, string m_sMsg);
+        public static m_dBusySendMsg m_fBusySendMsg;
+
+        public static async void m_fCall(OutboundSocket m_pOutboundSocket, string m_sTransfer = null, int m_uShare = 0, share_number m_pShareNumber = null, int _m_mAgentID = -1)
         {
             string uuid = m_pOutboundSocket.ChannelData.UUID;
-            string m_sRealCallerNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Caller-ID-Number")?.Replace("+86", "0");//主叫
-            //string m_sRealCalleeNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Destination-Number");//被叫
-            string m_sRealCalleeNumberStr = m_pOutboundSocket.ChannelData.GetHeader("variable_sip_to_user").Replace("+86", "0");//被叫
+            string m_sRealCallerNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Caller-ID-Number")?.Replace("gw+", "")?.Replace("+86", "0");//主叫
+
+            #region ***处理被叫号码,主要防止gateway、ims情况等,如有其它情况再做兼容
+            Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
+            ///被叫
+            string _m_sRealCalleeNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Destination-Number")?.Replace("gw+", "")?.Replace("+86", "0");
+            string m_sRealCalleeNumberStr = m_rReplaceRegex.Replace(_m_sRealCalleeNumberStr, string.Empty);
+            #endregion
 
             ChannelInfo m_mChannel = null;
             bool m_bIsDispose = false;
@@ -62,9 +70,7 @@ namespace CenoFsSharp
                 }
                 #endregion
 
-                Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
                 Regex m_rIsMatchRegex = new Regex("^[0-9*#]{3,20}$");
-                m_sRealCalleeNumberStr = m_rReplaceRegex.Replace(m_sRealCalleeNumberStr, string.Empty);
                 #region 号码有误
                 if (!m_rIsMatchRegex.IsMatch(m_sRealCalleeNumberStr))
                 {
@@ -153,6 +159,10 @@ namespace CenoFsSharp
                 string m_sCalleeNumberStr = m_sRealCalleeNumberStr;
                 bool m_bShareReject = false;
 
+                ///本呼叫中心呼入坐席
+                AGENT_INFO m_mTheAgent = null;
+                int m_qInCall = 0;//0不处理
+
                 if (m_bTransfer)
                 {
                     m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_number == m_sTransfer.Substring(1));
@@ -175,8 +185,11 @@ namespace CenoFsSharp
                             #region ***此处加入共享号码逻辑
                             if (m_uShare == 0)
                             {
-                                //先查出需要转接的号码,增加主叫号码的带入
-                                int _m_mAgentID = m_fDialLimit.m_fGetAgentID(m_sCalleeNumberStr, out m_stNumberStr, false, m_sRealCallerNumberStr);
+                                ///先查出需要转接的号码,增加主叫号码的带入
+                                if (_m_mAgentID == -1)
+                                {
+                                    _m_mAgentID = m_fDialLimit.m_fGetAgentID(m_sCalleeNumberStr, out m_stNumberStr, false, m_sRealCallerNumberStr);
+                                }
                                 m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.AgentID == _m_mAgentID);
                             }
                             ///<![CDATA[
@@ -184,6 +197,7 @@ namespace CenoFsSharp
                             ///]]>
                             if (m_mAgent == null && m_uShare == 0)
                             {
+                                ///共享、申请式暂时不增加路由规则
                                 m_uShare = Redis2.m_fGetTheCall(m_sRealCalleeNumberStr, uuid, out m_pShareNumber);
                             }
                             ///<![CDATA[
@@ -199,11 +213,49 @@ namespace CenoFsSharp
                                         {
                                             m_pAddRecByRec = m_fDialLimit.m_fGetAgentByRecord(m_sCalleeNumberStr, m_sRealCallerNumberStr, m_sFreeSWITCHIPv4);
                                             if (m_pAddRecByRec == null) m_bShareReject = true;
+
+                                            ///反查出呼入坐席
+                                            if (m_pAddRecByRec.m_sEndPointStr.Contains("user/"))
+                                            {
+                                                m_qInCall = 1;
+                                                m_mTheAgent = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_number == m_pAddRecByRec.UAID);
+                                                if (m_mTheAgent == null) m_qInCall = -1;
+                                            }
+
                                             else if (string.IsNullOrWhiteSpace(m_pAddRecByRec.m_sEndPointStr)) m_bShareReject = true;
                                             else if (m_pShareNumber == null) m_bShareReject = true;
                                             Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} share {m_uShare} b-leg-endpoint get,{m_bShareReject}]");
                                             break;
                                         }
+                                    case 11:
+                                    case 12:
+                                    case 13:
+                                    case 14:
+                                        {
+                                            if (m_pShareNumber == null) m_bShareReject = true;
+                                            else
+                                            {
+                                                ///申请式,后续逻辑不一样
+                                                m_pAddRecByRec = new AddRecByRec();
+                                                ///无需再次查询,直接赋值即可,因为上文已查出
+                                                m_pAddRecByRec.UAID = m_pShareNumber.fs_num;
+                                                if (m_sFreeSWITCHIPv4.Equals(m_pShareNumber.fs_ip))
+                                                {
+                                                    m_qInCall = 1;
+                                                    m_pAddRecByRec.m_sEndPointStr = $"user/{m_pShareNumber.fs_num}";
+                                                    ///反查出呼入坐席
+                                                    m_mTheAgent = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_number == m_pShareNumber.fs_num);
+                                                    if (m_mTheAgent == null) m_qInCall = -1;
+                                                }
+                                                else
+                                                    m_pAddRecByRec.m_sEndPointStr = $"sofia/external/sip:*{m_pShareNumber.fs_num}@{m_pShareNumber.fs_ip}:5080";
+                                                m_pAddRecByRec.m_sFreeSWITCHIPv4 = m_pShareNumber.fs_ip;
+                                                m_pAddRecByRec.m_uAgentID = m_pShareNumber.agentID;
+                                                m_pAddRecByRec.m_uChannelID = m_pShareNumber.channelID;
+                                                m_pAddRecByRec.m_uFromAgentID = m_pShareNumber.agentID;
+                                            }
+                                        }
+                                        break;
                                     default:
                                         break;
                                 }
@@ -266,17 +318,36 @@ namespace CenoFsSharp
                     }
                     #endregion
 
+                    #region ***呼入,这里直接杀死,不再挂断,防止Freeswitch内存泄漏
+                    if (false)
+                    {
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Hangup cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Hangup error:{ex.Message}]");
+                            }
+                        });
+                    }
+                    #endregion
+
                     if (m_bIsDispose) return;
-                    await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                    await m_pOutboundSocket.SendApi($"uuid_kill {uuid}").ContinueWith(task =>
                     {
                         try
                         {
                             if (m_bIsDispose) return;
-                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Hangup cancel]");
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} uuid_kill cancel]");
                         }
                         catch (Exception ex)
                         {
-                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Hangup error:{ex.Message}]");
+                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} uuid_kill error:{ex.Message}]");
                         }
                     });
 
@@ -320,7 +391,7 @@ namespace CenoFsSharp
                     ///<![CDATA[
                     /// <4>加入共享号码来电逻辑
                     /// ]]>
-                    m_fCallClass.m_fShareCall(m_pOutboundSocket, m_sCalleeNumberStr, m_bStar, m_lStrings, m_sRealCallerNumberStr, m_sEndPointStrB, m_uShare, m_pAddRecByRec, m_pShareNumber);
+                    m_fCallClass.m_fShareCall(m_pOutboundSocket, m_sCalleeNumberStr, m_bStar, m_lStrings, m_sRealCallerNumberStr, m_sEndPointStrB, m_uShare, m_pAddRecByRec, m_pShareNumber, m_mTheAgent, m_qInCall, m_uPlayLoops, m_sAnswer, m_sCallMusic);
                     return;
                 }
                 #endregion
@@ -613,6 +684,17 @@ namespace CenoFsSharp
                                     Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play busy music error:{ex.Message}]");
                                 }
                             });
+                        }
+                    }
+                    #endregion
+
+                    ///发送一个来电警告弹屏,并直接刷新一下未接来电
+                    #region ***忙来电弹屏,暂时去掉
+                    if (false)
+                    {
+                        if (m_mChannel.IsRegister == 1)
+                        {
+                            m_fCallClass.m_fBusySendMsg?.Invoke(m_mChannel.channel_websocket, $"{m_mRecord.T_PhoneNum},{m_mRecord.PhoneAddress},{m_mRecord.LocalNum}");
                         }
                     }
                     #endregion
@@ -967,12 +1049,19 @@ namespace CenoFsSharp
                 if (m_bWeb)
                     m_fCallClass.m_fIpCall(m_uAgentID, m_sLoginName, m_mRecord.T_PhoneNum, Cmn.m_fDateTimeString(m_dtNow), m_sRecordingID);
 
+                ///To拼接至主叫名称:0不开、1全开、2注册开
+                string m_sCallerIdName = m_mRecord.T_PhoneNum;
+                if (Call_ParamUtil.m_uAppendTo == 1 || (Call_ParamUtil.m_uAppendTo == 2 && m_mChannel.IsRegister == 1))
+                {
+                    m_sCallerIdName = $"{m_mRecord.T_PhoneNum}To{(!string.IsNullOrWhiteSpace(m_mRecord.tnumber) ? m_mRecord.tnumber : m_mRecord.LocalNum)}";
+                }
+
                 if (m_bIsDispose) return;
                 BridgeResult m_pBridgeResult = await m_pOutboundSocket.Bridge(uuid, m_sEndPointStrB, new BridgeOptions()
                 {
                     UUID = bridgeUUID,
                     CallerIdNumber = m_mRecord.T_PhoneNum,
-                    CallerIdName = m_mRecord.T_PhoneNum,
+                    CallerIdName = m_sCallerIdName,
                     HangupAfterBridge = false,
                     ContinueOnFail = true,
                     TimeoutSeconds = m_uTimeoutSeconds,
@@ -1007,112 +1096,112 @@ namespace CenoFsSharp
                     if (string.IsNullOrWhiteSpace(m_sBridgeResultStr)) m_sBridgeResultStr = null;
 
                     string m_sMsgStr = $"Bridge fail:{m_sBridgeResultStr ?? "unknow"}";
+                    Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} {m_sMsgStr},play prompt music]");
+
+                    DateTime m_dtEndTimeNow = DateTime.Now;
+                    string m_sEndTimeNowString = Cmn.m_fDateTimeString(m_dtEndTimeNow);
+                    m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_dtEndTimeNow, m_mRecord.C_StartTime);
+                    m_mRecord.C_EndTime = m_sEndTimeNowString;
+                    m_mRecord.CallType = m_bStar ? 8 : 4;
+
+                    #region 判断电话结果
+                    string m_sPlayMusic = string.Empty;
+                    if (string.IsNullOrWhiteSpace(m_sBridgeResultStr))
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 43 : 16;
+                        m_sPlayMusic = m_mPlay.m_mNoAnswerMusic;
+                    }
+                    else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "NOANSWER"))
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 43 : 16;
+                        m_sPlayMusic = m_mPlay.m_mNoAnswerMusic;
+                    }
+                    else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "BUSY"))
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 45 : 18;
+                        m_sPlayMusic = m_mPlay.m_mBusyMusic;
+                    }
+                    else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "INVALIDARGS"))
+                    {
+                        if (m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP)
+                        {
+                            m_mRecord.CallResultID = m_bStar ? 50 : 49;
+                        }
+                        else
+                        {
+                            m_mRecord.CallResultID = m_bStar ? 52 : 51;
+                            m_sPlayMusic = m_mPlay.m_mUnavailableMusic;
+                        }
+                    }
+                    else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "USER_NOT_REGISTERED"))
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 43 : 16;
+                        m_sPlayMusic = m_mPlay.m_mNoRegisteredMusic;
+                    }
+                    else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "SUBSCRIBER_ABSENT"))
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 43 : 16;
+                    }
+                    else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "NO_USER_RESPONSE"))
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 50 : 49;
+                        m_sPlayMusic = m_mPlay.m_mUnavailableMusic;
+                    }
+                    else
+                    {
+                        m_mRecord.CallResultID = m_bStar ? 43 : 16;
+                        m_sPlayMusic = m_mPlay.m_mNoAnswerMusic;
+
+                    }
+                    #endregion
+
+                    #region 播放提示音
+                    if (!string.IsNullOrWhiteSpace(m_sPlayMusic))
+                    {
+                        #region ***应答尝试放音,目前只有这种方式可以
+                        if (m_uPlayLoops > 0)
+                        {
+                            if (m_sAnswer == "uuid_answer")
+                            {
+                                if (m_bIsDispose) return;
+                                await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (m_bIsDispose) return;
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {m_sAnswer} cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {m_sAnswer} error:{ex.Message}]");
+                                    }
+                                });
+                            }
+
+                            for (int i = 0; i < m_uPlayLoops; i++)
+                            {
+                                if (m_bIsDispose) return;
+                                await m_pOutboundSocket.Play(uuid, m_sPlayMusic).ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (m_bIsDispose) return;
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play prompt music cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play prompt music error:{ex.Message}]");
+                                    }
+                                });
+                            }
+                        }
+                        #endregion
+                    }
+                    #endregion
 
                     if (string.IsNullOrWhiteSpace(m_sWhoHangUpStr))
                     {
                         m_sWhoHangUpStr = "B";
-                        Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} {m_sMsgStr},play prompt music]");
-
-                        DateTime m_dtEndTimeNow = DateTime.Now;
-                        string m_sEndTimeNowString = Cmn.m_fDateTimeString(m_dtEndTimeNow);
-                        m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_dtEndTimeNow, m_mRecord.C_StartTime);
-                        m_mRecord.C_EndTime = m_sEndTimeNowString;
-                        m_mRecord.CallType = m_bStar ? 8 : 4;
-
-                        #region 判断电话结果
-                        string m_sPlayMusic = string.Empty;
-                        if (string.IsNullOrWhiteSpace(m_sBridgeResultStr))
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 43 : 16;
-                            m_sPlayMusic = m_mPlay.m_mNoAnswerMusic;
-                        }
-                        else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "NOANSWER"))
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 43 : 16;
-                            m_sPlayMusic = m_mPlay.m_mNoAnswerMusic;
-                        }
-                        else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "BUSY"))
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 45 : 18;
-                            m_sPlayMusic = m_mPlay.m_mBusyMusic;
-                        }
-                        else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "INVALIDARGS"))
-                        {
-                            if (m_mChannel.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP)
-                            {
-                                m_mRecord.CallResultID = m_bStar ? 50 : 49;
-                            }
-                            else
-                            {
-                                m_mRecord.CallResultID = m_bStar ? 52 : 51;
-                                m_sPlayMusic = m_mPlay.m_mUnavailableMusic;
-                            }
-                        }
-                        else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "USER_NOT_REGISTERED"))
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 43 : 16;
-                            m_sPlayMusic = m_mPlay.m_mNoRegisteredMusic;
-                        }
-                        else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "SUBSCRIBER_ABSENT"))
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 43 : 16;
-                        }
-                        else if (Cmn.IgnoreEquals(m_sBridgeResultStr, "NO_USER_RESPONSE"))
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 50 : 49;
-                            m_sPlayMusic = m_mPlay.m_mUnavailableMusic;
-                        }
-                        else
-                        {
-                            m_mRecord.CallResultID = m_bStar ? 43 : 16;
-                            m_sPlayMusic = m_mPlay.m_mNoAnswerMusic;
-
-                        }
-                        #endregion
-
-                        #region 播放提示音
-                        if (!string.IsNullOrWhiteSpace(m_sPlayMusic))
-                        {
-                            #region ***应答尝试放音,目前只有这种方式可以
-                            if (m_uPlayLoops > 0)
-                            {
-                                if (m_sAnswer == "uuid_answer")
-                                {
-                                    if (m_bIsDispose) return;
-                                    await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
-                                    {
-                                        try
-                                        {
-                                            if (m_bIsDispose) return;
-                                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {m_sAnswer} cancel]");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {m_sAnswer} error:{ex.Message}]");
-                                        }
-                                    });
-                                }
-
-                                for (int i = 0; i < m_uPlayLoops; i++)
-                                {
-                                    if (m_bIsDispose) return;
-                                    await m_pOutboundSocket.Play(uuid, m_sPlayMusic).ContinueWith(task =>
-                                    {
-                                        try
-                                        {
-                                            if (m_bIsDispose) return;
-                                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play prompt music cancel]");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play prompt music error:{ex.Message}]");
-                                        }
-                                    });
-                                }
-                            }
-                            #endregion
-                        }
-                        #endregion
 
                         m_mRecord.Uhandler = 0;
                         m_mRecord.Remark = m_sMsgStr;
@@ -1384,8 +1473,18 @@ WHERE
         ///<![CDATA[
         /// <5>共享号码呼入处理方法
         ///]]>
-        private static async void m_fShareCall(OutboundSocket m_pOutboundSocket, string m_sCalleeNumberStr, bool m_bStar, List<string> m_lStrings, string m_sRealCallerNumberStr, string m_sEndPointStrB, int m_uShare, Model_v1.AddRecByRec m_pAddRecByRec, Model_v1.share_number m_pShareNumber)
+        private static async void m_fShareCall(OutboundSocket m_pOutboundSocket, string m_sCalleeNumberStr, bool m_bStar, List<string> m_lStrings, string m_sRealCallerNumberStr, string m_sEndPointStrB, int m_uShare, Model_v1.AddRecByRec m_pAddRecByRec, Model_v1.share_number m_pShareNumber, AGENT_INFO m_mTheAgent, int m_qInCall, int m_uPlayLoops, string m_sAnswer, string m_sCallMusic)
         {
+            #region ***是否内呼,内呼改变一下该通道的状态,挂断时杀死对应通道
+            int m_uTheAgentID = -1;
+            ChannelInfo m_mTheChannel = null;
+            if (m_mTheAgent != null)
+            {
+                m_uTheAgentID = m_mTheAgent.AgentID;
+                m_mTheChannel = m_mTheAgent.ChInfo;
+            }
+            #endregion
+
             string uuid = m_pOutboundSocket.ChannelData.UUID;
             bool m_bIsDispose = false;
             dial_area m_pDialArea = null;
@@ -1411,9 +1510,38 @@ WHERE
                         m_bDeleteRedisLock = true;
                         Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
                     }
+
+                    ///兼容一下通道强断
+                    if (m_qInCall == 1)
+                    {
+                        if (m_mTheChannel != null && m_mTheChannel.channel_call_status != APP_USER_STATUS.FS_USER_IDLE)
+                        {
+                            Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} reset when dispose]");
+                            m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mTheChannel.channel_call_uuid = null;
+                            m_mTheChannel.channel_call_uuid_after = null;
+                            m_mTheChannel.channel_call_other_uuid = null;
+                        }
+                    }
                 };
 
-                m_pDialArea = Redis2.m_fGetDialAreaByIPv4(m_pAddRecByRec?.m_sFreeSWITCHIPv4);
+                ///兼容一下录音即可,不要生成重复录音即可
+                if (m_uShare > 10)
+                {
+                    m_pDialArea = new dial_area();
+                    m_pDialArea.id = -1;
+                    m_pDialArea.aname = string.Empty;
+                    m_pDialArea.aip = m_sFreeSWITCHIPv4;
+                    m_pDialArea.aport = 3306;
+                    m_pDialArea.adb = "cmcp10";
+                    m_pDialArea.auid = "root";
+                    m_pDialArea.apwd = "123";
+                    m_pDialArea.amain = 2;
+                    m_pDialArea.astate = 2;
+                }
+                else
+                    m_pDialArea = Redis2.m_fGetDialAreaByIPv4(m_pAddRecByRec?.m_sFreeSWITCHIPv4);
+
                 //通话记录中通道ID
                 int m_uChannelID = m_pAddRecByRec?.m_uChannelID == null ? -1 : m_pAddRecByRec.m_uChannelID;
                 //通话记录中坐席ID
@@ -1432,6 +1560,10 @@ WHERE
                 m_mRecord.fromagentname = m_sFromAgentName;
                 m_mRecord.fromloginname = m_sFromLoginName;
                 m_mRecord.LocalNum = m_sCalleeNumberStr;
+
+                ///非专线类别判断及赋值
+                if (m_uShare == 1) m_mRecord.isshare = 1;
+                if (m_uShare == 11) m_mRecord.isshare = 2;
 
                 if (m_bStar)
                 {
@@ -1455,9 +1587,40 @@ WHERE
                 /// <6>如果进入此,共享号码已经进行了呼入锁定,使用完成后需要解锁
                 /// 共享号码未锁定成功,此时直接添加来电记录并挂断即可
                 /// ]]>
-                if (m_uShare > 1)
+                if ((m_uShare > 1 && m_uShare <= 10) || (m_uShare > 11 && m_uShare <= 20)
+                    || m_qInCall == -1//反查不到坐席ID
+                    || (m_qInCall == 1 && (m_mTheChannel == null || m_mTheChannel?.channel_type != Special.SIP))//坐席通道信息有误
+                    )
+                //if (m_uShare > 1 || m_uShare > 11)
                 {
-                    Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} lock share number fail]");
+                    string m_sMsgStr = string.Empty;
+                    #region ***错误信息提示分支,暂时不放音,因为概率很小
+                    if (m_qInCall == -1)
+                    {
+                        m_sMsgStr = "miss a leg info";
+                        Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID},{m_sMsgStr}]");
+                    }
+                    else
+                    {
+                        if ((m_qInCall == 1 && (m_mTheChannel == null || m_mTheChannel?.channel_type != Special.SIP)))
+                        {
+                            m_sMsgStr = $"miss channel or not sip channel:{m_mTheChannel?.channel_type}";
+                            Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID},{m_sMsgStr}]");
+                        }
+                        else
+                        {
+                            m_sMsgStr = $"lock share number fail:{m_uShare}";
+                            Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID},{m_sMsgStr}]");
+                        }
+                    }
+                    #endregion
+
+                    m_mRecord.CallType = m_bStar ? 8 : 4;
+                    m_mRecord.CallResultID = m_bStar ? 45 : 18;
+                    m_mRecord.C_EndTime = Cmn.m_fDateTimeString();
+                    m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_mRecord.C_EndTime, m_mRecord.C_StartTime);
+                    m_mRecord.Uhandler = 0;
+                    m_mRecord.Remark = m_sMsgStr;
 
                     if (!m_bDeleteRedisLock)
                     {
@@ -1468,17 +1631,36 @@ WHERE
                     call_record.Insert(m_mRecord, true, m_pDialArea, true);
                     Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} insert record]");
 
+                    #region ***呼入,这里直接杀死,不再挂断,防止Freeswitch内存泄漏
+                    if (false)
+                    {
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} Hangup cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} Hangup error:{ex.Message}]");
+                            }
+                        });
+                    }
+                    #endregion
+
                     if (m_bIsDispose) return;
-                    await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                    await m_pOutboundSocket.SendApi($"uuid_kill {uuid}").ContinueWith(task =>
                     {
                         try
                         {
                             if (m_bIsDispose) return;
-                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} Hangup cancel]");
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} uuid_kill cancel]");
                         }
                         catch (Exception ex)
                         {
-                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} Hangup error:{ex.Message}]");
+                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} uuid_kill error:{ex.Message}]");
                         }
                     });
 
@@ -1503,6 +1685,265 @@ WHERE
                     m_pOutboundSocket?.Dispose();
 
                     return;
+                }
+                #endregion
+
+                ///记录一下呼入了哪个坐席,方便查错
+                Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} -> {m_uTheAgentID}]");
+
+                #region 未连接(IP话机的引入,可以没有WebSocket,越过此处,后续增加一个判定)
+                ///如果呼入为本机坐席
+                if (m_qInCall == 1)
+                {
+                    if (m_mTheChannel.IsRegister == 1 && m_mTheChannel.channel_websocket == null)
+                    {
+                        string m_sMsgStr = $"user no connect";
+                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} {m_sMsgStr}]");
+
+                        #region 播放提示音
+                        if (m_uPlayLoops > 0)
+                        {
+                            //应答播放声音
+                            if (m_bIsDispose) return;
+                            await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} error:{ex.Message}]");
+                                }
+                            });
+
+                            for (int i = 0; i < m_uPlayLoops; i++)
+                            {
+                                if (m_bIsDispose) return;
+                                await m_pOutboundSocket.Play(uuid, m_mPlay.m_mNotConnectedMusic).ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (m_bIsDispose) return;
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play link error music cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play link error music error:{ex.Message}]");
+                                    }
+                                });
+                            }
+                        }
+                        #endregion
+
+                        m_mRecord.CallType = m_bStar ? 8 : 4;
+                        m_mRecord.CallResultID = m_bStar ? 45 : 18;
+                        m_mRecord.C_EndTime = Cmn.m_fDateTimeString();
+                        m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_mRecord.C_EndTime, m_mRecord.C_StartTime);
+                        m_mRecord.Uhandler = 0;
+                        m_mRecord.Remark = m_sMsgStr;
+
+                        if (!m_bDeleteRedisLock)
+                        {
+                            m_bDeleteRedisLock = true;
+                            Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                        }
+
+                        call_record.Insert(m_mRecord, true, m_pDialArea, true);
+                        Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} insert record]");
+
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Hangup cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Hangup error:{ex.Message}]");
+                            }
+                        });
+
+                        if (m_bIsDispose) return;
+                        if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                        {
+                            await m_pOutboundSocket.Exit().ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Exit cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Exit error:{ex.Message}]");
+                                }
+                            });
+                        }
+
+                        if (m_bIsDispose) return;
+                        m_pOutboundSocket?.Dispose();
+
+                        return;
+                    }
+                }
+                #endregion
+
+                #region 繁忙
+                ///如果呼入为本机坐席
+                if (m_qInCall == 1)
+                {
+                    if (
+                        m_mTheChannel.channel_call_status != APP_USER_STATUS.FS_USER_IDLE &&
+                        m_mTheChannel.channel_call_status != APP_USER_STATUS.FS_USER_AHANGUP &&
+                        m_mTheChannel.channel_call_status != APP_USER_STATUS.FS_USER_BHANGUP
+                        )
+                    {
+                        string m_sMsgStr = $"busy";
+                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} {m_sMsgStr},play busy music]");
+
+                        #region 播放提示音
+                        string m_sPlayMusic = m_mPlay.m_mBusyMusic;
+                        if (m_uPlayLoops > 0)
+                        {
+                            //应答播放声音
+                            if (m_bIsDispose) return;
+                            await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} error:{ex.Message}]");
+                                }
+                            });
+
+                            for (int i = 0; i < m_uPlayLoops; i++)
+                            {
+                                if (m_bIsDispose) return;
+                                await m_pOutboundSocket.Play(uuid, m_sPlayMusic).ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (m_bIsDispose) return;
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play busy music cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play busy music error:{ex.Message}]");
+                                    }
+                                });
+                            }
+                        }
+                        #endregion
+
+                        m_mRecord.CallType = m_bStar ? 8 : 4;
+                        m_mRecord.CallResultID = m_bStar ? 45 : 18;
+                        m_mRecord.C_EndTime = Cmn.m_fDateTimeString();
+                        m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_mRecord.C_EndTime, m_mRecord.C_StartTime);
+                        m_mRecord.Uhandler = 0;
+                        m_mRecord.Remark = m_sMsgStr;
+
+                        if (!m_bDeleteRedisLock)
+                        {
+                            m_bDeleteRedisLock = true;
+                            Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                        }
+
+                        call_record.Insert(m_mRecord, true, m_pDialArea, true);
+                        Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} insert record]");
+
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.Hangup(uuid, HangupCause.UserBusy).ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} Hangup cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} Hangup error:{ex.Message}]");
+                            }
+                        });
+
+                        if (m_bIsDispose) return;
+                        if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                        {
+                            await m_pOutboundSocket.Exit().ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} Exit cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} Exit error:{ex.Message}]");
+                                }
+                            });
+                        }
+
+                        if (m_bIsDispose) return;
+                        m_pOutboundSocket?.Dispose();
+
+                        return;
+                    }
+                }
+                #endregion
+
+                #region ***设定状态、ID,兼容强断
+                ///如果呼入为本机坐席
+                if (m_qInCall == 1)
+                {
+                    m_mTheChannel.channel_call_uuid_after = uuid;
+                    m_mTheChannel.channel_call_uuid = uuid;
+                    m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_BF_DIAL;
+                }
+                #endregion
+
+                #region ***设置183或者200,后续无需再设置
+                if (m_sAnswer == "uuid_pre_answer")
+                {
+                    Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback]");
+                    //修正无法解析变量的问题,这里先写成该固定参数即可
+                    string m_sData = $"ringback={m_sCallMusic}";
+                    //设置183铃声
+                    if (m_bIsDispose) return;
+                    await m_pOutboundSocket.ExecuteApplication(uuid, "set", m_sData).ContinueWith(task =>
+                    {
+                        try
+                        {
+                            if (m_bIsDispose) return;
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback cancel]");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback error:{ex.Message}]");
+                        }
+                    });
+
+                    Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sAnswer} {uuid}]");
+                    //早期应答
+                    if (m_bIsDispose) return;
+                    await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
+                    {
+                        try
+                        {
+                            if (m_bIsDispose) return;
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} cancel]");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} error:{ex.Message}]");
+                        }
+                    });
                 }
                 #endregion
 
@@ -1565,6 +2006,15 @@ WHERE
                         call_record.Insert(m_mRecord, true, m_pDialArea, true);
                         Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} insert record]");
 
+                        ///如果呼入为本机坐席
+                        if (m_qInCall == 1)
+                        {
+                            m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mTheChannel.channel_call_uuid = null;
+                            m_mTheChannel.channel_call_uuid_after = null;
+                            m_mTheChannel.channel_call_other_uuid = null;
+                        }
+
                         if (m_bIsDispose) return;
                         if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
                         {
@@ -1588,6 +2038,12 @@ WHERE
                 });
 
                 string bridgeUUID = Guid.NewGuid().ToString();
+                ///如果呼入为本机坐席
+                if (m_qInCall == 1)
+                {
+                    m_mTheChannel.channel_call_other_uuid = bridgeUUID;
+                    m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_RINGING;
+                }
 
                 #region 录音参数设置
                 if (m_bIsDispose) return;
@@ -1718,12 +2174,19 @@ WHERE
                 }
                 #endregion
 
+                ///To拼接至主叫名称:0不开、1全开、2注册开
+                string m_sCallerIdName = m_mRecord.T_PhoneNum;
+                if (Call_ParamUtil.m_uAppendTo == 1 || (Call_ParamUtil.m_uAppendTo == 2 && m_mTheChannel != null && m_mTheChannel.IsRegister == 1))
+                {
+                    m_sCallerIdName = $"{m_mRecord.T_PhoneNum}To{(!string.IsNullOrWhiteSpace(m_mRecord.tnumber) ? m_mRecord.tnumber : m_mRecord.LocalNum)}";
+                }
+
                 if (m_bIsDispose) return;
                 BridgeResult m_pBridgeResult = await m_pOutboundSocket.Bridge(uuid, m_sEndPointStrB, new BridgeOptions()
                 {
                     UUID = bridgeUUID,
                     CallerIdNumber = m_mRecord.T_PhoneNum,
-                    CallerIdName = m_mRecord.T_PhoneNum,
+                    CallerIdName = m_sCallerIdName,
                     HangupAfterBridge = false,
                     ContinueOnFail = true,
                     TimeoutSeconds = m_uTimeoutSeconds,
@@ -1826,6 +2289,15 @@ WHERE
                         Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} insert record]");
                         call_record.Insert(m_mRecord, true, m_pDialArea, true);
 
+                        ///如果呼入为本机坐席
+                        if (m_qInCall == 1)
+                        {
+                            m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mTheChannel.channel_call_uuid = null;
+                            m_mTheChannel.channel_call_uuid_after = null;
+                            m_mTheChannel.channel_call_other_uuid = null;
+                        }
+
                         if (m_bIsDispose) return;
                         if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
                         {
@@ -1867,6 +2339,12 @@ WHERE
                 else
                 {
                     m_bIsLinked = true;
+
+                    ///如果呼入为本机坐席
+                    if (m_qInCall == 1)
+                    {
+                        m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_TALKING;
+                    }
                     DateTime m_dtAnswerTimeNow = DateTime.Now;
                     string m_sAnswerTimeNowString = Cmn.m_fDateTimeString(m_dtAnswerTimeNow);
                     m_mRecord.C_AnswerTime = m_sAnswerTimeNowString;
@@ -1894,8 +2372,17 @@ WHERE
                                 Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
                             }
 
-                            call_record.Insert(m_mRecord, true, m_pDialArea, true);
+                            call_record.Insert(m_mRecord, true, m_pDialArea, true, m_uShare > 10);
                             Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sLogUUID} insert record]");
+
+                            ///如果呼入为本机坐席
+                            if (m_qInCall == 1)
+                            {
+                                m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                                m_mTheChannel.channel_call_uuid = null;
+                                m_mTheChannel.channel_call_uuid_after = null;
+                                m_mTheChannel.channel_call_other_uuid = null;
+                            }
 
                             if (m_bIsDispose) return;
                             if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
@@ -1946,6 +2433,18 @@ WHERE
                 {
                     m_bDeleteRedisLock = true;
                     Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                }
+
+                ///兼容一下通道强断,如果呼入为本机坐席
+                if (m_qInCall == 1)
+                {
+                    if (m_mTheChannel != null && m_mTheChannel.channel_call_status != APP_USER_STATUS.FS_USER_IDLE)
+                    {
+                        m_mTheChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                        m_mTheChannel.channel_call_uuid = null;
+                        m_mTheChannel.channel_call_uuid_after = null;
+                        m_mTheChannel.channel_call_other_uuid = null;
+                    }
                 }
 
                 if (m_bIsDispose) return;

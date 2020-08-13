@@ -68,6 +68,10 @@ namespace CenoSipFactory {
         /// 被叫挂断
         /// </summary>
         FS_USER_BHANGUP,
+        /// <summary>
+        /// 强断
+        /// </summary>
+        FS_USER_BREAKDOWN
     }
 
     public enum ToneType {

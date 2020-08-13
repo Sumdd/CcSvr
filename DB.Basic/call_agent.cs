@@ -7,9 +7,9 @@ using DB.Model;
 
 namespace DB.Basic {
     public class call_agent_basic {
-        public static IList<call_agent_model> GetList(int top = 1000) {
+        public static IList<call_agent_model> GetList(int top = 1000, string m_sSQL = "") {
             IList<call_agent_model> list = new List<call_agent_model>();
-            string sql = "select ID,UniqueID,AgentName,LoginName,LoginPassWord,LoginState,AgentNumber,AgentPassword,LastLoginIp,TeamID,StateID,RoleID,ChannelID,ClientParamID,Usable,LinkUser,LU_LoginName,LU_Password,Remark from call_agent limit ?top";
+            string sql = $"select ID,UniqueID,AgentName,LoginName,LoginPassWord,LoginState,AgentNumber,AgentPassword,LastLoginIp,TeamID,StateID,RoleID,ChannelID,ClientParamID,Usable,LinkUser,LU_LoginName,LU_Password,Remark from call_agent WHERE 1=1 {m_sSQL} limit ?top";
             MySqlParameter[] parameters = {
      new MySqlParameter("?top", MySqlDbType.Int32)
                 };

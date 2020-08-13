@@ -14,6 +14,10 @@ namespace CenoSipFactory {
         public string channel_uniqueid;
         public string channel_number;
         public string channel_call_uuid;
+        /// <summary>
+        /// 延申出的通道ID缓存
+        /// </summary>
+        public string channel_call_uuid_after;
         public string channel_call_other_uuid;
         public string channel_name;
         public int channel_type;

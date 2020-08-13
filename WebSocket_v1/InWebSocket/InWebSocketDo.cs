@@ -212,26 +212,182 @@ namespace WebSocket_v1 {
         #endregion
 
         #region 拨号状态
-        private static void _bhzt_do(IWebSocketConnection socket, SocketInfo dataStack) {
-            try {
-                var _agentEntity = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_websocket == socket);
-                if(_agentEntity == null)
-                    throw new Exception($"not find WebSocket,{socket.ConnectionInfo.Id},{socket.ConnectionInfo.ClientIpAddress}:{socket.ConnectionInfo.ClientPort} user");
-                else {
-                    SocketMain._bhzt_do(socket, dataStack.Content);
-                }
-            } catch(Exception ex) {
-                Log.Instance.Error($"[WebSocket_v1][InWebSocketDo][_bhzt_do][Exception][{ex.Message}]");
+        private static void _bhzt_do(IWebSocketConnection socket, SocketInfo dataStack)
+        {
+            ///扩展,防止出现通道繁忙
+            Hashtable m_pHashtable = dataStack.Content;
+            string[] m_aSocketCmdArray = call_socketcommand_util.GetParamByHeadName("BHZT");
+            string m_sKey = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[0]);
+            string m_sUa = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[1]);
+            switch (m_sKey)
+            {
+                case "AHang":
+                case "BHang":
+                case "XHang":
+                    {
+                        #region ***强断
+                        ///坐席
+                        int m_uAgentID = Convert.ToInt32(m_sUa);
+                        AGENT_INFO m_mAgent = call_factory.agent_list.Find(x => x.AgentID == m_uAgentID);
+                        if (m_mAgent == null)
+                        {
+                            Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][_bhzt_do][{m_uAgentID} no ua]");
+                            break;
+                        }
+                        ChannelInfo m_mChannel = m_mAgent.ChInfo;
+                        if (m_mChannel == null)
+                        {
+                            Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][_bhzt_do][{m_uAgentID} no channel]");
+                            break;
+                        }
+                        ///根据来源修正状态
+                        if (m_sKey == "AHang") m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_AHANGUP;
+                        else if (m_sKey == "BHang") m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_BHANGUP;
+                        Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][_bhzt_do][{m_uAgentID} {m_sKey}]");
+                        if (m_sKey == "XHang")
+                        {
+                            string m_sUUID = m_mChannel.channel_call_uuid_after;
+                            if (string.IsNullOrWhiteSpace(m_sUUID)) m_sUUID = m_mChannel.channel_call_uuid;
+                            m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_uuid_after = null;
+                            SocketMain.m_fKill(m_uAgentID, m_sUUID);
+                            m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mChannel.channel_call_other_uuid = null;
+                        }
+                        else
+                        {
+                            string m_sUUID = m_mChannel.channel_call_uuid;
+                            m_mChannel.channel_call_uuid = null;
+                            SocketMain.m_fKill(m_uAgentID, m_sUUID);
+                            if (string.IsNullOrWhiteSpace(m_sUUID)) m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                        }
+                        #endregion
+                    }
+                    break;
             }
         }
         #endregion
 
         #region ***缓存重载激活
+        private static object m_pUpdUaLock = new object();
+        private static bool m_bUpdUaDoing = false;
         public static void _zdwh_do(SocketInfo dataStack)
         {
             string m_sType = SocketMain.GetBody(dataStack, M_WebSocket._zdwh, 0);
             switch (m_sType)
             {
+                case "ReloadRoute":
+                    {
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload route]");
+                        DB.Basic.m_cRoute.m_fInit();
+                    }
+                    break;
+                case "UpdUa":
+                    {
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][ua update]");
+                        //单线更新
+                        lock (InWebSocketDo.m_pUpdUaLock)
+                        {
+                            try
+                            {
+                                if (m_bUpdUaDoing)
+                                {
+                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][doing]");
+                                    return;
+                                }
+
+                                m_bUpdUaDoing = true;
+
+                                #region ***先更新通道信息
+                                string m_sSQL1 = $" AND ID NOT IN ('{string.Join("','", call_factory.channel_list.Select(x => x.channel_id))}') ";
+                                List<call_channel_model> m_lChannel = new List<call_channel_model>(call_channel.GetList(m_sSQL1));
+                                if (m_lChannel?.Count > 0)
+                                {
+                                    int nCh = call_factory.channel_list.Count;
+                                    m_lChannel.ForEach(x =>
+                                    {
+                                        call_factory.channel_list.Add(new ChannelInfo()
+                                        {
+                                            nCh = nCh++,
+                                            channel_id = x.ID,
+                                            channel_uniqueid = x.UniqueID,
+                                            channel_type = x.ChType,
+                                            channel_number = x.ChNum,
+                                            channel_call_uuid = string.Empty,
+                                            channel_call_type = new CALLTYPE(),
+                                            channel_caller_number = new StringBuilder(),
+                                            channel_callee_number = new StringBuilder(),
+                                            channel_call_dtmf = null,
+
+                                            ///<![CDATA[
+                                            /// 减压
+                                            /// ]]>
+                                            //channel_account_info = call_factory.fs_account_list.FirstOrDefault(x => x.user == _model.ChNum),
+                                            channel_call_status = APP_USER_STATUS.FS_USER_IDLE,
+
+                                            ///<![CDATA[
+                                            /// 减压
+                                            /// ]]>
+                                            //channel_call_record_info = CH_CALL_RECORD.Instance()
+
+                                            ///<![CDATA[
+                                            /// IsRegister 可选值
+                                            /// 1.1注册
+                                            /// 2.0不注册,一开始暂定的IP话机模式
+                                            /// 3.-1不注册,IP话机Web模式,可使用网页进行拨打
+                                            /// ]]>
+                                            IsRegister = x.IsRegister
+                                        });
+                                    });
+                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdChannel][{m_lChannel?.Count}]");
+                                }
+                                #endregion
+                                #region ***再更新Ua
+                                string m_sSQL2 = $" AND ID NOT IN ('{string.Join("','", call_factory.agent_list.Select(x => x.AgentID))}') ";
+                                List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList(1000, m_sSQL2));
+                                if (m_lAgent?.Count > 0)
+                                {
+                                    m_lAgent.ForEach(x =>
+                                    {
+                                        call_factory.agent_list.Add(new AGENT_INFO()
+                                        {
+                                            AgentID = x.ID,
+                                            AgentUUID = x.UniqueID,
+                                            LoginName = x.LoginName,
+                                            AgentName = x.AgentName,
+                                            LoginPsw = x.LoginPassWord,
+                                            LastLoginIp = x.LastLoginIp,
+
+                                            ///<![CDATA[
+                                            /// 减压,没必要再到数据库进行查询
+                                            /// ]]>
+                                            ChInfo = call_factory.channel_list.FirstOrDefault(y => y.channel_id == x.ChannelID),
+                                            //call_factory.channel_list.FirstOrDefault(x => x.channel_number == call_channel.GetModel(cam.ChannelID).ChNum),
+                                            AgentNum = x.AgentNumber,
+
+                                            ///<![CDATA[
+                                            /// 减压,这个没用,有用也没必要这样写
+                                            /// ]]>
+                                            //RoleName = call_role.GetModel(cam.RoleID).RoleName,
+                                            //TeamName = call_team.GetModel(cam.TeamID).TeamName,
+                                            LoginState = false
+                                        });
+                                    });
+                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][{m_lAgent?.Count}]");
+                                }
+                                #endregion
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][Exception][{ex.Message}]");
+                            }
+                            finally
+                            {
+                                m_bUpdUaDoing = false;
+                            }
+                        }
+                    }
+                    break;
                 case "UpdLoginName":
                     {
                         Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][ua update login name]");

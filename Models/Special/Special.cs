@@ -15,12 +15,16 @@ namespace Model_v1
         public const string Star = "*";
         public const string Hash = "#";
 
+        /// <summary>
+        /// 移动电话
+        /// </summary>
         public const string Mobile = "mobile";
         public const string Telephone = "telephone";
         public const string Complete = "complete";
 
         public const string Common = "common";
         public const string Share = "share";
+        public const string ApiShare = "apiShare";
 
         public const int SIP = 16;
         public const int AUTO = 256;

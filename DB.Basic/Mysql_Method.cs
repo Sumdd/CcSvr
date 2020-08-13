@@ -53,7 +53,7 @@ namespace DB.Basic {
                 int val = cmd.ExecuteNonQuery();
                 return val;
             } catch(Exception ex) {
-                _Ilog.Fatal("catch an exception:" + ex.Message, ex);
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
                 return 0;
             } finally {
                 cmd.Parameters.Clear();
@@ -64,25 +64,38 @@ namespace DB.Basic {
         }
 
         /// <summary>
-        ///  execute sql with params and return dataset
+        /// execute sql and return datatable
         /// </summary>
         /// <param name="cmdText"></param>
         /// <param name="cmdParms"></param>
         /// <returns></returns>
-        public static DataSet ExecuteDataSet(string cmdText, MySqlParameter[] cmdParms = null) {
-            MySqlCommand cmd = new MySqlCommand();
-            MySqlConnection _SqlConnection = new MySqlConnection(MySQLDBConnectionString.ConnectionString);
-            PrepareSqlTextCommand(cmd, _SqlConnection, cmdText, cmdParms);
-            MySqlDataAdapter adpt = new MySqlDataAdapter();
-            adpt.SelectCommand = cmd;
+        public static DataSet GetDataSetAll(string cmdText, MySqlParameter[] cmdParms = null, string m_sConnStr = null)
+        {
             DataSet ds = new DataSet();
-            adpt.Fill(ds);
-            cmd.Parameters.Clear();
-            _SqlConnection.Close();
-            _SqlConnection.Dispose();
-            adpt.Dispose();
-            cmd.Dispose();
-            return ds;
+            if (string.IsNullOrWhiteSpace(m_sConnStr)) m_sConnStr = MySQLDBConnectionString.ConnectionString;
+            MySqlConnection _SqlConnection = new MySqlConnection(m_sConnStr);
+            MySqlCommand cmd = new MySqlCommand();
+            MySqlDataAdapter adpt = new MySqlDataAdapter();
+            try
+            {
+                PrepareSqlTextCommand(cmd, _SqlConnection, cmdText, cmdParms);
+                adpt.SelectCommand = cmd;
+                adpt.Fill(ds);
+                return ds;
+            }
+            catch (Exception ex)
+            {
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
+            }
+            finally
+            {
+                cmd.Parameters.Clear();
+                _SqlConnection.Close();
+                _SqlConnection.Dispose();
+                adpt.Dispose();
+                cmd.Dispose();
+            }
+            return null;
         }
 
         /// <summary>
@@ -91,35 +104,32 @@ namespace DB.Basic {
         /// <param name="cmdText"></param>
         /// <param name="cmdParms"></param>
         /// <returns></returns>
-        public static DataTable BindTable(string cmdText, MySqlParameter[] cmdParms = null, string m_sConnStr = null) {
+        public static DataTable BindTable(string cmdText, MySqlParameter[] cmdParms = null, string m_sConnStr = null)
+        {
             DataTable dt = null;
+            if (string.IsNullOrWhiteSpace(m_sConnStr)) m_sConnStr = MySQLDBConnectionString.ConnectionString;
+            MySqlConnection _SqlConnection = new MySqlConnection(m_sConnStr);
+            MySqlCommand cmd = new MySqlCommand();
+            MySqlDataAdapter adpt = new MySqlDataAdapter();
             try
             {
-                ///<![CDATA[
-                /// 动态数据库连接参数
-                /// ]]>
-                if (string.IsNullOrWhiteSpace(m_sConnStr))
-                {
-                    m_sConnStr = MySQLDBConnectionString.ConnectionString;
-                }
-
-                using (MySqlConnection _SqlConnection = new MySqlConnection(m_sConnStr))
-                {
-                    MySqlCommand cmd = new MySqlCommand();
-                    PrepareSqlTextCommand(cmd, _SqlConnection, cmdText, cmdParms);
-                    MySqlDataAdapter adpt = new MySqlDataAdapter();
-                    adpt.SelectCommand = cmd;
-                    DataSet ds = new DataSet();
-                    adpt.Fill(ds);
-                    cmd.Parameters.Clear();
-                    _SqlConnection.Close();
-                    adpt.Dispose();
-                    cmd.Dispose();
-                    return ds.Tables[0];
-                }
+                PrepareSqlTextCommand(cmd, _SqlConnection, cmdText, cmdParms);
+                adpt.SelectCommand = cmd;
+                DataSet ds = new DataSet();
+                adpt.Fill(ds);
+                return ds.Tables[0];
             }
-            catch (Exception ex) {
-                Log.Instance.Error($"[{ex.Message}]");
+            catch (Exception ex)
+            {
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
+            }
+            finally
+            {
+                cmd.Parameters.Clear();
+                _SqlConnection.Close();
+                _SqlConnection.Dispose();
+                adpt.Dispose();
+                cmd.Dispose();
             }
             return dt;
         }
@@ -133,16 +143,19 @@ namespace DB.Basic {
         public static MySqlDataReader ExecuteDataReader(string cmdText, MySqlParameter[] cmdParms = null) {
             MySqlCommand cmd = new MySqlCommand();
             MySqlConnection _SqlConnection = new MySqlConnection(MySQLDBConnectionString.ConnectionString);
-            try {
+            try
+            {
                 PrepareSqlTextCommand(cmd, _SqlConnection, cmdText, cmdParms);
                 MySqlDataReader reader = cmd.ExecuteReader(CommandBehavior.CloseConnection);
                 return reader;
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 cmd.Parameters.Clear();
                 _SqlConnection.Close();
                 _SqlConnection.Dispose();
                 cmd.Dispose();
-                _Ilog.Fatal("catch an exception:" + ex.Message, ex);
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
             }
             return null;
         }
@@ -165,7 +178,7 @@ namespace DB.Basic {
                         ExcuteRst = reader[0];
                 }
             } catch(Exception ex) {
-                _Ilog.Fatal("catch an exception:" + ex.Message, ex);
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
             } finally {
                 cmd.Parameters.Clear();
                 _SqlConnection.Close();
@@ -181,20 +194,31 @@ namespace DB.Basic {
         /// <param name="cmdText"></param>
         /// <param name="cmdParms"></param>
         /// <returns></returns>
-        public static DataSet ExecuteDataSetByProcedure(string m_sConnStr, string cmdText, MySqlParameter[] cmdParms = null) {
+        public static DataSet ExecuteDataSetByProcedure(string m_sConnStr, string cmdText, MySqlParameter[] cmdParms = null)
+        {
             MySqlCommand cmd = new MySqlCommand();
+            MySqlDataAdapter adpt = new MySqlDataAdapter();
             if (string.IsNullOrWhiteSpace(m_sConnStr)) m_sConnStr = MySQLDBConnectionString.ConnectionString;
             MySqlConnection _SqlConnection = new MySqlConnection(m_sConnStr);
-            PrepareProcedureCommand(cmd, _SqlConnection, cmdText, cmdParms);
-            MySqlDataAdapter adpt = new MySqlDataAdapter();
-            adpt.SelectCommand = cmd;
             DataSet ds = new DataSet();
-            adpt.Fill(ds);
-            cmd.Parameters.Clear();
-            _SqlConnection.Close();
-            _SqlConnection.Dispose();
-            adpt.Dispose();
-            cmd.Dispose();
+            try
+            {
+                PrepareProcedureCommand(cmd, _SqlConnection, cmdText, cmdParms);
+                adpt.SelectCommand = cmd;
+                adpt.Fill(ds);
+            }
+            catch (Exception ex)
+            {
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
+            }
+            finally
+            {
+                cmd.Parameters.Clear();
+                _SqlConnection.Close();
+                _SqlConnection.Dispose();
+                adpt.Dispose();
+                cmd.Dispose();
+            }
             return ds;
         }
 

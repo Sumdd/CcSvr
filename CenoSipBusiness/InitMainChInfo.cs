@@ -30,7 +30,7 @@ namespace CenoSipBusiness {
         private static Timer m_tTaskUpdPhone;
 
         public static bool IsExit;
-        public static bool m_bIsLoadedShare;
+        public static bool m_bIsLoadedShare = false;
         private static bool m_bLoadShare = false;
 
         public static bool InitSysInfo() {
@@ -65,6 +65,13 @@ namespace CenoSipBusiness {
             {
                 InWebSocketMain.m_fLoadShare += intilizate_services.m_fLoadShare;
                 intilizate_services.m_fLoadShare(true);
+            }
+
+            ///<![CDATA[
+            /// 方法委托
+            /// ]]>
+            {
+                m_fCallClass.m_fBusySendMsg += SocketMain.m_fBusySendMsg;
             }
 
             ///<![CDATA[
@@ -186,25 +193,38 @@ namespace CenoSipBusiness {
                                     string msg = m_pJObject["msg"].ToString();
                                     if (status == 0)
                                     {
+                                        ///处理后号码
                                         string tp = m_pJObject["tp"].ToString();
+                                        ///原号
                                         string op = m_pJObject["op"].ToString();
+                                        ///前缀
                                         string pp = m_pJObject["pp"].ToString();
+                                        ///首字符内呼外呼
                                         string way = m_pJObject["way"].ToString();
+                                        ///区号
                                         string code = m_pJObject["code"].ToString();
+                                        ///归属地
                                         string addr = m_pJObject["addr"].ToString();
+                                        ///卡类型
                                         string cardtype = m_pJObject["cardtype"].ToString();
+                                        ///邮编
                                         string zipcode = m_pJObject["zipcode"].ToString();
+                                        ///是否需要继续处理该号码
                                         string type = m_pJObject["type"].ToString();
                                         DateTime? m_dtUpdTime = null;
+                                        ///最后更新时间
                                         string upt = m_pJObject["upt"].ToString();
                                         if (!string.IsNullOrWhiteSpace(upt))
                                         {
-                                            m_dtUpdTime = Convert.ToDateTime(upt);
+                                            try
+                                            {
+                                                m_dtUpdTime = Convert.ToDateTime(upt);
+                                            }
+                                            catch { }
                                         }
 
                                         ///<![CDATA[
                                         /// 执行归属地表的更新语句即可
-                                        /// 优化,我直接全部传过去让服务进行比对,得到的结果为是否更新,减轻压力
                                         /// ]]>
 
                                     }
@@ -224,6 +244,14 @@ namespace CenoSipBusiness {
                 m_tTaskUpdPhone.Start();
             };
             m_tTaskUpdPhone.Start();
+            #endregion
+
+            #region ***加载呼入计划
+            {
+                DB.Basic.m_cRoute.m_fInit();
+                ///委托赋值
+                DB.Basic.m_fDialLimit.m_fGetChByAgentID += m_fGetChByAgentID;
+            }
             #endregion
 
             return true;
@@ -486,6 +514,78 @@ namespace CenoSipBusiness {
                     m_sResultMessage = ex.Message
                 };
                 return _m_mWebSocketJson;
+            }
+        }
+        #endregion
+
+        #region ***根据规则查找接入坐席
+        private static void m_fGetChByAgentID(m_mRoute _m_mRoute, int m_uDefAgentID, out int m_uAgentID)
+        {
+            m_uAgentID = -1;
+
+            if (m_uDefAgentID != -1)
+            {
+                ///如果坐席已寻到,首先看自己是否空闲
+                AGENT_INFO m_uAgent = call_factory.agent_list.Find(
+                    x => x.AgentID == m_uDefAgentID &&
+                    (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                    (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
+                    x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
+                    x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
+
+                ///接给自己
+                if (m_uAgent != null)
+                {
+                    m_uAgentID = m_uDefAgentID;
+                    return;
+                }
+            }
+
+            ///逻辑已经固定,这里进行随机接入空闲坐席即可
+            if (_m_mRoute.routeua != null && _m_mRoute.routeua.Count > 0)
+            {
+                switch (_m_mRoute.ctype)
+                {
+                    case 1:
+                        {
+                            AGENT_INFO m_uAgent = call_factory.agent_list.Find(
+                                   x => _m_mRoute.routeua.Contains(x.AgentID) &&
+                                   (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                                   (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
+                                   x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
+                                   x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
+                            if (m_uAgent != null)
+                                m_uAgentID = m_uAgent.AgentID;
+                        }
+                        break;
+                    case 2:
+                        {
+                            AGENT_INFO m_uAgent = call_factory.agent_list.FindLast(
+                                   x => _m_mRoute.routeua.Contains(x.AgentID) &&
+                                   (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                                   (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
+                                   x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
+                                   x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
+                            if (m_uAgent != null)
+                                m_uAgentID = m_uAgent.AgentID;
+                        }
+                        break;
+                    case 3:
+                        {
+                            Random m_pRandom = new Random();
+                            List<AGENT_INFO> m_lAgent = call_factory.agent_list.FindAll(
+                                     x => _m_mRoute.routeua.Contains(x.AgentID) &&
+                                     (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                                     (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
+                                     x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
+                                     x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
+                            if (m_lAgent != null && m_lAgent.Count > 0)
+                            {
+                                m_uAgentID = m_lAgent[m_pRandom.Next(m_lAgent.Count)].AgentID;
+                            }
+                        }
+                        break;
+                }
             }
         }
         #endregion

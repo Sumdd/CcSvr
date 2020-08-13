@@ -19,6 +19,7 @@ namespace DB.Basic
         public bool m_bGatewayType;
         public string m_sGatewayType;
         public string m_sDialPrefixStr;
+        public string m_sDialLocalPrefixStr;
         public string m_sAreaCodeStr;
         public string m_sAreaNameStr;
         public bool m_bZflag;
@@ -28,6 +29,10 @@ namespace DB.Basic
 
     public class m_fDialLimit
     {
+        ///委托
+        public delegate void m_dGetChByAgentID(m_mRoute _m_mRoute, int m_uDefAgentID, out int m_uAgent);
+        public static m_dGetChByAgentID m_fGetChByAgentID;
+
         /// <summary>
         /// 拨号限制方法
         /// </summary>
@@ -59,6 +64,8 @@ namespace DB.Basic
                 _m_mDialLimit.m_bGatewayType = dt.Rows[0]["gwtype"].ToString() == "gateway";
                 _m_mDialLimit.m_sGatewayType = dt.Rows[0]["gwtype"].ToString();
                 _m_mDialLimit.m_sDialPrefixStr = dt.Rows[0]["dialprefix"].ToString();
+                ///本地加拨前缀
+                _m_mDialLimit.m_sDialLocalPrefixStr = dt.Rows[0]["diallocalprefix"].ToString();
                 _m_mDialLimit.m_sAreaCodeStr = dt.Rows[0]["areacode"].ToString();
                 _m_mDialLimit.m_sAreaNameStr = dt.Rows[0]["areaname"].ToString();
                 _m_mDialLimit.m_bZflag = Convert.ToInt32(dt.Rows[0]["zflag"]) == 1;
@@ -86,6 +93,7 @@ namespace DB.Basic
         public static void m_fSetDialLimit(string _thennum, int _useuser, int _duration, Model_v1.dial_area m_pDialArea = null)
         {
             ///if (Call_ParamUtil.IsMultiPhone)
+            try
             {
                 string m_sConnStr = string.Empty;
                 string m_sNumberType = Model_v1.Special.Common;
@@ -103,6 +111,12 @@ namespace DB.Basic
 
                 MySQL_Method.ExecuteDataSetByProcedure(m_sConnStr, "proc_set_dial_limit", m_pMySqlParameter.ToArray());
             }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fSetDialLimit][Exception][号码:{_thennum}][坐席ID:{_useuser}][时长:{_duration}]");
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fSetDialLimit][ExceptionMessage][{ex.Message}]");
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fSetDialLimit][ExceptionStackTrace][{ex.StackTrace}]");
+            }
         }
         /// <summary>
         /// 获取,即便禁用,也要接进来
@@ -118,13 +132,14 @@ namespace DB.Basic
             //坐席通道缓存
             int m_iLimitInt = -1;
             int m_iRecordInt = -1;
+            int m_iRouteInt = -1;
             //真实号码缓存
             string m_sLimittNumberStr = string.Empty;
             string m_sRecordtNumberStr = string.Empty;
             //真实号码,默认为空即可
             m_stNumberStr = string.Empty;
             //得到号码的呼入路由查找规则
-            int m_iLimitCallRule = -1;
+            int m_iLimitCallRule = 0;
             //查询路由
             try
             {
@@ -153,13 +168,47 @@ WHERE
                     }
                 }
 
-                //需查找通话记录
+                ///呼入规则次之
+                if (!m_bOnlyLimit && !DB.Basic.m_cRoute.m_bInitRouting && DB.Basic.m_cRoute.m_lRoute?.Count > 0)
+                {
+                    ///顺序比多是否满足规则,满足则跳出
+                    m_mRoute _m_mRoute = null;
+                    foreach (m_mRoute item in m_cRoute.m_lRoute)
+                    {
+                        if (item.regex.IsMatch(m_sCallee))
+                        {
+                            _m_mRoute = item;
+                            break;
+                        }
+                    }
+                    if (_m_mRoute != null)
+                    {
+                        Log.Instance.Success($"[DB.Basic][m_fDialLimit][m_fGetAgentID][{m_sCallee},find route:{_m_mRoute.rnumber}]");
+                        m_fGetChByAgentID?.Invoke(_m_mRoute, m_iLimitInt, out m_iRouteInt);
+                        ///如果找到空闲坐席,接入即可,没有找到,给原有逻辑中的坐席一个未接来电即可
+                        if (m_iRouteInt != -1)
+                        {
+                            if (!string.IsNullOrWhiteSpace(m_sLimittNumberStr)) m_stNumberStr = m_sLimittNumberStr;
+                            return m_iRouteInt;
+                        }
+                    }
+                    else
+                    {
+                        Log.Instance.Warn($"[DB.Basic][m_fDialLimit][m_fGetAgentID][{m_sCallee},not find route]");
+                    }
+                }
+
+                ///需查找通话记录
                 if (!m_bOnlyLimit && ((m_iLimitCallRule & 2) > 0 || (m_uCallRule & 2) > 0))
                 {
                     //处理出后缀
                     string _m_sCaller = m_sCaller.TrimStart('0');
-                    //带入查询,查找反向索引即可,优化速度
-                    string m_sSQL = $@"
+
+                    ///不能全是零
+                    if (!string.IsNullOrWhiteSpace(_m_sCaller))
+                    {
+                        //带入查询,查找反向索引即可,优化速度
+                        string m_sSQL = $@"
 SELECT
 	AgentID AS `useuser`,
 	`call_record`.`tnumber` 
@@ -172,15 +221,16 @@ ORDER BY
 	`call_record`.`C_StartTime` DESC 
 	LIMIT 1;
 ";
-                    DataTable dt = MySQL_Method.BindTable(m_sSQL);
-                    if (dt != null && dt.Rows.Count > 0)
-                    {
-                        int.TryParse(dt.Rows[0]["useuser"]?.ToString(), out m_iRecordInt);
-                        m_sRecordtNumberStr = dt.Rows[0]["tnumber"]?.ToString();
+                        DataTable dt = MySQL_Method.BindTable(m_sSQL);
+                        if (dt != null && dt.Rows.Count > 0)
+                        {
+                            int.TryParse(dt.Rows[0]["useuser"]?.ToString(), out m_iRecordInt);
+                            m_sRecordtNumberStr = dt.Rows[0]["tnumber"]?.ToString();
+                        }
                     }
                 }
 
-                //结果返回判断
+                ///结果返回判断
                 if (((m_iLimitCallRule & 2) > 0 || (m_uCallRule & 2) > 0) && m_iRecordInt != -1)
                 {
                     m_stNumberStr = m_sRecordtNumberStr;
@@ -194,7 +244,7 @@ ORDER BY
             }
             catch (Exception ex)
             {
-                Log.Instance.Error($"[DB.Basic][m_fDialLimit][get_agent][{ex.Message}]");
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fGetAgentID][Exception][{ex.Message}]");
             }
             m_stNumberStr = string.Empty;
             return -1;
@@ -261,19 +311,30 @@ ORDER BY
             {
                 if (Core_v1.Redis2.dialarea_list != null && Core_v1.Redis2.dialarea_list.Count > 0)
                 {
+                    ///把共享号码全部提取,可能不需要2
+                    ///先暂时加上做以区分,其实不如做一个组,这样好区分
+                    ///时间原因,这里先略过
+
                     string m_sSQL = $@"
 SELECT
 	`dial_limit`.*,
 	`call_gateway`.`gw_name` AS `gw`,
-	`call_gateway`.`gwtype` 
+	`call_gateway`.`gwtype`,
+	`dial_limit_xx`.`ID` AS `xxID`,
+	`dial_limit_xx`.`xxUa` AS `xxUa`,
+	`dial_limit_xx`.`xxPwd` AS `xxPwd`,
+	`dial_limit_xx`.`xxNum` AS `xxNum`
 FROM
 	`dial_limit`
-	INNER JOIN `call_gateway` ON `dial_limit`.`gwuid` = `call_gateway`.`UniqueID` 
+	INNER JOIN `call_gateway` ON `dial_limit`.`gwuid` = `call_gateway`.`UniqueID`
+	LEFT JOIN `dial_limit_xx` ON `dial_limit_xx`.`xxNum` = `dial_limit`.`number` 
 WHERE
 	`dial_limit`.`isdel` = 0 
 	AND `dial_limit`.`isuse` = 1 
-	AND `dial_limit`.`isshare` = 1;
+	AND `dial_limit`.`isshare` IN ( 1, 2 );
 ";
+                    string m_sXxHttp = Call_ParamUtil.m_sXxHttp;
+
                     //循环共享域服务器
                     foreach (Model_v1.dial_area item in Core_v1.Redis2.dialarea_list)
                     {
@@ -315,6 +376,36 @@ WHERE
                                         m_pShareNumber.tnumber = m_pDataRow["tnumber"].ToString();
                                         m_pShareNumber.ordernum = Convert.ToDecimal(m_pDataRow["ordernum"]);
                                         m_pShareNumber.uuid = $"{m_pShareNumber.areaid}_{m_pShareNumber.id}_{m_pShareNumber.number}|{item.aip}_{Guid.NewGuid()}";
+                                        m_pShareNumber.isshare = Convert.ToInt32(m_pDataRow["isshare"]);
+                                        ///其它isshare=2,需接口先改变ip,num等内容
+                                        m_pShareNumber.agentID = -1;
+                                        m_pShareNumber.channelID = -1;
+                                        m_pShareNumber.xxID = (m_pDataRow["xxID"] == DBNull.Value ? -1 : Convert.ToInt32(m_pDataRow["xxID"]));
+                                        m_pShareNumber.xxUa = m_pDataRow["xxUa"].ToString();
+                                        m_pShareNumber.xxPwd = m_pDataRow["xxPwd"].ToString();
+                                        m_pShareNumber.xxLogin = 0;
+                                        ///本地前缀加拨
+                                        m_pShareNumber.diallocalprefix = m_pDataRow["diallocalprefix"].ToString();
+
+                                        ///调用续联接口,登录,不注销即可,每次加载前都登录即可
+                                        if (m_pShareNumber.isshare == 2 && !string.IsNullOrWhiteSpace(m_sXxHttp))
+                                        {
+                                            ///登录成功后改为1
+                                            try
+                                            {
+                                                string m_sQueryString = $"queryString={{\"agentId\":\"{m_pShareNumber.xxUa}\",\"passWord\":\"{m_pShareNumber.xxPwd}\"}}";
+                                                string m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_3LOGIN", m_sQueryString);
+                                                Log.Instance.Debug(m_sResult);
+                                                Newtonsoft.Json.Linq.JObject m_pJObject = Newtonsoft.Json.Linq.JObject.Parse(m_sResult);
+                                                int m_uStatus = Convert.ToInt32(m_pJObject.GetValue("status")?.ToString());
+                                                if (m_uStatus == 0) m_pShareNumber.xxLogin = 1;
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Log.Instance.Error($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][m_fPOST][Exception][{ex.Message}]");
+                                            }
+                                        }
+
                                         m_lShareNumber.Add(m_pShareNumber);
                                     }
                                 }
@@ -325,6 +416,10 @@ WHERE
                             Log.Instance.Error($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][foreach][Exception][{item.aname},{item.aip},{item.aport},{item.adb},{item.auid}:{ex.Message}]");
                         }
                     }
+                }
+                else
+                {
+                    Log.Instance.Fail($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][no area]");
                 }
             }
             catch (Exception ex)
@@ -351,6 +446,8 @@ WHERE
             _m_mDialLimit.m_bGatewayType = m_pShareNumber.gwtype == "gateway";
             _m_mDialLimit.m_sGatewayType = m_pShareNumber.gwtype;
             _m_mDialLimit.m_sDialPrefixStr = m_pShareNumber.dialprefix;
+            ///本地前缀加拨
+            _m_mDialLimit.m_sDialLocalPrefixStr = m_pShareNumber.diallocalprefix;
             _m_mDialLimit.m_sAreaCodeStr = m_pShareNumber.areacode;
             _m_mDialLimit.m_sAreaNameStr = m_pShareNumber.areaname;
             //默认自动加拨前缀
@@ -513,6 +610,63 @@ WHERE
             {
                 Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fDelDialUUID][{ex.Message}]");
             }
+        }
+
+        public static Model_v1.AddRecByRec m_fGetAgentByLoginName(string m_sFreeSWITCHIPv4, string m_sLoginName)
+        {
+            try
+            {
+                ///简写配置即可,先不进行更新
+                string m_fConnStr = MySQLDBConnectionString.m_fConnStr(m_sFreeSWITCHIPv4);
+                string m_sSQL = $@"
+SELECT
+	`call_agent`.`ID` AS `AgentID`,
+	`call_agent`.`ID` AS `fromagentid`,
+	`call_channel`.`ID` AS `ChannelID`,
+	'{m_sFreeSWITCHIPv4}' AS `FreeSWITCHIPv4`,
+	`call_channel`.`ChNum` AS `UAID` 
+FROM
+	`call_agent`
+	LEFT JOIN `call_channel` ON `call_agent`.`ChannelID` = `call_channel`.`ID` 
+WHERE
+	`call_agent`.`LoginName` = '{m_sLoginName}' 
+	LIMIT 1;
+";
+                ///得到所有内容,看看能否与原有逻辑对接
+                DataTable m_pDataTable = MySQL_Method.BindTable(m_sSQL);
+                if (m_pDataTable != null && m_pDataTable.Rows.Count > 0)
+                {
+                    DataRow m_pDataRow = m_pDataTable.Rows[0];
+                    Model_v1.AddRecByRec m_pAddRecByRec = new Model_v1.AddRecByRec();
+                    m_pAddRecByRec.m_sFreeSWITCHIPv4 = m_pDataRow["FreeSWITCHIPv4"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(m_pAddRecByRec.m_sFreeSWITCHIPv4))
+                    {
+                        if (m_pAddRecByRec.m_sFreeSWITCHIPv4.Equals(m_sFreeSWITCHIPv4))
+                        {
+                            m_pAddRecByRec.m_sEndPointStr = $"user/{m_pDataRow["UAID"]}";
+                        }
+                        else
+                        {
+                            m_pAddRecByRec.m_sEndPointStr = $"sofia/external/sip:*{m_pDataRow["UAID"]}@{m_pDataRow["FreeSWITCHIPv4"]:5080}";
+                        }
+                    }
+                    else
+                    {
+                        m_pAddRecByRec.m_sFreeSWITCHIPv4 = m_sFreeSWITCHIPv4;
+                        m_pAddRecByRec.m_sEndPointStr = $"user/{m_pDataRow["UAID"]}";
+                    }
+                    m_pAddRecByRec.m_uAgentID = Convert.ToInt32(m_pDataRow["AgentID"]);
+                    m_pAddRecByRec.m_uFromAgentID = Convert.ToInt32(m_pDataRow["fromagentid"]);
+                    m_pAddRecByRec.m_uChannelID = Convert.ToInt32(m_pDataRow["ChannelID"]);
+                    m_pAddRecByRec.UAID = m_pDataRow["UAID"].ToString();
+                    return m_pAddRecByRec;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fGetAgentByLoginName][{ex.Message}]");
+            }
+            return null;
         }
     }
 }

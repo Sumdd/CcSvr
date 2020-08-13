@@ -78,6 +78,15 @@ namespace CenoSocket {
         {
             return _bhzt(M_WebSocket._bhzt_hang, _reason);
         }
+        /// <summary>
+        /// 来电时繁忙
+        /// </summary>
+        /// <param name="m_sMsg"></param>
+        /// <returns></returns>
+        public static string _bhzt_call_busy(string m_sMsg)
+        {
+            return _bhzt(M_WebSocket._bhzt_call_busy, m_sMsg);
+        }
         #endregion
 
         #region 发送录音

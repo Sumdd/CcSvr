@@ -214,6 +214,7 @@ namespace CenoSocket
                         /// 空也做强制加拨处理
                         /// ]]>
 
+                        ///强制加拨前缀只使用外地加拨即可
                         if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr) || m_uMustNbr == 1)
                         {
                             if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
@@ -232,20 +233,23 @@ namespace CenoSocket
                                 case Special.Mobile:
                                     if (!m_sDealWithRealPhoneNumberStr.Contains('*') && !m_sDealWithRealPhoneNumberStr.Contains('#'))
                                     {
-                                        if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
+                                        if (_m_mDialLimit.m_bZflag)
                                         {
-                                            if (_m_mDialLimit.m_bZflag)
+
+                                            ///<![CDATA[
+                                            /// 当被叫号码未找到归属地时,不加拨前缀
+                                            /// ]]>
+
+                                            if (!string.IsNullOrWhiteSpace(m_sCityCodeStr) && _m_mDialLimit.m_sAreaCodeStr != m_sCityCodeStr)
                                             {
-
-                                                ///<![CDATA[
-                                                /// 当被叫号码未找到归属地时,不加拨前缀
-                                                /// ]]>
-
-                                                if (!string.IsNullOrWhiteSpace(m_sCityCodeStr) && _m_mDialLimit.m_sAreaCodeStr != m_sCityCodeStr)
-                                                {
-                                                    m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
-                                                }
+                                                m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
                                             }
+                                            else
+                                            {
+                                                m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_sDealWithRealPhoneNumberStr}";
+                                            }
+                                            //原号码
+                                            m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
                                         }
                                     }
                                     break;
@@ -1095,6 +1099,10 @@ namespace CenoSocket
         /// 获取共享号码
         /// </summary>
         public const string _m_sGetShare = "GetShare";
+        /// <summary>
+        /// 获取申请式线路
+        /// </summary>
+        public const string _m_sGetApply = "GetApply";
     }
 
     public class m_mIpCmd

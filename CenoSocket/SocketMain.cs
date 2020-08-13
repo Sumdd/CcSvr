@@ -2602,24 +2602,51 @@ namespace CenoSocket {
         #endregion
         #endregion
 
-        #region 拨号状态
-        public static async void _bhzt_do(IWebSocketConnection socket, Hashtable data) {
-            try {
-                var _agentEntity = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_websocket == socket);
-                if(_agentEntity == null)
-                    throw new Exception($"未找到对应此WebSocket,{socket.ConnectionInfo.Id},{socket.ConnectionInfo.ClientIpAddress}:{socket.ConnectionInfo.ClientPort}的用户");
-                else {
-                    if(_agentEntity.ChInfo != null)
-                        _agentEntity.ChInfo.channel_call_status = APP_USER_STATUS.FS_USER_BHANGUP;
-                    var client = await InboundMain.fs_cli();
-                    string uuid = _agentEntity.ChInfo.channel_call_uuid;
-                    if (!string.IsNullOrWhiteSpace(uuid))
+        #region ***杀死UUID,强断
+        public static async void m_fKill(int m_uAgentID, string m_sUUID)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(m_sUUID))
+                {
+                    InboundSocket client = await InboundMain.fs_cli();
+                    await client.SendApi($"uuid_kill {m_sUUID}").ContinueWith(task =>
                     {
-                        await client.Hangup(uuid, HangupCause.NormalClearing);
-                    }
+                        try
+                        {
+                            if (task.IsCanceled)
+                            {
+                                Log.Instance.Fail($"[CenoSocket][SocketMain][m_fKill][{m_uAgentID} SendApi uuid_kill cancel]");
+                                return;
+                            }
+                            string m_sMsg = task?.Result?.BodyText;
+                            if (!m_sMsg.StartsWith("+OK")) Log.Instance.Fail($"[CenoSocket][SocketMain][m_fKill][{m_uAgentID} SendApi uuid_kill:{m_sMsg}]");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoSocket][SocketMain][m_fKill][{m_uAgentID} SendApi uuid_kill cancel:{ex.Message}]");
+                            return;
+                        }
+                    });
                 }
-            } catch(Exception ex) {
-                Log.Instance.Error($"[WebSocket_v1][InWebSocketDo][_bhzt_do][Exception][{ex.Message}]");
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[CenoSocket][SocketMain][m_fKill][Exception][{m_uAgentID} SendApi uuid_kill:{ex.Message}]");
+            }
+        }
+        #endregion
+
+        #region ***套接字发送委托
+        public static void m_fBusySendMsg(IWebSocketConnection m_pWebSocket, string m_sMsg)
+        {
+            try
+            {
+                m_pWebSocket.Send(M_WebSocketSend._bhzt_call_busy(m_sMsg));
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[CenoSocket][SocketMain][m_fSendMsg][Exception][{ex.Message}]");
             }
         }
         #endregion

@@ -13,8 +13,16 @@ namespace DB.Basic {
 
 
 
-
-        public static bool Insert(call_record_model model, bool m_bShare = false, Model_v1.dial_area m_pDialArea = null, bool m_bCall = false) {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="m_bShare"></param>
+        /// <param name="m_pDialArea"></param>
+        /// <param name="m_bCall"></param>
+        /// <param name="m_bSame">是否强制不为其它服务器保存录音</param>
+        /// <returns></returns>
+        public static bool Insert(call_record_model model, bool m_bShare = false, Model_v1.dial_area m_pDialArea = null, bool m_bCall = false, bool m_bSame = false) {
             string sql = "insert into call_record(UniqueID,CallType,ChannelID,LinkChannelID,LocalNum,T_PhoneNum,C_PhoneNum,PhoneAddress,DtmfNum,PhoneTypeID,PhoneListID,PriceTypeID,CallPrice,AgentID,CusID,ContactID,RecordFile,C_Date,C_StartTime,C_RingTime,C_AnswerTime,C_EndTime,C_WaitTime,C_SpeakTime,CallResultID,CallForwordFlag,CallForwordChannelID,SerOp_ID,SerOp_DTMF,SerOp_LeaveRec,Detail,Uhandler,Remark,recordName,isshare,FreeSWITCHIPv4,UAID,fromagentid,fromagentname,fromloginname,tnumber) values (?UniqueID,?CallType,?ChannelID,?LinkChannelID,?LocalNum,?T_PhoneNum,?C_PhoneNum,?PhoneAddress,?DtmfNum,?PhoneTypeID,?PhoneListID,?PriceTypeID,?CallPrice,?AgentID,?CusID,?ContactID,?RecordFile,?C_Date,?C_StartTime,?C_RingTime,?C_AnswerTime,?C_EndTime,?C_WaitTime,?C_SpeakTime,?CallResultID,?CallForwordFlag,?CallForwordChannelID,?SerOp_ID,?SerOp_DTMF,?SerOp_LeaveRec,?Detail,?Uhandler,?Remark,?recordName,?isshare,?FreeSWITCHIPv4,?UAID,?fromagentid,?fromagentname,?fromloginname,?tnumber)";
             MySqlParameter[] parameters = {
      new MySqlParameter("?UniqueID", MySqlDbType.VarChar,36),
@@ -111,10 +119,10 @@ namespace DB.Basic {
                     string m_sConnStr = MySQLDBConnectionString.m_fConnStr(m_pDialArea);
                     if (!m_sConnStr.Equals(MySQLDBConnectionString.ConnectionString))
                     {
-                        bool m_bSame = false;
                         if (
-                            m_pDialArea.aip == MySQLDBConnectionString.DB_Server &&
-                            m_pDialArea.adb == MySQLDBConnectionString.DB_Name
+                            (m_pDialArea.aip == MySQLDBConnectionString.DB_Server &&
+                            m_pDialArea.adb == MySQLDBConnectionString.DB_Name) ||
+                            m_pDialArea.amain == 2
                             )
                         {
                             m_bSame = true;
@@ -143,6 +151,7 @@ namespace DB.Basic {
                 }
             }
 
+            ///此处的显示有待优化处理,可以直接查询出来比较好
             if (m_bCall)
             {
                 parameters[13].Value = -1;

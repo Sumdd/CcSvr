@@ -184,6 +184,13 @@ namespace Model_v1
             get; set;
         }
         /// <summary>
+        /// 本地前缀加拨
+        /// </summary>
+        public string diallocalprefix
+        {
+            get; set;
+        }
+        /// <summary>
         /// 区号
         /// </summary>
         public string areacode
@@ -250,6 +257,69 @@ namespace Model_v1
         /// 排序
         /// </summary>
         public decimal ordernum
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 共享号码的延申,不是直接使用,而是转接
+        /// </summary>
+        public int isshare
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 软交换的IP
+        /// </summary>
+        public string fs_ip
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 软交换的Ua
+        /// </summary>
+        public string fs_num
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 坐席ID
+        /// </summary>
+        public int agentID
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 通道ID
+        /// </summary>
+        public int channelID
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 续联ID,直接写入登录,可以一直不注销或者每打电话就登录一次
+        /// </summary>
+        public int xxID
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 续联Ua
+        /// </summary>
+        public string xxUa
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 续联密码
+        /// </summary>
+        public string xxPwd
+        {
+            get; set;
+        }
+        /// <summary>
+        /// 续联登录状态
+        /// </summary>
+        public int xxLogin
         {
             get; set;
         }
