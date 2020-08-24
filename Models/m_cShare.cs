@@ -323,6 +323,13 @@ namespace Model_v1
         {
             get; set;
         }
+        /// <summary>
+        /// 调用范围:0默认可用,1查对照表
+        /// </summary>
+        public int xxUse
+        {
+            get; set;
+        }
     }
     public enum SHARE_NUM_STATUS
     {

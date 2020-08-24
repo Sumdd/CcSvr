@@ -2628,6 +2628,19 @@ namespace CenoSocket {
                             return;
                         }
                     });
+
+                    //释放掉连接
+                    await client.Exit().ContinueWith(task =>
+                    {
+                        try
+                        {
+                            if (task.IsCanceled) Log.Instance.Error($"[CenoSocket][SocketMain][m_fKill][Exit cancel]");
+                        }
+                        catch
+                        {
+                            return;
+                        }
+                    });
                 }
             }
             catch (Exception ex)

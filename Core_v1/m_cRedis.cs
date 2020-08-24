@@ -825,7 +825,7 @@ namespace Core_v1
         #endregion
 
         #region ***获取申请式号码,并载入申请者信息
-        public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, out int m_sStatus, out string m_sErrMsg)
+        public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg)
         {
             m_sStatus = -1;
             try
@@ -867,6 +867,9 @@ namespace Core_v1
                         return null;
                     }
 
+                    ///初始化
+                    if (m_lNumber == null) m_lNumber = new List<string>();
+
                     string[] m_lDataKeys = Redis2.Instance.GetAllKeys().Where(x => x.StartsWith(m_sJSONPrefix))?.ToArray();
                     string[] m_lLockKeys = Redis2.Instance.GetAllKeys().Where(x => x.StartsWith(m_sLockPrefix))?.ToArray();
                     if (m_lLockKeys == null) m_lLockKeys = new string[0];
@@ -903,6 +906,21 @@ namespace Core_v1
                                                              //申请式号码
                                                              &&
                                                              r.isshare == 2
+                                                             &&
+                                                             (
+                                                                //永久可调用
+                                                                r.xxUse == 0 ||
+                                                                (
+                                                                    //有内容即可
+                                                                    m_lNumber.Count > 0
+                                                                    &&
+                                                                    //包含该号码
+                                                                    m_lNumber.All(y => y.Equals(r.number))
+                                                                    &&
+                                                                    //范围调用
+                                                                    r.xxUse == 1
+                                                                )
+                                                             )
                                                              //暂时去掉同号码限呼逻辑
                                                              select r)?.ToList();
 

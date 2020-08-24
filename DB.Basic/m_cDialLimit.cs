@@ -323,7 +323,8 @@ SELECT
 	`dial_limit_xx`.`ID` AS `xxID`,
 	`dial_limit_xx`.`xxUa` AS `xxUa`,
 	`dial_limit_xx`.`xxPwd` AS `xxPwd`,
-	`dial_limit_xx`.`xxNum` AS `xxNum`
+	`dial_limit_xx`.`xxNum` AS `xxNum`,
+	`dial_limit_xx`.`xxUse` AS `xxUse` 
 FROM
 	`dial_limit`
 	INNER JOIN `call_gateway` ON `dial_limit`.`gwuid` = `call_gateway`.`UniqueID`
@@ -384,6 +385,7 @@ WHERE
                                         m_pShareNumber.xxUa = m_pDataRow["xxUa"].ToString();
                                         m_pShareNumber.xxPwd = m_pDataRow["xxPwd"].ToString();
                                         m_pShareNumber.xxLogin = 0;
+                                        m_pShareNumber.xxUse = (m_pDataRow["xxUse"] == DBNull.Value ? -1 : Convert.ToInt32(m_pDataRow["xxUse"]));
                                         ///本地前缀加拨
                                         m_pShareNumber.diallocalprefix = m_pDataRow["diallocalprefix"].ToString();
 
@@ -402,7 +404,7 @@ WHERE
                                             }
                                             catch (Exception ex)
                                             {
-                                                Log.Instance.Error($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][m_fPOST][Exception][{ex.Message}]");
+                                                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fGetShareNumber][m_fPOST][Exception][{ex.Message}]");
                                             }
                                         }
 
@@ -413,18 +415,18 @@ WHERE
                         }
                         catch (Exception ex)
                         {
-                            Log.Instance.Error($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][foreach][Exception][{item.aname},{item.aip},{item.aport},{item.adb},{item.auid}:{ex.Message}]");
+                            Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fGetShareNumber][foreach][Exception][{item.aname},{item.aip},{item.aport},{item.adb},{item.auid}:{ex.Message}]");
                         }
                     }
                 }
                 else
                 {
-                    Log.Instance.Fail($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][no area]");
+                    Log.Instance.Fail($"[DB.Basic][m_fDialLimit][m_fGetShareNumber][no area]");
                 }
             }
             catch (Exception ex)
             {
-                Log.Instance.Error($"[DB.Basic][proc_dial_limit][m_fGetShareNumber][Exception][{ex.Message}]");
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fGetShareNumber][Exception][{ex.Message}]");
             }
 
             Core_v1.Redis2.sharenum_list = m_lShareNumber;
@@ -667,6 +669,38 @@ WHERE
                 Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fGetAgentByLoginName][{ex.Message}]");
             }
             return null;
+        }
+        public static List<string> m_fXxUse(string m_sLoginName)
+        {
+            List<string> m_lNumber = new List<string>();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(m_sLoginName))
+                {
+                    string m_sSQL = $@"
+SELECT
+	`dial_limit_xxuse`.`number` 
+FROM
+	`dial_limit_xxuse`
+	INNER JOIN `call_agent` ON `call_agent`.`ID` = `dial_limit_xxuse`.`AgentID` 
+WHERE
+	`call_agent`.`LoginName` = '{m_sLoginName}' 
+	AND IFNULL( `dial_limit_xxuse`.`number`, '' ) != '' 
+GROUP BY
+	`dial_limit_xxuse`.`number`;
+";
+                    DataTable m_pDataTable = MySQL_Method.BindTable(m_sSQL);
+                    if (m_pDataTable != null && m_pDataTable.Rows.Count > 0)
+                    {
+                        return m_pDataTable.AsEnumerable().Select(x => x.Field<object>("number")?.ToString()).ToList();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fXxUse][{ex.Message}]");
+            }
+            return m_lNumber;
         }
     }
 }
