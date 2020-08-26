@@ -7,15 +7,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DB.Basic {
-    public class PhoneAutoCall {
-        public static IList<PhoneAutoCall_model> GetList() {
+namespace DB.Basic
+{
+    public class PhoneAutoCall
+    {
+        public static IList<PhoneAutoCall_model> GetList()
+        {
             IList<PhoneAutoCall_model> list = new List<PhoneAutoCall_model>();
             string sql = @"select ID,PhoneNum,pici,progressFlag,contentTxt,status,addTime,callTime,endTime,result,IsUpdate,luyinId,CallNum,CallStatus,CallCount,source_id,ajid,inpici,shfzh18,czy from PhoneAutoCall where status<>0 and status<>-1 and status<>-2 and CallStatus<>1 order by  random,addTime  asc";
 
-            using(var dr = MySQL_Method.ExecuteDataReader(sql)) {
-                while(dr != null && dr.HasRows && dr.Read()) {
-                    list.Add(new PhoneAutoCall_model() {
+            using (var dr = MySQL_Method.ExecuteDataReader(sql))
+            {
+                while (dr != null && dr.HasRows && dr.Read())
+                {
+                    list.Add(new PhoneAutoCall_model()
+                    {
                         ID = int.Parse(dr["ID"].ToString()),
                         PhoneNum = dr["PhoneNum"].ToString(),
                         pici = dr["pici"].ToString(),
@@ -51,14 +57,18 @@ namespace DB.Basic {
          */
 
         public static object lock_obj = new object();
-        public static DataTable GetData() {
+        public static DataTable GetData()
+        {
             DataTable AutoDialDT = new DataTable();
-            lock(lock_obj) {
+            lock (lock_obj)
+            {
                 string asSQL = $@"select *,'{Guid.NewGuid()}' as random from PhoneAutoCall where status<>0 and status<>-1 and status<>-2 and CallStatus<>1 order by  random,addTime  asc limit 10";
                 AutoDialDT = MySQL_Method.BindTable(asSQL);
-                if(AutoDialDT != null && AutoDialDT.Rows.Count > 0) {
+                if (AutoDialDT != null && AutoDialDT.Rows.Count > 0)
+                {
                     List<string> list = new List<string>();
-                    foreach(DataRow item in AutoDialDT.Rows) {
+                    foreach (DataRow item in AutoDialDT.Rows)
+                    {
                         list.Add(item["id"].ToString());
                     }
                     string UpdateStatus = "update PhoneAutoCall set CallStatus='1',CallCount=CallCount+1 where id in(" + string.Join(",", list) + ")";
@@ -122,7 +132,29 @@ create temporary table if not exists ta_task
 ) engine = memory;
 truncate table ta_task;
 insert into ta_task
-select * from phoneautocall
+select 
+  `id`,
+  `PhoneNum`,
+  `pici`,
+  `progressFlag`,
+  `contentTxt`,
+  `status`,
+  `addTime`,
+  `callTime`,
+  `endTime`,
+  `result`,
+  `IsUpdate`,
+  `luyinId`,
+  `CallNum`,
+  `CallStatus`,
+  `CallCount`,
+  `source_id`,
+  `ajid`,
+  `inpici`,
+  `shfzh18`,
+  `czy`,
+  `asr_status`
+from phoneautocall
 where 1=1
 and status <> '0'     -- 不详
 and status <> '-1'    -- 不详
@@ -146,18 +178,21 @@ drop temporary table if exists ta_task;
             return null;
         }
 
-        public static void CallCount1(int id) {
+        public static void CallCount1(int id)
+        {
             string UpdateStatus = "update PhoneAutoCall set CallCount=CallCount+1 where id = " + id + " ";
             MySQL_Method.ExecuteNonQuery(UpdateStatus);
         }
 
-        public static int Update(int? ID, params object[] KeyValues) {
+        public static int Update(int? ID, params object[] KeyValues)
+        {
             StringBuilder sb = new StringBuilder();
             List<MySqlParameter> parameters = new List<MySqlParameter>();
-            if(KeyValues.Length % 2 != 0 && KeyValues.Length > 0)
+            if (KeyValues.Length % 2 != 0 && KeyValues.Length > 0)
                 throw new Exception("参数需为非零偶数个");
             sb.Append("update PhoneAutoCall set ");
-            for(int i = 0; i < KeyValues.Length; i += 2) {
+            for (int i = 0; i < KeyValues.Length; i += 2)
+            {
                 sb.Append(KeyValues[i] + "=@" + KeyValues[i] + ",");
                 parameters.Add(new MySqlParameter("@" + KeyValues[i], KeyValues[i + 1]));
             }
