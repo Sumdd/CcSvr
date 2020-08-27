@@ -75,16 +75,28 @@ namespace CenoSocket
                 string m_sPhoneNumberStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[2]);//未处理
                 string m_sTypeNameStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[3]);
                 bool m_bStar = m_sTypeNameStr == Special.Star;
-                string m_sPhoneAddressStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[4]);
-                string m_sCityCodeStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[5]);
-                string m_sDealWithStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[6]);
-                string m_sNumberType = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[7]);
-                string m_sTypeUUID = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[8]);
+
+                ///兼容原来的拨号命令,后续也做如此判断
+                //归属地
+                string m_sPhoneAddressStr = "未知";//默认归属地为未知
+                if (m_aSocketCmdArray?.Length > 4) m_sPhoneAddressStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[4]);
+                //区号
+                string m_sCityCodeStr = string.Empty;//默认区号为空
+                if (m_aSocketCmdArray?.Length > 5) m_sCityCodeStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[5]);
+                //处理模式
+                string m_sDealWithStr = Special.Complete;//默认处理完成
+                if (m_aSocketCmdArray?.Length > 6) m_sDealWithStr = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[6]);
+                //号码类别
+                string m_sNumberType = Special.Common;//默认专线号码
+                if (m_aSocketCmdArray?.Length > 7) m_sNumberType = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[7]);
+                //类别UUUD
+                string m_sTypeUUID = string.Empty;//默认空
+                if (m_aSocketCmdArray?.Length > 8) m_sTypeUUID = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[8]);
 
                 #region ***拨号Socket命令自定义数据
                 ///自定义分割式数据|&
                 string m_sUsrData = string.Empty;
-                if (m_aSocketCmdArray.Length > 9) m_sUsrData = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[9]);
+                if (m_aSocketCmdArray?.Length > 9) m_sUsrData = SocketInfo.GetValueByKey(m_pHashtable, m_aSocketCmdArray[9]);
                 ///是否兼容加密号码
                 bool m_bQNRegexNumber = false;
                 ///号码归属地时间
