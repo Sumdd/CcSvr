@@ -550,7 +550,7 @@ namespace CenoSipBusiness {
                         {
                             AGENT_INFO m_uAgent = call_factory.agent_list.Find(
                                    x => _m_mRoute.routeua.Contains(x.AgentID) &&
-                                   (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                                   (x.ChInfo?.IsRegister == 1 && x.ChInfo?.channel_websocket != null || x.ChInfo?.IsRegister != 1) &&
                                    (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
                                    x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
                                    x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
@@ -562,7 +562,7 @@ namespace CenoSipBusiness {
                         {
                             AGENT_INFO m_uAgent = call_factory.agent_list.FindLast(
                                    x => _m_mRoute.routeua.Contains(x.AgentID) &&
-                                   (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                                   (x.ChInfo?.IsRegister == 1 && x.ChInfo?.channel_websocket != null || x.ChInfo?.IsRegister != 1) &&
                                    (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
                                    x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
                                    x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
@@ -575,7 +575,7 @@ namespace CenoSipBusiness {
                             Random m_pRandom = new Random();
                             List<AGENT_INFO> m_lAgent = call_factory.agent_list.FindAll(
                                      x => _m_mRoute.routeua.Contains(x.AgentID) &&
-                                     (x.ChInfo.IsRegister == 1 && x.ChInfo.channel_websocket != null || x.ChInfo.IsRegister != 1) &&
+                                     (x.ChInfo?.IsRegister == 1 && x.ChInfo?.channel_websocket != null || x.ChInfo?.IsRegister != 1) &&
                                      (x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_IDLE ||
                                      x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_AHANGUP ||
                                      x.ChInfo?.channel_call_status == APP_USER_STATUS.FS_USER_BHANGUP));
