@@ -206,11 +206,26 @@ namespace WebSocket_v1
                                 int m_sStatus = -1;
                                 string m_sErrMsg = "Err未知";
 
-                                ///如何写比较好,直接放到dial_limit_xx表中,直接加载即可
-                                List<string> m_lNumber = DB.Basic.m_fDialLimit.m_fXxUse(m_sLoginName);
+                                ///绑定号码,如果有绑定的号码,直接使用而不进行数据库的查询
+                                bool m_bBind = false;
+                                List<string> m_lNumber = new List<string>();
+                                string m_sBindNumber = string.Empty;
+                                if (_m_pJObject.ContainsKey("m_sBindNumber"))
+                                {
+                                    m_sBindNumber = _m_pJObject.GetValue("m_sBindNumber").ToString();
+                                }
+                                if (!string.IsNullOrWhiteSpace(m_sBindNumber))
+                                {
+                                    m_bBind = true;
+                                    m_lNumber.Add(m_sBindNumber);
+                                }
+                                else
+                                {
+                                    m_lNumber = DB.Basic.m_fDialLimit.m_fXxUse(m_sLoginName);
+                                }
 
                                 ///申请号码
-                                share_number m_pShareNumber = Redis2.m_fApplyXx(m_sIP, m_pAddRecByRec.UAID, m_pAddRecByRec.m_uAgentID, m_pAddRecByRec.m_uChannelID, DB.Basic.Call_ParamUtil.m_uShareNumSetting, m_lNumber, out m_sStatus, out m_sErrMsg);
+                                share_number m_pShareNumber = Redis2.m_fApplyXx(m_sIP, m_pAddRecByRec.UAID, m_pAddRecByRec.m_uAgentID, m_pAddRecByRec.m_uChannelID, DB.Basic.Call_ParamUtil.m_uShareNumSetting, m_bBind, m_lNumber, out m_sStatus, out m_sErrMsg);
 
                                 ///未配置续联接口
                                 string m_sXxHttp = DB.Basic.Call_ParamUtil.m_sXxHttp;

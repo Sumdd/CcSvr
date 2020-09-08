@@ -824,8 +824,8 @@ namespace Core_v1
         }
         #endregion
 
-        #region ***获取申请式号码,并载入申请者信息
-        public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg)
+        #region ***获取申请式号码,并载入申请者信息(出现Redis的错误,这里有可能需要直接使用内存,待定)
+        public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, bool m_bBind, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg)
         {
             m_sStatus = -1;
             try
@@ -908,8 +908,8 @@ namespace Core_v1
                                                              r.isshare == 2
                                                              &&
                                                              (
-                                                                //永久可调用
-                                                                r.xxUse == 0 ||
+                                                                //永久可调用且非绑定
+                                                                (r.xxUse == 0 && !m_bBind) ||
                                                                 (
                                                                     //有内容即可
                                                                     m_lNumber.Count > 0
@@ -917,8 +917,8 @@ namespace Core_v1
                                                                     //包含该号码
                                                                     m_lNumber.All(y => y.Equals(r.number))
                                                                     &&
-                                                                    //范围调用
-                                                                    r.xxUse == 1
+                                                                   //范围调用或绑定
+                                                                   (r.xxUse == 1 || m_bBind)
                                                                 )
                                                              )
                                                              //暂时去掉同号码限呼逻辑
