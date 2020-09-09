@@ -1416,5 +1416,95 @@ namespace DB.Basic {
             }
         }
         #endregion
+        #region ***启用催收系统查询联系人姓名
+        public static bool? _m_bUseHomeSearch;
+        public static bool m_bUseHomeSearch
+        {
+            get
+            {
+                try
+                {
+                    if (_m_bUseHomeSearch == null)
+                    {
+                        _m_bUseHomeSearch = Call_ParamUtil.GetParamValueByName("UseHomeSearch") == "1";
+                    }
+                    return Convert.ToBoolean(_m_bUseHomeSearch);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("UseHomeSearch", value ? "1" : "0");
+                    _m_bUseHomeSearch = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
+        #region ***催收系统数据源地址
+        public static string _m_sHomeConnString;
+        public static string m_sHomeConnString
+        {
+            get
+            {
+                try
+                {
+                    if (_m_sHomeConnString == null)
+                    {
+                        Call_ParamUtil._m_sHomeConnString = Call_ParamUtil.GetParamValueByName("_m_sHomeConnString".Replace("_m_s", "").Replace("m_s", ""));
+                    }
+                    return _m_sHomeConnString;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_sHomeConnString".Replace("_m_s", "").Replace("m_s", ""), value);
+                    _m_sHomeConnString = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
+        #region ***通过催收系统查出来电人姓名的语句
+        public static string _m_sHomeSelectString;
+        public static string m_sHomeSelectString
+        {
+            get
+            {
+                try
+                {
+                    if (_m_sHomeSelectString == null)
+                    {
+                        Call_ParamUtil._m_sHomeSelectString = Call_ParamUtil.GetParamValueByName("_m_sHomeSelectString".Replace("_m_s", "").Replace("m_s", ""));
+                    }
+                    return _m_sHomeSelectString;
+                }
+                catch
+                {
+                    return _m_sHomeSelectString = "";
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_sHomeSelectString".Replace("_m_s", "").Replace("m_s", ""), value);
+                    _m_sHomeSelectString = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
     }
 }

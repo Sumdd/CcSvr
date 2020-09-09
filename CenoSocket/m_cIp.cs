@@ -90,6 +90,10 @@ namespace CenoSocket
                     return;
                 }
 
+                #region ***是否需要查询联系人姓名
+                if (Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sDealWithPhoneNumberStr);
+                #endregion
+
                 List<string> m_lStrings = m_cPhone.m_fGetPhoneNumberMemo(m_sDealWithPhoneNumberStr);
                 string m_sDealWithRealPhoneNumberStr = m_lStrings[0];
                 bool m_bStar = m_lStrings[2] == Special.Star;

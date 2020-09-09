@@ -151,6 +151,10 @@ namespace CenoFsSharp
                 }
                 #endregion
 
+                #region ***是否需要查询联系人姓名
+                if (Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sRealCallerNumberStr);
+                #endregion
+
                 string m_sEndPointStrB = string.Empty;
                 AGENT_INFO m_mAgent = null;
                 bool m_bInboundTest = Call_ParamUtil.InboundTest;

@@ -87,6 +87,9 @@ namespace CenoServer
    16.是否开启追加独立服务中的共享号码,申请式:UseApply
    18.独立申请式出局Ua:ApiUa
    19.To拼接至主叫名称:AppendTo
+   20.启用催收系统查询联系人姓名:UseHomeSearch
+   21.催收系统数据源地址:HomeConnString
+   22.通过催收系统查出来电人姓名的语句:HomeSelectString
 
   case play [count(>=-1)] `来电无法接听原因播报次数,-1表示支持早期媒体`
 
@@ -306,6 +309,12 @@ namespace CenoServer
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][ApiUa:{Call_ParamUtil.m_sApiUa}]");
                             Call_ParamUtil._m_uAppendTo = null;
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][AppendTo:{Call_ParamUtil.m_uAppendTo}]");
+                            Call_ParamUtil._m_bUseHomeSearch = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][UseHomeSearch:{Call_ParamUtil.m_bUseHomeSearch}]");
+                            Call_ParamUtil._m_sHomeConnString = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][HomeConnString:{Call_ParamUtil.m_sHomeConnString}]");
+                            Call_ParamUtil._m_sHomeSelectString = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][HomeSelectString:{Call_ParamUtil.m_sHomeSelectString}]");
                             break;
                         #endregion
 

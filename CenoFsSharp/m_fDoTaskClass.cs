@@ -85,6 +85,10 @@ namespace CenoFsSharp
                     return;
                 }
 
+                #region ***是否需要查询联系人姓名
+                if (Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sDealWithPhoneNumberStr);
+                #endregion
+
                 m_mDialLimit _m_mDialLimit = null;
                 List<string> m_lStrings = m_cPhone.m_fGetPhoneNumberMemo(m_sDealWithPhoneNumberStr);
                 _m_mThread.m_mRecord.PhoneAddress = m_lStrings[3];

@@ -222,5 +222,32 @@ namespace DB.Basic {
             return ds;
         }
 
+        public static DataSet ExecuteDataSetByProcedure(string cmdText, MySqlParameter[] cmdParms, string m_sConnStr = null)
+        {
+            MySqlCommand cmd = new MySqlCommand();
+            MySqlDataAdapter adpt = new MySqlDataAdapter();
+            if (string.IsNullOrWhiteSpace(m_sConnStr)) m_sConnStr = MySQLDBConnectionString.ConnectionString;
+            MySqlConnection _SqlConnection = new MySqlConnection(m_sConnStr);
+            DataSet ds = new DataSet();
+            try
+            {
+                PrepareProcedureCommand(cmd, _SqlConnection, cmdText, cmdParms);
+                adpt.SelectCommand = cmd;
+                adpt.Fill(ds);
+            }
+            catch (Exception ex)
+            {
+                _Ilog.Fatal($"sql:{cmdText},catch an exception:" + ex.Message, ex);
+            }
+            finally
+            {
+                cmd.Parameters.Clear();
+                _SqlConnection.Close();
+                _SqlConnection.Dispose();
+                adpt.Dispose();
+                cmd.Dispose();
+            }
+            return ds;
+        }
     }
 }

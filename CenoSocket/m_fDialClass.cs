@@ -147,6 +147,20 @@ namespace CenoSocket
                 }
                 #endregion
 
+                #region ***客户端是否查询联系人姓名
+                bool m_bName = false;
+                if (m_lUsrData.Length > 4)
+                {
+                    ///当开启了查询催收系统获取联系人姓名且客户端未查询时,执行查询命令,减少压力
+                    if (Call_ParamUtil.m_bUseHomeSearch && m_lUsrData[4] != "1") m_bName = true;
+                }
+                else
+                {
+                    ///如果未告知,只要开启了查询催收系统获取联系人姓名模式即查询
+                    if (Call_ParamUtil.m_bUseHomeSearch) m_bName = true;
+                }
+                #endregion
+
                 m_bShare = m_sNumberType == Special.Share;
 
                 AGENT_INFO m_mAgent = call_factory.agent_list.Find(x => x.AgentID == m_uAgentID);
@@ -177,6 +191,10 @@ namespace CenoSocket
                         m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err号码有误"));
                         return;
                     }
+
+                    #region ***是否需要查询联系人姓名
+                    if (m_bName) m_cEsySQL.m_fSetExpc(m_sDealWithRealPhoneNumberStr);
+                    #endregion
                 }
 
                 int m_uCh = m_mAgent.ChInfo.nCh;
