@@ -246,11 +246,17 @@ namespace CenoSipBusiness {
             m_tTaskUpdPhone.Start();
             #endregion
 
-            #region ***加载呼入计划
+            #region ***加载路由
             {
                 DB.Basic.m_cRoute.m_fInit();
                 ///委托赋值
                 DB.Basic.m_fDialLimit.m_fGetChByAgentID += m_fGetChByAgentID;
+            }
+            #endregion
+
+            #region ***加载黑白名单
+            {
+                DB.Basic.m_cWblist.m_fInit();
             }
             #endregion
 

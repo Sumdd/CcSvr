@@ -151,6 +151,96 @@ namespace CenoFsSharp
                 }
                 #endregion
 
+                #region ***呼出只判断是否是黑名单,黑名单直接限制呼叫即可,如果更新中则暂时失效即可
+                if (!m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
+                {
+                    ///判断所有的黑名单即可
+                    foreach (m_mWblist item in m_cWblist.m_lWblist)
+                    {
+                        if (item.wbtype == 2)
+                        {
+                            if (item.regex.IsMatch(m_sRealCallerNumberStr))
+                            {
+                                Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} black list:{m_sRealCallerNumberStr}]");
+
+                                #region 播放提示音
+                                if (m_uPlayLoops > 0)
+                                {
+                                    //应答播放声音
+                                    if (m_bIsDispose) return;
+                                    await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
+                                    {
+                                        try
+                                        {
+                                            if (m_bIsDispose) return;
+                                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {m_sAnswer} cancel]");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {m_sAnswer} error:{ex.Message}]");
+                                        }
+                                    });
+
+                                    for (int i = 0; i < m_uPlayLoops; i++)
+                                    {
+                                        if (m_bIsDispose) return;
+                                        await m_pOutboundSocket.Play(uuid, m_mPlay.m_mNoAnswerMusic).ContinueWith(task =>
+                                        {
+                                            try
+                                            {
+                                                if (m_bIsDispose) return;
+                                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play invalid music cancel]");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play invalid music error:{ex.Message}]");
+                                            }
+                                        });
+                                    }
+                                }
+                                #endregion
+
+                                if (m_bIsDispose) return;
+                                await m_pOutboundSocket.Hangup(uuid, HangupCause.SystemShutdown).ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (m_bIsDispose) return;
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Hangup cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Hangup error:{ex.Message}]");
+                                    }
+                                });
+
+                                if (m_bIsDispose) return;
+                                if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                                {
+                                    await m_pOutboundSocket.Exit().ContinueWith(task =>
+                                    {
+                                        try
+                                        {
+                                            if (m_bIsDispose) return;
+                                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Exit cancel]");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Exit error:{ex.Message}]");
+                                        }
+                                    });
+                                }
+
+                                if (m_bIsDispose) return;
+                                m_pOutboundSocket?.Dispose();
+
+                                return;
+                            }
+                        }
+                    }
+                }
+                #endregion
+
                 #region ***是否需要查询联系人姓名
                 if (Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sRealCallerNumberStr);
                 #endregion

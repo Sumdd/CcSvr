@@ -129,6 +129,7 @@
     <Compile Include="MySQLDBConnectionString.cs" />
     <Compile Include="Mysql_Method.cs" />
     <Compile Include="m_cRoute.cs" />
+    <Compile Include="m_cWblist.cs" />
     <Compile Include="PhoneAutoCall.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

@@ -192,6 +192,25 @@ namespace CenoSocket
                         return;
                     }
 
+                    #region ***呼出只判断是否是黑名单,黑名单直接限制呼叫即可,如果更新中则暂时失效即可
+                    if (!m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
+                    {
+                        ///判断所有的黑名单即可
+                        foreach (m_mWblist item in m_cWblist.m_lWblist)
+                        {
+                            if (item.wbtype == 2)
+                            {
+                                if (item.regex.IsMatch(m_sDealWithRealPhoneNumberStr))
+                                {
+                                    Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} black list:{m_sDealWithRealPhoneNumberStr}]");
+                                    m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err黑名单"));
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    #endregion
+
                     #region ***是否需要查询联系人姓名
                     if (m_bName) m_cEsySQL.m_fSetExpc(m_sDealWithRealPhoneNumberStr);
                     #endregion
