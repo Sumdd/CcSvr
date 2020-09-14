@@ -145,7 +145,11 @@ namespace CenoFsSharp
                 {
                     int m_uLimit = m_fQueueTask.m_uQueueMaxCount - m_qQueueTaskList.Count;
                     if (m_uLimit > 0)
-                        m_lQueueTaskList = m_cDataTableToQueueTask(DB.Basic.PhoneAutoCall.m_fGetEnQueueTaskDataTable(m_uLimit));
+                    {
+                        ///每次查询25条,防止临时表过大,猜测
+                        int _m_uLimit = (m_uLimit > 25 ? 25 : m_uLimit);
+                        m_lQueueTaskList = m_cDataTableToQueueTask(DB.Basic.PhoneAutoCall.m_fGetEnQueueTaskDataTable(_m_uLimit));
+                    }
                     else
                         m_lQueueTaskList = new List<m_mQueueTask>();
                 }

@@ -8,6 +8,7 @@ using System.Data;
 using MySql.Data;
 using MySql.Data.MySqlClient;
 using System.Text.RegularExpressions;
+using Model_v1;
 
 namespace DB.Basic
 {
@@ -397,7 +398,7 @@ WHERE
                                             {
                                                 string m_sQueryString = $"queryString={{\"agentId\":\"{m_pShareNumber.xxUa}\",\"passWord\":\"{m_pShareNumber.xxPwd}\"}}";
                                                 string m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_3LOGIN", m_sQueryString);
-                                                Log.Instance.Debug(m_sResult);
+                                                Log.Instance.Debug($"{m_pShareNumber?.xxUa}:{m_sResult}");
                                                 Newtonsoft.Json.Linq.JObject m_pJObject = Newtonsoft.Json.Linq.JObject.Parse(m_sResult);
                                                 int m_uStatus = Convert.ToInt32(m_pJObject.GetValue("status")?.ToString());
                                                 if (m_uStatus == 0) m_pShareNumber.xxLogin = 1;
@@ -430,6 +431,36 @@ WHERE
             }
 
             Core_v1.Redis2.sharenum_list = m_lShareNumber;
+        }
+        /// <summary>
+        /// 续联登录
+        /// </summary>
+        public static bool m_fXxLogin(string m_sXxHttp, string xxUa, string xxPwd, out string m_sLoginMsg)
+        {
+            m_sLoginMsg = string.Empty;
+            try
+            {
+                string m_sQueryString = $"queryString={{\"agentId\":\"{xxUa}\",\"passWord\":\"{xxPwd}\"}}";
+                string m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_3LOGIN", m_sQueryString);
+                Log.Instance.Debug(m_sResult);
+                Newtonsoft.Json.Linq.JObject m_pJObject = Newtonsoft.Json.Linq.JObject.Parse(m_sResult);
+                int m_uStatus = Convert.ToInt32(m_pJObject.GetValue("status")?.ToString());
+                if (m_uStatus == 0)
+                {
+                    return true;
+                }
+                else
+                {
+                    m_sLoginMsg = m_pJObject["msg"].ToString();
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                m_sLoginMsg = ex.Message;
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fXxLogin][Exception][{ex.Message}]");
+                return false;
+            }
         }
         /// <summary>
         /// 获取拨号限制
@@ -620,6 +651,8 @@ WHERE
             {
                 ///简写配置即可,先不进行更新
                 string m_fConnStr = MySQLDBConnectionString.m_fConnStr(m_sFreeSWITCHIPv4);
+                ///FreeSWITCH-IPv4
+                string _m_sFreeSWITCHIPv4 = m_cModel.m_sFreeSWITCHIPv4;
                 string m_sSQL = $@"
 SELECT
 	`call_agent`.`ID` AS `AgentID`,
@@ -635,15 +668,17 @@ WHERE
 	LIMIT 1;
 ";
                 ///得到所有内容,看看能否与原有逻辑对接
-                DataTable m_pDataTable = MySQL_Method.BindTable(m_sSQL);
+                DataTable m_pDataTable = MySQL_Method.BindTable(m_sSQL, null, m_fConnStr);
                 if (m_pDataTable != null && m_pDataTable.Rows.Count > 0)
                 {
                     DataRow m_pDataRow = m_pDataTable.Rows[0];
                     Model_v1.AddRecByRec m_pAddRecByRec = new Model_v1.AddRecByRec();
                     m_pAddRecByRec.m_sFreeSWITCHIPv4 = m_pDataRow["FreeSWITCHIPv4"]?.ToString();
+                    ///一般不为空
                     if (!string.IsNullOrWhiteSpace(m_pAddRecByRec.m_sFreeSWITCHIPv4))
                     {
-                        if (m_pAddRecByRec.m_sFreeSWITCHIPv4.Equals(m_sFreeSWITCHIPv4))
+                        ///如果IP和本服务端IP一致,使用内呼,不弹屏
+                        if (m_pAddRecByRec.m_sFreeSWITCHIPv4.Equals(_m_sFreeSWITCHIPv4))
                         {
                             m_pAddRecByRec.m_sEndPointStr = $"user/{m_pDataRow["UAID"]}";
                         }
@@ -654,6 +689,7 @@ WHERE
                     }
                     else
                     {
+                        ///作本机判断
                         m_pAddRecByRec.m_sFreeSWITCHIPv4 = m_sFreeSWITCHIPv4;
                         m_pAddRecByRec.m_sEndPointStr = $"user/{m_pDataRow["UAID"]}";
                     }
@@ -670,13 +706,15 @@ WHERE
             }
             return null;
         }
-        public static List<string> m_fXxUse(string m_sLoginName)
+        public static List<string> m_fXxUse(string m_sFreeSWITCHIPv4, string m_sLoginName)
         {
             List<string> m_lNumber = new List<string>();
             try
             {
                 if (!string.IsNullOrWhiteSpace(m_sLoginName))
                 {
+                    ///的到连接字符串
+                    string m_fConnStr = MySQLDBConnectionString.m_fConnStr(m_sFreeSWITCHIPv4);
                     string m_sSQL = $@"
 SELECT
 	`dial_limit_xxuse`.`number` 
@@ -689,7 +727,7 @@ WHERE
 GROUP BY
 	`dial_limit_xxuse`.`number`;
 ";
-                    DataTable m_pDataTable = MySQL_Method.BindTable(m_sSQL);
+                    DataTable m_pDataTable = MySQL_Method.BindTable(m_sSQL, null, m_fConnStr);
                     if (m_pDataTable != null && m_pDataTable.Rows.Count > 0)
                     {
                         return m_pDataTable.AsEnumerable().Select(x => x.Field<object>("number")?.ToString()).ToList();

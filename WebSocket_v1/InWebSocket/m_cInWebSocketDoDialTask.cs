@@ -193,7 +193,7 @@ namespace WebSocket_v1
                                 string m_sPhoneNumber = _m_pJObject.GetValue("m_sPhoneNumber").ToString();
                                 ///MD5
                                 string m_sMD5 = _m_pJObject.GetValue("m_sMD5").ToString();
-
+                                ///支持跨服务器拨打,可固定号码
                                 Model_v1.AddRecByRec m_pAddRecByRec = DB.Basic.m_fDialLimit.m_fGetAgentByLoginName(m_sIP, m_sLoginName);
 
                                 if (m_pAddRecByRec == null)
@@ -221,7 +221,7 @@ namespace WebSocket_v1
                                 }
                                 else
                                 {
-                                    m_lNumber = DB.Basic.m_fDialLimit.m_fXxUse(m_sLoginName);
+                                    m_lNumber = DB.Basic.m_fDialLimit.m_fXxUse(m_sIP, m_sLoginName);
                                 }
 
                                 ///申请号码
@@ -262,9 +262,30 @@ namespace WebSocket_v1
                                         }
                                         else
                                         {
-                                            m_bResetNow = true;
-                                            m_uStatus = -1;
-                                            m_sErrMsg = $"ErrApi:{m_pJObj.GetValue("msg")?.ToString()}";
+                                            ///判断代码是否为未登录,如果是,则先登录再拨打
+                                            if (m_pJObj.ContainsKey("data") && m_pJObj["data"].ToString() == "010")
+                                            {
+                                                ///首先登录
+                                                string m_sLoginMsg = string.Empty;
+                                                if (DB.Basic.m_fDialLimit.m_fXxLogin(m_sXxHttp, m_pShareNumber.xxUa, m_pShareNumber.xxPwd, out m_sLoginMsg))
+                                                {
+                                                    m_bResetNow = true;
+                                                    m_uStatus = -1;
+                                                    m_sErrMsg = $"ErrApi:未登录;已自动登录,请重拨!";
+                                                }
+                                                else
+                                                {
+                                                    m_bResetNow = true;
+                                                    m_uStatus = -1;
+                                                    m_sErrMsg = $"ErrApi:未登录;自动登录失败:{m_sLoginMsg};请重试!";
+                                                }
+                                            }
+                                            else
+                                            {
+                                                m_bResetNow = true;
+                                                m_uStatus = -1;
+                                                m_sErrMsg = $"ErrApi:{m_pJObj.GetValue("msg")?.ToString()}";
+                                            }
                                         }
                                     }
                                     catch (Exception ex)
