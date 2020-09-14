@@ -173,6 +173,10 @@ namespace CenoFsSharp
             if (dt.Rows.Count > 0)
             {
                 ip = dt.Rows[0]["ServerIP"].ToString();
+
+                ///将该值写入Model里供全局调用
+                m_cModel.m_sFreeSWITCHIPv4 = ip;
+
                 port = dt.Rows[0]["ServerPort"].ToString();
                 pwd = dt.Rows[0]["Password"].ToString();
                 Log.Instance.Success($"[CenoFsSharp][InboundMain][Start][{ip}:{port}]");

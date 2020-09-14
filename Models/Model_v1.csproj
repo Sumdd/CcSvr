@@ -80,6 +80,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="m_cModel.cs" />
     <Compile Include="m_cShare.cs" />
     <Compile Include="Special\Special.cs" />
     <Compile Include="NEventSocketModel.cs" />
