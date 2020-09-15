@@ -398,7 +398,7 @@ WHERE
                                             {
                                                 string m_sQueryString = $"queryString={{\"agentId\":\"{m_pShareNumber.xxUa}\",\"passWord\":\"{m_pShareNumber.xxPwd}\"}}";
                                                 string m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_3LOGIN", m_sQueryString);
-                                                Log.Instance.Debug($"{m_pShareNumber?.xxUa}:{m_sResult}");
+                                                Log.Instance.Debug($"{m_pShareNumber?.xxUa}:{m_sResult},args:{m_sQueryString}");
                                                 Newtonsoft.Json.Linq.JObject m_pJObject = Newtonsoft.Json.Linq.JObject.Parse(m_sResult);
                                                 int m_uStatus = Convert.ToInt32(m_pJObject.GetValue("status")?.ToString());
                                                 if (m_uStatus == 0) m_pShareNumber.xxLogin = 1;

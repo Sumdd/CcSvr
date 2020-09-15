@@ -402,6 +402,12 @@ namespace Core_v1
         #region ***Redis拨号缓存数据的复位与锁删除
         public static void m_fResetShareNumber(int m_uAgentID, share_number m_pShareNumber, string m_sUUID, string m_sFreeSWITCHIPv4 = null, bool m_bResetNow = true)
         {
+            string a = string.Empty;
+            string b = string.Empty;
+            string c = string.Empty;
+            string d = string.Empty;
+            string e = string.Empty;
+
             try
             {
                 if (!Redis2.use) return;
@@ -418,11 +424,19 @@ namespace Core_v1
                     string m_sData = Redis2.Instance.Get<string>(m_sDataKey);
                     if (!string.IsNullOrWhiteSpace(m_sData))
                     {
+                        ///赋值,如果有误写日志,下次判断
+                        e = m_sData;
                         share_number _m_pShareNumber = JsonConvert.DeserializeObject<share_number>(m_sData);
                         if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE) return;
                     }
                     else return;
                 }
+
+                ///日志,需要
+                a = m_sUUID;
+                b = m_sValue;
+                c = m_pShareNumber?.fs_ip;
+                d = m_pShareNumber?.fs_num;
 
                 if ((!string.IsNullOrWhiteSpace(m_sUUID) && m_sValue == m_sUUID) || m_sValue == Redis2.m_sUpdateUseEnded || m_sValue == $"{m_pShareNumber.fs_ip}:{m_pShareNumber.fs_num}")
                 {
@@ -489,11 +503,15 @@ namespace Core_v1
                 else
                 {
                     Log.Instance.Warn($"[Core_v1][Redis2][m_fResetShareNumber][{m_uAgentID} reset {m_sLockKey} fail:UUID different]");
+                    ///打印出来看一下
+                    Log.Instance.Error($"a:{a};b:{b};c:{c};d:{d};e:{e}");
                 }
             }
             catch (Exception ex)
             {
                 Log.Instance.Error($"[Core_v1][Redis2][m_fResetShareNumber][Exception][{ex.Message}]");
+                ///打印出来看一下
+                Log.Instance.Error($"a:{a};b:{b};c:{c};d:{d};e:{e};StackTrace:{ex?.StackTrace}");
             }
         }
         #endregion
