@@ -1057,10 +1057,19 @@ namespace CenoFsSharp
                     {
                         m_mRecord.RecordFile = m_sRecordingFile;
                         m_mRecord.recordName = m_sRecordingID;
+
+                        ///内呼不弹屏
                         if (m_mChannel?.channel_websocket != null)
                         {
-                            Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} record ID:{m_sRecordingID} send]");
-                            m_fSendRecordingID(m_mChannel, m_sRealCallerNumberStr, m_sRecordingID, m_sRecordingFile);
+                            if (!m_bStar)
+                            {
+                                Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} record ID:{m_sRecordingID} send]");
+                                m_fSendRecordingID(m_mChannel, m_sRealCallerNumberStr, m_sRecordingID, m_sRecordingFile);
+                            }
+                            else
+                            {
+                                Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} record ID:{m_sRecordingID} not send:*]");
+                            }
                         }
 
                         #region ***追加录音发送方式
