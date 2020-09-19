@@ -25,6 +25,7 @@ namespace CenoServer
                 try
                 {
                     var readStr = Console.ReadLine();
+                    var yaStr = readStr;
                     readStr = readStr.ToLower();
 
                     switch (readStr)
@@ -634,6 +635,35 @@ namespace CenoServer
 
                         Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][{m_sCmd}]");
                         Console.WriteLine($"{m_sEslResult}");
+                    }
+                    #endregion
+
+                    #region ***测试Redis强度
+                    m_sTempPrefixCmd = "test redis ";
+                    if (readStr.StartsWith(m_sTempPrefixCmd))
+                    {
+                        int m_uInt = 0;
+                        string m_sInt = readStr.Substring(m_sTempPrefixCmd.Length);
+                        int.TryParse(m_sInt, out m_uInt);
+                        if (m_uInt > 0)
+                        {
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][set test redis count is {m_uInt}]");
+                            Redis2.m_fTestRedis(m_uInt);
+                        }
+                        else
+                        {
+                            Log.Instance.Fail($"[CenoServer][MainWhileDo][MainStep][test redis count must bigger]");
+                        }
+                    }
+                    #endregion
+
+                    #region 通用发送Redis
+                    m_sTempPrefixCmd = "send redis ";
+                    if (readStr.StartsWith(m_sTempPrefixCmd))
+                    {
+                        string m_sCmd = yaStr.Substring(m_sTempPrefixCmd.Length);
+                        Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][{m_sCmd}]");
+                        Redis2.m_fCmdRedis(m_sCmd);
                     }
                     #endregion
                 }

@@ -75,11 +75,30 @@ namespace Core_v1
                     {
                         m_pRedisClient = new RedisClient(host, port, password, db);
                     }
+
+                    try
+                    {
+                        ///测试是否正常
+                        if (m_pRedisClient != null)
+                        {
+                            bool m_bIsConnected = m_pRedisClient.IsSocketConnected();
+                            if (!m_bIsConnected)
+                            {
+                                Log.Instance.Warn($"[Core_v1][Redis2][Instance][get][try][IsSocketConnected:{m_bIsConnected}]");
+                                m_pRedisClient = new RedisClient(host, port, password, db);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Instance.Fail($"[Core_v1][Redis2][Instance][get][try][Exception][{ex.Message}]");
+                    }
+
                     return m_pRedisClient;
                 }
                 catch (Exception ex)
                 {
-                    Log.Instance.Fail($"[Core_v1][Redis2][Instance][get][{ex.Message}]");
+                    Log.Instance.Fail($"[Core_v1][Redis2][Instance][get][Exception][{ex.Message}]");
                 }
                 return null;
             }
@@ -1006,7 +1025,57 @@ namespace Core_v1
             {
                 m_sErrMsg = $"ErrRedis{ex.Message}";
                 Log.Instance.Error($"[Core_v1][Redis2][m_fApplyXx][Exception][lock fail:{ex.Message}]");
+                Log.Instance.Debug(ex);
                 return null;
+            }
+        }
+        #endregion
+
+        #region ***测试Redis强度
+        public static void m_fTestRedis(int m_uCount = 6000)
+        {
+            try
+            {
+                for (int i = 0; i < m_uCount; i++)
+                {
+                    string m_sStr = Redis2.Instance.Get<string>("redis2");
+                    Log.Instance.Warn($"{i}:{m_sStr}");
+                }
+
+                m_pRedisClient.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[Core_v1][Redis2][m_fTestRedis][Exception][{ex.Message}]");
+            }
+        }
+        #endregion
+
+        #region ***转发Redis命令
+        public static void m_fCmdRedis(string m_sCmd)
+        {
+            try
+            {
+                string _m_sCmd = m_sCmd.ToLower();
+                string m_sStr = string.Empty;
+                switch (m_sCmd)
+                {
+                    case "keys *":
+                        {
+                            m_sStr = "\r\n" + string.Join("\r\n", Redis2.Instance.GetAllKeys()) + "\r\n";
+                            break;
+                        }
+                    default:
+                        {
+                            m_sStr = Redis2.Instance.Get<string>(m_sCmd);
+                        }
+                        break;
+                }
+                Log.Instance.Warn($"[Core_v1][Redis2][m_fCmdRedis][{m_sStr}]");
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[Core_v1][Redis2][m_fCmdRedis][Exception][{ex.Message}]");
             }
         }
         #endregion
