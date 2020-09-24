@@ -118,6 +118,10 @@ namespace CenoServer
     
   send esl [api] `转发消息至freeswitch`
 
+  test redis [count] `测试Redis强度`
+
+  send redis [keys *|key] `Redis命令`
+
   exit `退出服务端`
 
 ";

@@ -434,7 +434,20 @@ namespace Core_v1
                 ///if (string.IsNullOrWhiteSpace(m_sUUID)) return;
                 string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
                 string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
+
+                ///测试值为何不一致
                 string m_sValue = Redis2.Instance.Get<string>(m_sLockKey);
+
+                try
+                {
+                    byte[] m_lByte = Redis2.Instance.Get(m_sLockKey);
+                    string _m_sValue = Encoding.UTF8.GetString(m_lByte);
+                    Log.Instance.Warn($"m_lByte:{m_lByte};m_sValue:{m_sValue};");
+                }
+                catch (Exception ex)
+                {
+                    Log.Instance.Warn($"{ex.Message},{ex.StackTrace}");
+                }
 
                 ///判断是否需要查看状态
                 if (!m_bResetNow)
@@ -446,7 +459,9 @@ namespace Core_v1
                         ///赋值,如果有误写日志,下次判断
                         e = m_sData;
                         share_number _m_pShareNumber = JsonConvert.DeserializeObject<share_number>(m_sData);
-                        if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE) return;
+
+                        ///增加一个参数,如果拨打中,返回
+                        if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE || _m_pShareNumber.state == SHARE_NUM_STATUS.CALL) return;
                     }
                     else return;
                 }
@@ -516,8 +531,16 @@ namespace Core_v1
                             Log.Instance.Fail($"[Core_v1][Redis2][m_fResetShareNumber][{m_uAgentID} reset {m_sDataKey} fail]");
                         }
                     }
-                    Redis2.Instance.Del(m_sLockKey);
-                    Log.Instance.Success($"[Core_v1][Redis2][m_fResetShareNumber][{m_uAgentID} reset {m_sLockKey} success]");
+
+                    ///有时会删除不成功
+                    if (Redis2.Instance.Del(m_sLockKey) == 1)
+                    {
+                        Log.Instance.Success($"[Core_v1][Redis2][m_fResetShareNumber][{m_uAgentID} reset {m_sLockKey} success]");
+                    }
+                    else
+                    {
+                        Log.Instance.Warn($"[Core_v1][Redis2][m_fResetShareNumber][{m_uAgentID} reset {m_sLockKey}:del fail]");
+                    }
                 }
                 else
                 {
@@ -1024,7 +1047,7 @@ namespace Core_v1
             catch (Exception ex)
             {
                 m_sErrMsg = $"ErrRedis{ex.Message}";
-                Log.Instance.Error($"[Core_v1][Redis2][m_fApplyXx][Exception][lock fail:{ex.Message}]");
+                Log.Instance.Error($"[Core_v1][Redis2][m_fApplyXx][Exception][lock fail:{ex.Message},{ex.StackTrace}]");
                 Log.Instance.Debug(ex);
                 return null;
             }
@@ -1058,7 +1081,7 @@ namespace Core_v1
             {
                 string _m_sCmd = m_sCmd.ToLower();
                 string m_sStr = string.Empty;
-                switch (m_sCmd)
+                switch (_m_sCmd)
                 {
                     case "keys *":
                         {
@@ -1067,7 +1090,14 @@ namespace Core_v1
                         }
                     default:
                         {
-                            m_sStr = Redis2.Instance.Get<string>(m_sCmd);
+                            if (_m_sCmd.StartsWith("del "))
+                            {
+                                m_sStr = $"DEL:{Redis2.Instance.Del(m_sCmd.Substring("del ".Length))}";
+                            }
+                            else
+                            {
+                                m_sStr = Redis2.Instance.Get<string>(m_sCmd);
+                            }
                         }
                         break;
                 }
