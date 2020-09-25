@@ -441,8 +441,12 @@ namespace Core_v1
                 try
                 {
                     byte[] m_lByte = Redis2.Instance.Get(m_sLockKey);
-                    string _m_sValue = Encoding.UTF8.GetString(m_lByte);
-                    Log.Instance.Warn($"m_lByte:{m_lByte};m_sValue:{m_sValue};");
+                    string _m_sValue = string.Empty;
+                    if (m_lByte != null && m_lByte.Length > 0)
+                    {
+                        _m_sValue = Encoding.UTF8.GetString(m_lByte);
+                    }
+                    Log.Instance.Warn($"_m_sValue:{_m_sValue};m_sValue:{m_sValue};");
                 }
                 catch (Exception ex)
                 {
