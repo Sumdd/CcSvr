@@ -197,5 +197,30 @@ namespace Cmn_v1
                 return m_sString;
             }
         }
+
+        /// <summary>
+        /// 获取程序运行根
+        /// </summary>
+        private static string _m_fMPath = null;
+        public static string m_fMPath
+        {
+            get
+            {
+                try
+                {
+                    if (_m_fMPath == null)
+                        _m_fMPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location).TrimEnd(new char[] { '/', '\\' });
+                }
+                catch
+                {
+
+                }
+                return _m_fMPath;
+            }
+        }
+
+        ///委托
+        public delegate string m_dGetCPU();
+        public static m_dGetCPU m_dfGetCPU;
     }
 }

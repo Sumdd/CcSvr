@@ -39,6 +39,28 @@ namespace CenoFsSharp
 
             try
             {
+                #region ***增加单台验证和时间验证
+                int m_uUseStatus = m_cModel.m_uUseStatus;
+                if (m_uUseStatus > 0)
+                {
+                    _m_mThread._m_mQueueTask.CallStatus = 0;
+                    _m_mThread._m_mQueueTask.status = "1";
+
+                    m_fUpdateQueueTaskResult(_m_mThread._m_mQueueTask, string.Empty);
+                    Log.Instance.Warn($"[CenoFsSharp][m_fDoTaskClass][m_fDoTask][{_m_mThread.m_tThread.Name},error code:{m_uUseStatus}...]");
+
+                    _m_mThread.m_mChannelInfo.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                    _m_mThread.m_mChannelInfo.channel_call_uuid = null;
+                    _m_mThread.m_mChannelInfo.channel_call_other_uuid = null;
+
+                    //修改逻辑,只停当天,可以自动切换通道类型来激活即可
+                    _m_mThread.m_bTodayUse = false;
+                    Log.Instance.Warn($"[CenoFsSharp][m_fDoTaskClass][m_fDoTask][{_m_mThread.m_tThread.Name} today stop...]");
+
+                    return;
+                }
+                #endregion
+
                 DateTime m_dtStartTimeNow = DateTime.Now;
                 string m_sStartTimeNowString = Cmn.m_fDateTimeString(m_dtStartTimeNow);
 

@@ -134,6 +134,10 @@
       <Project>{413A3482-DC31-45B9-A352-0D219E8D6986}</Project>
       <Name>socket</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Cmn_v1\Cmn_v1.csproj">
+      <Project>{25f5539b-664f-45fb-9469-81be3d1e05eb}</Project>
+      <Name>Cmn_v1</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Core_v1\Core_v1.csproj">
       <Project>{4D4A8F95-AAD9-4148-A377-160FA1F9C455}</Project>
       <Name>Core_v1</Name>

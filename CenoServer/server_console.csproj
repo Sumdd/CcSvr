@@ -141,6 +141,10 @@
       <Project>{413A3482-DC31-45B9-A352-0D219E8D6986}</Project>
       <Name>socket</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Cmn_v1\Cmn_v1.csproj">
+      <Project>{25f5539b-664f-45fb-9469-81be3d1e05eb}</Project>
+      <Name>Cmn_v1</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Core_v1\Core_v1.csproj">
       <Project>{4d4a8f95-aad9-4148-a377-160fa1f9c455}</Project>
       <Name>Core_v1</Name>
@@ -148,6 +152,10 @@
     <ProjectReference Include="..\DB.Basic\db.basic.csproj">
       <Project>{0bb661c2-020a-4f81-a7e0-7af0202bdf62}</Project>
       <Name>db.basic</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\m_cRaw\m_cRaw.csproj">
+      <Project>{dfd3f66b-53f1-4a57-9d0e-a0bce90cf80e}</Project>
+      <Name>m_cRaw</Name>
     </ProjectReference>
     <ProjectReference Include="..\WebSocket_v1\WebSocket_v1.csproj">
       <Project>{4e0ca4c9-a320-4095-bfc5-fe85cbe811c1}</Project>

@@ -174,6 +174,50 @@ namespace CenoFsSharp
                 m_uAgentID = m_mAgent.AgentID;
                 Log.Instance.Success($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} -> {m_uAgentID}]");
 
+                #region ***增加单台验证和时间验证
+                int m_uUseStatus = m_cModel.m_uUseStatus;
+                if (m_uUseStatus > 0)
+                {
+                    Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID},error code:{m_uUseStatus}]");
+
+                    if (m_bIsDispose) return;
+                    await m_pOutboundSocket.Hangup(uuid, HangupCause.ServiceUnavailable).ContinueWith(task =>
+                    {
+                        try
+                        {
+                            if (m_bIsDispose) return;
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} Hangup cancel]");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} Hangup error:{ex.Message}]");
+                        }
+                    });
+
+                    if (m_bIsDispose) return;
+                    if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                    {
+                        await m_pOutboundSocket.Exit().ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} Exit cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} Exit error:{ex.Message}]");
+                            }
+                        });
+                    }
+
+                    if (m_bIsDispose) return;
+                    m_pOutboundSocket?.Dispose();
+
+                    return;
+                }
+                #endregion
+
                 m_mChannel = m_mAgent.ChInfo;
                 #region 无通道信息
                 if (m_mChannel == null || m_mChannel?.channel_type != Special.SIP)

@@ -171,6 +171,16 @@ namespace CenoSocket
                     return;
                 }
 
+                #region ***增加单台验证和时间验证
+                int m_uUseStatus = m_cModel.m_uUseStatus;
+                if (m_uUseStatus > 0)
+                {
+                    Log.Instance.Fail($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID},error code:{m_uUseStatus}]");
+                    m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail($"ErrCode{m_uUseStatus}"));
+                    return;
+                }
+                #endregion
+
                 //继续处理,防止号码有误,兼容加密号码
                 string m_sDealWithRealPhoneNumberStr = string.Empty;
                 string m_sDealWithPhoneNumberStr = string.Empty;

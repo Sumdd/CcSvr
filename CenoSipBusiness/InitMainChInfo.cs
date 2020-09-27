@@ -18,6 +18,7 @@ using Model_v1;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Reflection;
 
 namespace CenoSipBusiness {
     public class intilizate_services {
@@ -26,6 +27,7 @@ namespace CenoSipBusiness {
         //private static Timer AutoDialTaskTimer;
         //private static Timer AutoSeeDialTaskTimer;
 
+        private static Timer m_tSeeUseStatus;
         private static Timer m_tEnqueueTaskTimer;
         private static Timer m_tTaskUpdPhone;
 
@@ -257,6 +259,66 @@ namespace CenoSipBusiness {
             #region ***加载黑白名单
             {
                 DB.Basic.m_cWblist.m_fInit();
+            }
+            #endregion
+
+            #region ***自动判断是否到期
+            {
+                try
+                {
+                    ///加载类库
+                    string m_sPath = $"{Cmn_v1.Cmn.m_fMPath}/m_cRaw.dll";
+                    Assembly asm = Assembly.LoadFrom(m_sPath);
+                    Type type = asm.GetType("m_cRaw.m_csKeyFun");
+
+                    ///将此类中的方法加载至委托,后续
+                    Cmn_v1.Cmn.m_dfGetCPU += () =>
+                    {
+                        string m_sCPU = string.Empty;
+                        try
+                        {
+                            object obj = type.InvokeMember("GetCPUSerialNumber", BindingFlags.InvokeMethod, null, null, new object[] { });
+                            m_sCPU = obj?.ToString();
+                            if (!string.IsNullOrWhiteSpace(m_sCPU)) m_sCPU = Core_v1.m_cSafe.EncryptString(m_sCPU);
+                            Log.Instance.Warn($"cpu:{m_sCPU},status:{Model_v1.m_cModel.m_uUseStatus}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][m_dfGetCPU][Exception][{ex.Message}]");
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][m_dfGetCPU][InnerException][{ex?.InnerException?.Message}]");
+                        }
+                        return m_sCPU;
+                    };
+
+                    ///默认为4,故障
+                    Model_v1.m_cModel.m_uUseStatus = 4;
+
+                    m_tSeeUseStatus = new Timer();
+                    m_tSeeUseStatus.AutoReset = false;
+                    m_tSeeUseStatus.Interval = 1000 * 60 * 15;
+
+                    ElapsedEventHandler m_pElapsedEventHandler = (a, b) =>
+                    {
+                        m_tSeeUseStatus.Stop();
+                        try
+                        {
+                            object obj = type.InvokeMember("m_fCanUse", BindingFlags.InvokeMethod, null, null, new object[] { });
+                            Model_v1.m_cModel.m_uUseStatus = Convert.ToInt32(obj);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][Exception][{ex.Message}]");
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][InnerException][{ex?.InnerException?.Message}]");
+                        }
+                        m_tSeeUseStatus.Start();
+                    };
+                    m_tSeeUseStatus.Elapsed += m_pElapsedEventHandler;
+                    m_pElapsedEventHandler(null, null);
+                }
+                catch (Exception ex)
+                {
+                    Log.Instance.Error($"[CenoSipBusiness][intilizate_services][InitSysInfo][Exception][{ex.Message}]");
+                }
             }
             #endregion
 

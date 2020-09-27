@@ -122,6 +122,8 @@ namespace CenoServer
 
   send redis [keys *|key] `Redis命令`
 
+  cpu `查询cpu编码`
+
   exit `退出服务端`
 
 ";
@@ -436,6 +438,12 @@ namespace CenoServer
                         case "show":
                             int? m_uCount = call_factory.agent_list?.Where(x => x?.LoginState == true)?.Count();
                             Console.WriteLine($"online:{m_uCount}");
+                            break;
+                        #endregion
+
+                        #region ***查询CPU
+                        case "cpu":
+                            if (Cmn_v1.Cmn.m_dfGetCPU != null) Cmn_v1.Cmn.m_dfGetCPU();
                             break;
                         #endregion
 

@@ -70,6 +70,16 @@ namespace CenoSocket
                 m_uAgentID = m_mAgent.AgentID;
                 Log.Instance.Success($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} inbound web dial]");
 
+                #region ***增加单台验证和时间验证
+                int m_uUseStatus = m_cModel.m_uUseStatus;
+                if (m_uUseStatus > 0)
+                {
+                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID},error code:{m_uUseStatus}]");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"ErrCode{m_uUseStatus}");
+                    return;
+                }
+                #endregion
+
                 //使用共享号码必须填写外显号码
                 m_bShare = m_sNumberType == Special.Share;
                 if (m_bShare && string.IsNullOrWhiteSpace(m_sCaller))
