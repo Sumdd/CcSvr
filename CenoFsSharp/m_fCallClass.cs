@@ -36,6 +36,12 @@ namespace CenoFsSharp
             Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
             ///被叫
             string _m_sRealCalleeNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Destination-Number")?.Replace("gw+", "")?.Replace("+86", "0");
+            ///兼容86而不是+86开头
+            if (_m_sRealCalleeNumberStr.StartsWith("86"))
+            {
+                _m_sRealCalleeNumberStr = $"+{_m_sRealCalleeNumberStr}".Replace("+86", "0");
+            }
+
             string m_sRealCalleeNumberStr = m_rReplaceRegex.Replace(_m_sRealCalleeNumberStr, string.Empty);
             #endregion
 

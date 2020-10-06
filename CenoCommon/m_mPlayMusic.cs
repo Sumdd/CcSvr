@@ -32,5 +32,10 @@ namespace CenoCommon
         public static string m_mNoRegisteredMusic = $"{m_fPlayMusicPathString}\\m_mNoRegisteredMusic.wav";
         public static string m_mNotConnectedMusic = $"{m_fPlayMusicPathString}\\m_mNotConnectedMusic.wav";
         public static string m_mUnavailableMusic = $"{m_fPlayMusicPathString}\\m_mUnavailableMusic.wav";
+
+        /// <summary>
+        /// 空白音
+        /// </summary>
+        public static string m_mNullMusic = $"{m_fPlayMusicPathString}\\null.wav";
     }
 }

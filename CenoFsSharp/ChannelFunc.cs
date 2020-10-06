@@ -34,8 +34,10 @@ namespace CenoFsSharp {
 
                 //移除
                 {
-                    Regex m_rIsMatchRegexCaller = new Regex("^[0-9*#\\+]{3,}|[Uu][Nn][Kk][Nn][Oo][Ww][Nn]$");
-                    Regex m_rIsMatchRegexCallee = new Regex("^[0-9*#\\+]{3,}$");
+                    ///|[Uu][Nn][Kk][Nn][Oo][Ww][Nn],去掉
+                    Regex m_rIsMatchRegexCaller = new Regex("^[0-9*#\\+]{3,}$");
+                    ///兼容IMS
+                    Regex m_rIsMatchRegexCallee = new Regex("^[0-9*#\\+@.a-z]{3,}$");
                     if (!m_rIsMatchRegexCaller.IsMatch(m_sALegPhoneNumberStr) || !m_rIsMatchRegexCallee.IsMatch(m_sBLegPhoneNumberStr))
                     {
                         Log.Instance.Debug($"[CenoFsSharp][ChannelFunc][m_fDoCall][{profile}][{uuid} a-leg-number:{m_sALegPhoneNumberStr};a-leg-ip:{m_sALegIPStr}]");

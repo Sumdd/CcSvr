@@ -42,6 +42,10 @@ namespace CenoFsSharp
             string m_sFreeSWITCHIPv4 = InboundMain.FreesSWITCHIPv4;
             //是否需要获取录音ID
             bool m_bIsQueryRecUUID = Call_ParamUtil.m_bIsQueryRecUUID;
+            ///使用桥接App
+            string m_sBridgeApp = Call_ParamUtil.m_sBridgeApp;
+            bool m_bBridgeApp = false;
+            if (!string.IsNullOrWhiteSpace(m_sBridgeApp) && m_sBridgeApp != "N") m_bBridgeApp = true;
 
             try
             {
@@ -717,6 +721,24 @@ namespace CenoFsSharp
                     //183,200消息合并处理,为得到真实的拨打时间
                     m_eChannel183or200 = m_pOutboundSocket.ChannelEvents.Where(x => x.UUID == bridgeUUID && (x.EventName == EventName.ChannelProgressMedia || x.EventName == EventName.ChannelAnswer)).Take(2).Subscribe(async x =>
                     {
+                        ///IMS先发送一段媒体
+                        if (x.EventName == EventName.ChannelProgressMedia && m_bBridgeApp)
+                        {
+                            if (m_bIsDispose) return;
+                            await m_pOutboundSocket.Play(uuid, CenoCommon.m_mPlay.m_mNullMusic).ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play null music cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play null music error:{ex.Message}]");
+                                }
+                            });
+                        }
+
                         DateTime m_dtNow = DateTime.Now;
                         //200处理
                         if (x.EventName == EventName.ChannelAnswer && !Channel200)

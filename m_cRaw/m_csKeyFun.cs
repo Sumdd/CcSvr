@@ -10,7 +10,7 @@ namespace m_cRaw
     public class m_csKeyFun
     {
         ///到期时间
-        public static DateTime m_dtEndTime = new DateTime(2020, 10, 1, 11, 37, 0);
+        public static DateTime m_dtEndTime = new DateTime(2021, 1, 1, 0, 0, 0);
         ///改成服务器CPU标识号
         private const string m_sCPU = "BFEBFBFF000306A9";
         ///获取CPU

@@ -91,6 +91,7 @@ namespace CenoServer
    20.启用催收系统查询联系人姓名:UseHomeSearch
    21.催收系统数据源地址:HomeConnString
    22.通过催收系统查出来电人姓名的语句:HomeSelectString
+   23.桥接App:BridgeApp
 
   case play [count(>=-1)] `来电无法接听原因播报次数,-1表示支持早期媒体`
 
@@ -322,6 +323,8 @@ namespace CenoServer
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][HomeConnString:{Call_ParamUtil.m_sHomeConnString}]");
                             Call_ParamUtil._m_sHomeSelectString = null;
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][HomeSelectString:{Call_ParamUtil.m_sHomeSelectString}]");
+                            Call_ParamUtil._m_sBridgeApp = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][BridgeApp:{Call_ParamUtil.m_sBridgeApp}]");
                             break;
                         #endregion
 

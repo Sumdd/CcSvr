@@ -1506,5 +1506,35 @@ namespace DB.Basic {
             }
         }
         #endregion
+        #region ***桥接App
+        public static string _m_sBridgeApp;
+        public static string m_sBridgeApp
+        {
+            get
+            {
+                try
+                {
+                    if (_m_sBridgeApp == null)
+                    {
+                        Call_ParamUtil._m_sBridgeApp = Call_ParamUtil.GetParamValueByName("_m_sBridgeApp".Replace("_m_s", "").Replace("m_s", ""));
+                    }
+                    return _m_sBridgeApp;
+                }
+                catch
+                {
+                    return _m_sBridgeApp = "";
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_sBridgeApp".Replace("_m_s", "").Replace("m_s", ""), value);
+                    _m_sBridgeApp = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
     }
 }
