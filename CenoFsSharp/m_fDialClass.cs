@@ -721,6 +721,8 @@ namespace CenoFsSharp
                     //183,200消息合并处理,为得到真实的拨打时间
                     m_eChannel183or200 = m_pOutboundSocket.ChannelEvents.Where(x => x.UUID == bridgeUUID && (x.EventName == EventName.ChannelProgressMedia || x.EventName == EventName.ChannelAnswer)).Take(2).Subscribe(async x =>
                     {
+                        DateTime m_dtNow = DateTime.Now;
+
                         ///IMS先发送一段媒体
                         if (x.EventName == EventName.ChannelProgressMedia && m_bBridgeApp)
                         {
@@ -739,7 +741,6 @@ namespace CenoFsSharp
                             });
                         }
 
-                        DateTime m_dtNow = DateTime.Now;
                         //200处理
                         if (x.EventName == EventName.ChannelAnswer && !Channel200)
                         {
