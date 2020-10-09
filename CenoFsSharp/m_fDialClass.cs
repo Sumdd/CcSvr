@@ -493,11 +493,28 @@ namespace CenoFsSharp
                                                 }
                                                 else
                                                 {
-                                                    m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_lStrings[0]}";
+                                                    if (string.IsNullOrWhiteSpace(m_lStrings[4]))
+                                                    {
+                                                        ///如果查询得到的区号为空,使用原号码,方便主动加拨前缀等问题
+                                                        Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} no area code,use:{m_lStrings[1]}]");
+                                                        m_mRecord.T_PhoneNum = $"{m_lStrings[1]}";
+                                                    }
+                                                    else
+                                                    {
+                                                        m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_lStrings[0]}";
+                                                    }
                                                 }
                                                 //原号码
                                                 m_sCalleeRemove0000Prefix = $"{m_lStrings[0]}";
                                             }
+                                        }
+                                        break;
+                                    case Special.Telephone:
+                                        ///仅处理400电话
+                                        if (m_lStrings[1].TrimStart('0').StartsWith("400"))
+                                        {
+                                            Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} 400 phone,{m_lStrings[1]}]");
+                                            m_mRecord.T_PhoneNum = $"{m_lStrings[1]}";
                                         }
                                         break;
                                     default:

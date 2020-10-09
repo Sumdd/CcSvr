@@ -415,11 +415,28 @@ namespace CenoSocket
                                                 }
                                                 else
                                                 {
-                                                    m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_sDealWithRealPhoneNumberStr}";
+                                                    if (string.IsNullOrWhiteSpace(m_sCityCodeStr))
+                                                    {
+                                                        ///如果查询得到的区号为空,使用原号码,方便主动加拨前缀等问题
+                                                        Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} no area code,use:{m_sDealWithPhoneNumberStr}]");
+                                                        m_sCalleeNumberStr = $"{m_sDealWithPhoneNumberStr}";
+                                                    }
+                                                    else
+                                                    {
+                                                        m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialLocalPrefixStr}{m_sDealWithRealPhoneNumberStr}";
+                                                    }
                                                 }
                                                 //原号码
                                                 m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
                                             }
+                                        }
+                                        break;
+                                    case Special.Telephone:
+                                        ///仅处理400电话
+                                        if (m_sDealWithPhoneNumberStr.TrimStart('0').StartsWith("400"))
+                                        {
+                                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} 400 phone,{m_sDealWithPhoneNumberStr}]");
+                                            m_sCalleeNumberStr = $"{m_sDealWithPhoneNumberStr}";
                                         }
                                         break;
                                     default:
