@@ -740,20 +740,20 @@ namespace CenoFsSharp
                     {
                         DateTime m_dtNow = DateTime.Now;
 
-                        ///IMS先发送一段媒体
+                        ///IMS先发送一段媒体,播放给b-leg
                         if (x.EventName == EventName.ChannelProgressMedia && m_bBridgeApp)
                         {
                             if (m_bIsDispose) return;
-                            await m_pOutboundSocket.Play(uuid, CenoCommon.m_mPlay.m_mNullMusic).ContinueWith(task =>
+                            await m_pOutboundSocket.Play(bridgeUUID, CenoCommon.m_mPlay.m_mNullMusic).ContinueWith(task =>
                             {
                                 try
                                 {
                                     if (m_bIsDispose) return;
-                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play null music cancel]");
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play b-leg null music cancel]");
                                 }
                                 catch (Exception ex)
                                 {
-                                    Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play null music error:{ex.Message}]");
+                                    Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play b-leg null music error:{ex.Message}]");
                                 }
                             });
                         }
