@@ -296,8 +296,9 @@ namespace CenoSocket
                                     }
                                     break;
                                 case Special.Telephone:
-                                    ///仅处理400电话
-                                    if (m_sDealWithPhoneNumberStr.TrimStart('0').StartsWith("400"))
+                                    ///仅处理400,800电话
+                                    string m_sTs0 = m_sDealWithPhoneNumberStr.TrimStart('0');
+                                    if (m_sTs0.StartsWith("400") || m_sTs0.StartsWith("800"))
                                     {
                                         Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} 400 phone,{m_sDealWithPhoneNumberStr}]");
                                         m_sCalleeNumberStr = $"{m_sDealWithPhoneNumberStr}";

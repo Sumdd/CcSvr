@@ -37,5 +37,9 @@ namespace CenoCommon
         /// 空白音
         /// </summary>
         public static string m_mNullMusic = $"{m_fPlayMusicPathString}\\null.wav";
+        /// <summary>
+        /// 背景音乐
+        /// </summary>
+        public static string m_mBgMusic = $"{m_fPlayMusicPathString}\\BgMusic.wav";
     }
 }

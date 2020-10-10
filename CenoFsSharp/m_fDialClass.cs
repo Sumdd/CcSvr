@@ -46,9 +46,13 @@ namespace CenoFsSharp
             string m_sBridgeApp = Call_ParamUtil.m_sBridgeApp;
             bool m_bBridgeApp = false;
             if (!string.IsNullOrWhiteSpace(m_sBridgeApp) && m_sBridgeApp != "N") m_bBridgeApp = true;
+            ///是否有自己的180放音
+            bool m_b180 = false;
+            bool m_b183 = false;
 
             try
             {
+                IDisposable m_eChannel180 = null;
                 IDisposable m_eChannel183or200 = null;
 
                 m_pOutboundSocket.Disposed += (a, b) =>
@@ -60,6 +64,12 @@ namespace CenoFsSharp
                         m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                         m_mChannel.channel_call_uuid = null;
                         m_mChannel.channel_call_other_uuid = null;
+                    }
+
+                    if (m_eChannel180 != null)
+                    {
+                        m_eChannel180.Dispose();
+                        Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} event 180 dispose]");
                     }
 
                     if (m_eChannel183or200 != null)
@@ -510,8 +520,9 @@ namespace CenoFsSharp
                                         }
                                         break;
                                     case Special.Telephone:
-                                        ///仅处理400电话
-                                        if (m_lStrings[1].TrimStart('0').StartsWith("400"))
+                                        ///仅处理400,800电话
+                                        string m_sTs0 = m_lStrings[1].TrimStart('0');
+                                        if (m_sTs0.StartsWith("400") || m_sTs0.StartsWith("800"))
                                         {
                                             Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} 400 phone,{m_lStrings[1]}]");
                                             m_mRecord.T_PhoneNum = $"{m_lStrings[1]}";
@@ -722,16 +733,39 @@ namespace CenoFsSharp
                 if (m_bUseChannelProgressMedia)
                 {
                     if (m_bIsDispose) return;
-                    await m_pOutboundSocket.SubscribeEvents(EventName.ChannelProgressMedia, EventName.ChannelAnswer).ContinueWith(task =>
+                    await m_pOutboundSocket.SubscribeEvents(EventName.ChannelProgress, EventName.ChannelProgressMedia, EventName.ChannelAnswer).ContinueWith(task =>
                     {
                         try
                         {
                             if (m_bIsDispose) return;
-                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} event 183,200 cancel]");
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} event 180,183,200 cancel]");
                         }
                         catch (Exception ex)
                         {
-                            Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} event 183,200 error:{ex.Message}]");
+                            Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} event 180,183,200 error:{ex.Message}]");
+                        }
+                    });
+
+                    ///如果最后又给了180,自己放音
+                    if (m_bIsDispose) return;
+                    m_eChannel180 = m_pOutboundSocket.ChannelEvents.Where(x => x.UUID == bridgeUUID && (x.EventName == EventName.ChannelProgress)).Take(1).Subscribe(async x =>
+                    {
+                        if (m_b183)
+                        {
+                            ///又接受了180,需自己放音
+                            m_b180 = true;
+                            await m_pOutboundSocket.SendApi($"uuid_setvar {uuid} ringback {CenoCommon.m_mPlay.m_mBgMusic}").ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} set a-leg bg music cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} set a-leg bg music error:{ex.Message}]");
+                                }
+                            });
                         }
                     });
 
@@ -739,6 +773,9 @@ namespace CenoFsSharp
                     m_eChannel183or200 = m_pOutboundSocket.ChannelEvents.Where(x => x.UUID == bridgeUUID && (x.EventName == EventName.ChannelProgressMedia || x.EventName == EventName.ChannelAnswer)).Take(2).Subscribe(async x =>
                     {
                         DateTime m_dtNow = DateTime.Now;
+
+                        ///已接受183
+                        if (x.EventName == EventName.ChannelProgressMedia) m_b183 = true;
 
                         ///IMS先发送一段媒体,播放给b-leg
                         if (x.EventName == EventName.ChannelProgressMedia && m_bBridgeApp)
