@@ -378,6 +378,20 @@ namespace WebSocket_v1
                             string m_sEslResult = "-ERR No Response";
                             Task.Run(async () =>
                             {
+                                ///判断特定Ua参数,主动替换external
+                                if (m_sSendMessage.StartsWith(m_cFSCmd.m_sCmd_sofia_profile_external_killgw_))
+                                {
+                                    m_sSendMessage = m_sSendMessage.Replace(m_cFSCmd.m_sCmd_external, DB.Basic.Call_ParamUtil.m_sFreeSWITCHUaPath);
+                                }
+                                else if (m_sSendMessage.Equals(m_cFSCmd.m_sCmd_sofia_profile_external_rescan))
+                                {
+                                    m_sSendMessage = m_sSendMessage.Replace(m_cFSCmd.m_sCmd_external, DB.Basic.Call_ParamUtil.m_sFreeSWITCHUaPath);
+                                }
+                                else if (m_sSendMessage.Equals(m_cFSCmd.m_sCmd_sofia_profile_external_restart))
+                                {
+                                    m_sSendMessage = m_sSendMessage.Replace(m_cFSCmd.m_sCmd_external, DB.Basic.Call_ParamUtil.m_sFreeSWITCHUaPath);
+                                }
+
                                 m_sEslResult = await InboundMain.m_fCmnEsl(m_sSendMessage);
                                 Log.Instance.Debug(m_sEslResult);
 
@@ -642,5 +656,27 @@ namespace WebSocket_v1
         public const string _m_sFSCmd = "{JSON-FS-CMD}";
     }
 
-
+    internal class m_cFSCmd
+    {
+        /// <summary>
+        /// 查看所有网关状态
+        /// </summary>
+        public const string m_sCmd_sofia_xmlstatus_gateway = "sofia xmlstatus gateway";
+        /// <summary>
+        /// 杀死特定网关
+        /// </summary>
+        public const string m_sCmd_sofia_profile_external_killgw_ = "sofia profile external killgw ";
+        /// <summary>
+        /// 保护性重启external
+        /// </summary>
+        public const string m_sCmd_sofia_profile_external_rescan = "sofia profile external rescan";
+        /// <summary>
+        /// 重启external
+        /// </summary>
+        public const string m_sCmd_sofia_profile_external_restart = "sofia profile external restart";
+        /// <summary>
+        /// 默认ua:external
+        /// </summary>
+        public const string m_sCmd_external = "external";
+    }
 }
