@@ -754,6 +754,8 @@ namespace CenoFsSharp
                         {
                             ///又接受了180,需自己放音
                             m_b180 = true;
+
+                            if (m_bIsDispose) return;
                             await m_pOutboundSocket.SendApi($"uuid_setvar {uuid} ringback {CenoCommon.m_mPlay.m_mBgMusic}").ContinueWith(task =>
                             {
                                 try
