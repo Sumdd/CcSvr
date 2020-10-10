@@ -660,6 +660,7 @@ namespace CenoFsSharp
 
                 bool Status183or200 = false;
                 bool Channel200 = false;
+                string m_sAnswer = Call_ParamUtil.m_sCaseAnswer;
 
                 if (m_bIsDispose) return;
                 m_pOutboundSocket.OnHangup(uuid, async ax =>
@@ -755,19 +756,49 @@ namespace CenoFsSharp
                             ///又接受了180,需自己放音
                             m_b180 = true;
 
-                            if (m_bIsDispose) return;
-                            await m_pOutboundSocket.SendApi($"uuid_setvar {uuid} ringback {CenoCommon.m_mPlay.m_mBgMusic}").ContinueWith(task =>
+                            #region ***还是兼容不了移动无早期媒体问题
+                            if (false)
                             {
-                                try
+                                ///先接通
+                                if (!Channel200)
                                 {
                                     if (m_bIsDispose) return;
-                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} set a-leg bg music cancel]");
+                                    await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
+                                    {
+                                        try
+                                        {
+                                            if (m_bIsDispose) return;
+                                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} {m_sAnswer} cancel]");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} {m_sAnswer} error:{ex.Message}]");
+                                        }
+                                    });
                                 }
-                                catch (Exception ex)
+
+                                ///还是循环播放吧
+                                for (int i = 0; i < 1; i++)
                                 {
-                                    Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} set a-leg bg music error:{ex.Message}]");
+                                    if (!Channel200)
+                                    {
+                                        if (m_bIsDispose) return;
+                                        await m_pOutboundSocket.Play(uuid, CenoCommon.m_mPlay.m_mBgMusic).ContinueWith(task =>
+                                        {
+                                            try
+                                            {
+                                                if (m_bIsDispose) return;
+                                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play a-leg bg music cancel]");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Play a-leg bg music error:{ex.Message}]");
+                                            }
+                                        });
+                                    }
                                 }
-                            });
+                            }
+                            #endregion
                         }
                     });
 
@@ -802,6 +833,29 @@ namespace CenoFsSharp
                         {
                             //接通,解决200问题
                             Channel200 = true;
+
+                            #region ***还是兼容不了移动无早期媒体问题
+                            if (false)
+                            {
+                                if (m_b180)
+                                {
+                                    if (m_bIsDispose) return;
+                                    await m_pOutboundSocket.SendApi($"uuid_break {uuid} all").ContinueWith(task =>
+                                    {
+                                        try
+                                        {
+                                            if (m_bIsDispose) return;
+                                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} uuid_break a-leg bg music cancel]");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} uuid_break a-leg bg music error:{ex.Message}]");
+                                        }
+                                    });
+                                }
+                            }
+                            #endregion
+
                             //计算接通时间和等待时间
                             string m_dtAnswerTimeNowString = Cmn.m_fDateTimeString(m_dtNow);
                             m_mRecord.C_AnswerTime = m_dtAnswerTimeNowString;
