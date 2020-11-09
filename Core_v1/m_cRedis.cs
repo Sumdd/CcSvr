@@ -28,6 +28,7 @@ namespace Core_v1
         public static int db = 15;
         public const int defaultDb = 15;
 
+        public static object m_oApplyXxLock = new object();
         /// <summary>
         /// 更新锁
         /// </summary>
@@ -891,6 +892,19 @@ namespace Core_v1
         #region ***获取申请式号码,并载入申请者信息(出现Redis的错误,这里有可能需要直接使用内存,待定)
         public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, bool m_bBind, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg)
         {
+            try
+            {
+                ///容错判断,看看什么情况
+                DateTime m_dt = DateTime.Now;
+                Log.Instance.Warn($"{m_dt.ToLongTimeString()};m_sIP:{m_sIP};m_sChannelNumber:{m_sChannelNumber};m_uAgentID:{m_uAgentID};m_uChannelID:{m_uChannelID};m_uShareSetting:{m_uShareSetting};m_bBind:{m_bBind}");
+                ///然后锁定资源的时候,可以加个锁,防止意外情况的发生
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error(ex.Message);
+                Log.Instance.Error(ex.StackTrace);
+            }
+
             m_sStatus = -1;
             try
             {
@@ -939,103 +953,107 @@ namespace Core_v1
                     if (m_lLockKeys == null) m_lLockKeys = new string[0];
                     if (m_lDataKeys != null && m_lDataKeys.Count() > 0)
                     {
-                        List<share_number> m_lShareNumber = (from r in Redis2.Instance.GetAll<string>(m_lDataKeys.ToList())
-                                                             .Select(x =>
-                                                             {
-                                                                 return JsonConvert.DeserializeObject<share_number>(x.Value);
-                                                             })
-                                                             where
-                                                             //电话状态为空闲
-                                                             r.state == SHARE_NUM_STATUS.IDLE
-                                                             //限制配置设置
-                                                             &&
-                                                             (
-                                                                //总次数
-                                                                (r.limitcount == 0 || r.limitcount > r.usecount)
-                                                                &&
-                                                                //总时长
-                                                                (r.limitduration == 0 || r.limitduration > r.useduration)
-                                                                &&
-                                                                (
-                                                                    //当日次数
-                                                                    ((r.limitthecount == 0 || r.limitthecount > r.usethecount) && Cmn_v1.Cmn.m_fEqualsDate(r.usethetime)) || Cmn_v1.Cmn.m_fLessDate(r.usethetime)
-                                                                    &&
-                                                                    //当日时长
-                                                                    ((r.limittheduration == 0 || r.limittheduration > r.usetheduration) && Cmn_v1.Cmn.m_fEqualsDate(r.usethetime)) || Cmn_v1.Cmn.m_fLessDate(r.usethetime)
-                                                                )
-                                                             )
-                                                             //没有锁
-                                                             &&
-                                                             !m_lLockKeys.Contains($"{Redis2.m_sLockPrefix}:{r.uuid}")
-                                                             //申请式号码
-                                                             &&
-                                                             r.isshare == 2
-                                                             &&
-                                                             (
-                                                                //永久可调用且非绑定
-                                                                (r.xxUse == 0 && !m_bBind) ||
-                                                                (
-                                                                    //有内容即可
-                                                                    m_lNumber.Count > 0
-                                                                    &&
-                                                                    //包含该号码
-                                                                    m_lNumber.All(y => y.Equals(r.number))
-                                                                    &&
-                                                                   //范围调用或绑定
-                                                                   (r.xxUse == 1 || m_bBind)
-                                                                )
-                                                             )
-                                                             //暂时去掉同号码限呼逻辑
-                                                             select r)?.ToList();
-
-                        if (m_lShareNumber?.Count > 0)
+                        ///加锁,防止出现那个错误
+                        lock (Redis2.m_oApplyXxLock)
                         {
-                            ///如果多条则取第一条,而且要返回坐席号码
-                            share_number m_pShareNumber = m_lShareNumber.FirstOrDefault();
+                            List<share_number> m_lShareNumber = (from r in Redis2.Instance.GetAll<string>(m_lDataKeys.ToList())
+                                                                 .Select(x =>
+                                                                 {
+                                                                     return JsonConvert.DeserializeObject<share_number>(x.Value);
+                                                                 })
+                                                                 where
+                                                                 //电话状态为空闲
+                                                                 r.state == SHARE_NUM_STATUS.IDLE
+                                                                 //限制配置设置
+                                                                 &&
+                                                                 (
+                                                                    //总次数
+                                                                    (r.limitcount == 0 || r.limitcount > r.usecount)
+                                                                    &&
+                                                                    //总时长
+                                                                    (r.limitduration == 0 || r.limitduration > r.useduration)
+                                                                    &&
+                                                                    (
+                                                                        //当日次数
+                                                                        ((r.limitthecount == 0 || r.limitthecount > r.usethecount) && Cmn_v1.Cmn.m_fEqualsDate(r.usethetime)) || Cmn_v1.Cmn.m_fLessDate(r.usethetime)
+                                                                        &&
+                                                                        //当日时长
+                                                                        ((r.limittheduration == 0 || r.limittheduration > r.usetheduration) && Cmn_v1.Cmn.m_fEqualsDate(r.usethetime)) || Cmn_v1.Cmn.m_fLessDate(r.usethetime)
+                                                                    )
+                                                                 )
+                                                                 //没有锁
+                                                                 &&
+                                                                 !m_lLockKeys.Contains($"{Redis2.m_sLockPrefix}:{r.uuid}")
+                                                                 //申请式号码
+                                                                 &&
+                                                                 r.isshare == 2
+                                                                 &&
+                                                                 (
+                                                                    //永久可调用且非绑定
+                                                                    (r.xxUse == 0 && !m_bBind) ||
+                                                                    (
+                                                                        //有内容即可
+                                                                        m_lNumber.Count > 0
+                                                                        &&
+                                                                        //包含该号码
+                                                                        m_lNumber.All(y => y.Equals(r.number))
+                                                                        &&
+                                                                       //范围调用或绑定
+                                                                       (r.xxUse == 1 || m_bBind)
+                                                                    )
+                                                                 )
+                                                                 //暂时去掉同号码限呼逻辑
+                                                                 select r)?.ToList();
 
-                            ///做提示给调用方,方便发现问题
-                            if (string.IsNullOrWhiteSpace(m_pShareNumber.xxUa) || string.IsNullOrWhiteSpace(m_pShareNumber.xxPwd))
+                            if (m_lShareNumber?.Count > 0)
                             {
-                                m_sErrMsg = "Err无资源登录信息";
-                                return null;
-                            }
+                                ///如果多条则取第一条,而且要返回坐席号码
+                                share_number m_pShareNumber = m_lShareNumber.FirstOrDefault();
 
-                            if (m_pShareNumber.xxLogin != 1)
-                            {
-                                m_sErrMsg = "Err资源未登录";
-                                return null;
-                            }
+                                ///做提示给调用方,方便发现问题
+                                if (string.IsNullOrWhiteSpace(m_pShareNumber.xxUa) || string.IsNullOrWhiteSpace(m_pShareNumber.xxPwd))
+                                {
+                                    m_sErrMsg = "Err无资源登录信息";
+                                    return null;
+                                }
 
-                            string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
-                            string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
-                            ///设置由呼叫中心服务器IP和呼叫中心Ua拼接的信息加锁,后续可以强制解锁
-                            if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes($"{m_sIP}:{m_sChannelNumber}")) == 1)
-                            {
-                                //1小时自动解锁即可
-                                Redis2.Instance.Expire(m_sLockKey, 60 * 60);
-                                ///号码状态修改,追加IP与Ua
-                                m_pShareNumber.state = SHARE_NUM_STATUS.CALL;
-                                m_pShareNumber.fs_ip = m_sIP;
-                                m_pShareNumber.fs_num = m_sChannelNumber;
-                                m_pShareNumber.agentID = m_uAgentID;
-                                m_pShareNumber.channelID = m_uChannelID;
-                                Redis2.Instance.Set(m_sDataKey, JsonConvert.SerializeObject(m_pShareNumber), DateTime.MaxValue);
-                                m_sErrMsg = "OK电话接通中";
-                                m_sStatus = 0;
-                                Log.Instance.Success($"[Core_v1][Redis2][m_fApplyXx][lock number:{m_pShareNumber?.number},tnumber:{m_pShareNumber?.tnumber} success]");
-                                return m_pShareNumber;
+                                if (m_pShareNumber.xxLogin != 1)
+                                {
+                                    m_sErrMsg = "Err资源未登录";
+                                    return null;
+                                }
+
+                                string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
+                                string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
+                                ///设置由呼叫中心服务器IP和呼叫中心Ua拼接的信息加锁,后续可以强制解锁
+                                if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes($"{m_sIP}:{m_sChannelNumber}")) == 1)
+                                {
+                                    //1小时自动解锁即可
+                                    Redis2.Instance.Expire(m_sLockKey, 60 * 60);
+                                    ///号码状态修改,追加IP与Ua
+                                    m_pShareNumber.state = SHARE_NUM_STATUS.CALL;
+                                    m_pShareNumber.fs_ip = m_sIP;
+                                    m_pShareNumber.fs_num = m_sChannelNumber;
+                                    m_pShareNumber.agentID = m_uAgentID;
+                                    m_pShareNumber.channelID = m_uChannelID;
+                                    Redis2.Instance.Set(m_sDataKey, JsonConvert.SerializeObject(m_pShareNumber), DateTime.MaxValue);
+                                    m_sErrMsg = "OK电话接通中";
+                                    m_sStatus = 0;
+                                    Log.Instance.Success($"[Core_v1][Redis2][m_fApplyXx][lock number:{m_pShareNumber?.number},tnumber:{m_pShareNumber?.tnumber} success]");
+                                    return m_pShareNumber;
+                                }
+                                else
+                                {
+                                    m_sErrMsg = "Err资源锁定";
+                                    Log.Instance.Warn($"[Core_v1][Redis2][m_fApplyXx][lock number:{m_pShareNumber?.number},tnumber:{m_pShareNumber?.tnumber} fail]");
+                                    return null;
+                                }
                             }
                             else
                             {
-                                m_sErrMsg = "Err资源锁定";
-                                Log.Instance.Warn($"[Core_v1][Redis2][m_fApplyXx][lock number:{m_pShareNumber?.number},tnumber:{m_pShareNumber?.tnumber} fail]");
+                                m_sErrMsg = "Err无资源";
                                 return null;
                             }
-                        }
-                        else
-                        {
-                            m_sErrMsg = "Err无资源";
-                            return null;
                         }
                     }
                     m_sErrMsg = "Err拨号限制";
