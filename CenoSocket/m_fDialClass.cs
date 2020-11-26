@@ -391,9 +391,21 @@ namespace CenoSocket
                                 {
                                     Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} add prefix:{_m_mDialLimit.m_sDialPrefixStr}]");
                                 }
-                                m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
-                                //原号码
-                                m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
+
+                                ///为了可不更新客户端,这里先兼容一下
+                                string m_sTs0 = m_sDealWithPhoneNumberStr.TrimStart('0');
+                                if (m_sTs0.StartsWith("400") || m_sTs0.StartsWith("800"))
+                                {
+                                    m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithPhoneNumberStr}";
+                                    //原号码
+                                    m_sCalleeRemove0000Prefix = $"{m_sDealWithPhoneNumberStr}";
+                                }
+                                else
+                                {
+                                    m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
+                                    //原号码
+                                    m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
+                                }
                             }
                             else
                             {
