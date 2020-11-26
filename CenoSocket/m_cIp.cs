@@ -1143,7 +1143,10 @@ namespace CenoSocket
         /// </summary>
         public const string _m_sIpDial = "IpDial";
         /// <summary>
-        /// IP话机拨号版本2
+        /// IP话机拨号版本2,直接在该接口拓展,增加一个强断内容,然后拨号时的录音返回放到主叫提机后,便于接口立即返回结果
+        /// <para>提前生成录音Id,然后反查即可,为录音绑定做准备</para>
+        /// <para>还要改录音表结构</para>
+        /// <para>接口增加话单查询,可自行绑定录音,或者制造假录音放入话单以及生成文件</para>
         /// </summary>
         public const string _m_sIpDialv2 = "IpDialv2";
         /// <summary>
