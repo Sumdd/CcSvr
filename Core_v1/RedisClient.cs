@@ -9,6 +9,7 @@ namespace Core_v1
 {
     public class RedisClient
     {
+        private DateTime m_dtStart = DateTime.Now;
         private IConnectionMultiplexer ConnMultiplexer;
         private IDatabase RedisDatabase;
 
@@ -38,8 +39,8 @@ namespace Core_v1
 
         public bool Set(string key, string value, DateTime expiresAt)
         {
-            bool m_bSuccess = RedisDatabase.StringSet(key, value);
-            m_bSuccess = RedisDatabase.KeyExpire(key, expiresAt);
+            ///修正过期时间不准确问题
+            bool m_bSuccess = RedisDatabase.StringSet(key, value, expiresAt.Subtract(m_dtStart));
             return m_bSuccess;
         }
 

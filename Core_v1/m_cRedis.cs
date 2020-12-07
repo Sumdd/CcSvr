@@ -1123,6 +1123,10 @@ namespace Core_v1
                             {
                                 m_sStr = $"DEL:{Redis2.Instance.Del(m_sCmd.Substring("del ".Length))}";
                             }
+                            else if (_m_sCmd.StartsWith("set "))
+                            {
+                                m_sStr = $"SET:{Redis2.Instance.Set(m_sCmd.Substring("set ".Length), "test", DateTime.MaxValue)}";
+                            }
                             else if (_m_sCmd.StartsWith("nx "))
                             {
                                 m_sStr = $"NX:{Redis2.Instance.SetNX(m_sCmd.Substring("nx ".Length), "test", 60)}";

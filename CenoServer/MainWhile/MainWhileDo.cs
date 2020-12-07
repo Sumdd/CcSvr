@@ -121,7 +121,7 @@ namespace CenoServer
 
   test redis [count] `测试Redis强度`
 
-  send redis [keys *|del *|nx|getall *|getalldata|key] `Redis命令`
+  send redis [keys *|del *|set|nx|getall *|getalldata|key] `Redis命令`
 
   cpu `查询cpu编码`
 
