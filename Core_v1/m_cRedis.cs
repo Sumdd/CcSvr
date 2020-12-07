@@ -1,5 +1,4 @@
-﻿using ServiceStack.Redis;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -271,10 +270,11 @@ namespace Core_v1
                             share_number m_pShareNumber = m_lShareNumber.FirstOrDefault();
                             string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
                             string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
-                            if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes(m_sUUID)) == 1)
+                            if (Redis2.Instance.SetNX(m_sLockKey, m_sUUID, 60 * 60) == 1)
+                            ///if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes(m_sUUID)) == 1)
                             {
                                 //1小时自动解锁即可
-                                Redis2.Instance.Expire(m_sLockKey, 60 * 60);
+                                ///Redis2.Instance.Expire(m_sLockKey, 60 * 60);
                                 //号码状态修改
                                 m_pShareNumber.state = SHARE_NUM_STATUS.DIAL;
                                 Redis2.Instance.Set(m_sDataKey, JsonConvert.SerializeObject(m_pShareNumber), DateTime.MaxValue);
@@ -439,6 +439,8 @@ namespace Core_v1
                 ///测试值为何不一致
                 string m_sValue = Redis2.Instance.Get<string>(m_sLockKey);
 
+                #region ***移除测试
+                /*
                 try
                 {
                     byte[] m_lByte = Redis2.Instance.Get(m_sLockKey);
@@ -453,6 +455,8 @@ namespace Core_v1
                 {
                     Log.Instance.Warn($"{ex.Message},{ex.StackTrace}");
                 }
+                */
+                #endregion
 
                 ///判断是否需要查看状态
                 if (!m_bResetNow)
@@ -654,10 +658,11 @@ namespace Core_v1
                             {
                                 string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
                                 string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
-                                if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes(m_sUUID)) == 1)
+                                if (Redis2.Instance.SetNX(m_sLockKey, m_sUUID, 60 * 60) == 1)
+                                ///if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes(m_sUUID)) == 1)
                                 {
                                     //1小时自动解锁即可
-                                    Redis2.Instance.Expire(m_sLockKey, 60 * 60);
+                                    ///Redis2.Instance.Expire(m_sLockKey, 60 * 60);
                                     //号码状态修改
                                     m_pShareNumber.state = SHARE_NUM_STATUS.CALL;
                                     Redis2.Instance.Set(m_sDataKey, JsonConvert.SerializeObject(m_pShareNumber), DateTime.MaxValue);
@@ -727,10 +732,11 @@ namespace Core_v1
                                 string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
                                 string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
                                 share_number _m_pShareNumber = sharenum_list.Where(x => x.areaid == m_pShareNumber.areaid && x.id == m_pShareNumber.id)?.FirstOrDefault();
-                                if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes(Redis2.m_sUpdateNow)) == 1)
+                                if (Redis2.Instance.SetNX(m_sLockKey, Redis2.m_sUpdateNow, 60 * 5) == 1)
+                                ///if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes(Redis2.m_sUpdateNow)) == 1)
                                 {
                                     //5分钟过期
-                                    Redis2.Instance.Expire(m_sLockKey, 60 * 5);
+                                    ///Redis2.Instance.Expire(m_sLockKey, 60 * 5);
                                     if (_m_pShareNumber != null)
                                     {
                                         //需要转换uuid
@@ -1026,10 +1032,11 @@ namespace Core_v1
                                 string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
                                 string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
                                 ///设置由呼叫中心服务器IP和呼叫中心Ua拼接的信息加锁,后续可以强制解锁
-                                if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes($"{m_sIP}:{m_sChannelNumber}")) == 1)
+                                if (Redis2.Instance.SetNX(m_sLockKey, $"{m_sIP}:{m_sChannelNumber}", 60 * 60) == 1)
+                                ///if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes($"{m_sIP}:{m_sChannelNumber}")) == 1)
                                 {
                                     //1小时自动解锁即可
-                                    Redis2.Instance.Expire(m_sLockKey, 60 * 60);
+                                    ///Redis2.Instance.Expire(m_sLockKey, 60 * 60);
                                     ///号码状态修改,追加IP与Ua
                                     m_pShareNumber.state = SHARE_NUM_STATUS.CALL;
                                     m_pShareNumber.fs_ip = m_sIP;
@@ -1115,6 +1122,33 @@ namespace Core_v1
                             if (_m_sCmd.StartsWith("del "))
                             {
                                 m_sStr = $"DEL:{Redis2.Instance.Del(m_sCmd.Substring("del ".Length))}";
+                            }
+                            else if (_m_sCmd.StartsWith("nx "))
+                            {
+                                m_sStr = $"NX:{Redis2.Instance.SetNX(m_sCmd.Substring("nx ".Length), "test", 60)}";
+                            }
+                            else if (_m_sCmd.StartsWith("getall "))
+                            {
+                                string m_sKeys = m_sCmd.Substring("getall ".Length);
+                                ///逗号分割
+                                string[] m_lKeys = m_sKeys.Split(',');
+                                ///带入查询
+                                var m_lValues = Redis2.Instance.GetAll<string>(m_lKeys);
+                                ///拼接返回
+                                m_sStr = "\r\n" + string.Join("\r\n", m_lValues.Select(x => $"{x.Key}:{x.Value}")) + "\r\n";
+                            }
+                            else if (_m_sCmd.StartsWith("getalldata"))
+                            {
+                                string[] m_lDataKeys = Redis2.Instance.GetAllKeys().Where(x => x.StartsWith(m_sJSONPrefix))?.ToArray();
+
+                                List<share_number> m_lShareNumber = (from r in Redis2.Instance.GetAll<string>(m_lDataKeys)
+                                                                     .Select(x =>
+                                                                     {
+                                                                         return JsonConvert.DeserializeObject<share_number>(x.Value);
+                                                                     })
+                                                                     select r).ToList();
+                                ///拼接返回
+                                m_sStr = "\r\n" + string.Join("\r\n", m_lShareNumber.Select(x => $"{JsonConvert.SerializeObject(x)}")) + "\r\n";
                             }
                             else
                             {

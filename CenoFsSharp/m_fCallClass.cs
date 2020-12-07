@@ -1036,8 +1036,12 @@ namespace CenoFsSharp
                 if (!Directory.Exists(m_sRecordingFolder)) Directory.CreateDirectory(m_sRecordingFolder);
                 string m_sRecordingID = Path.GetFileNameWithoutExtension(m_sRecordingFile);
                 {
+
+                    ///修正录音路径,防止出错
+                    string _m_sRecordingFile = Cmn_v1.Cmn.PathFmt(m_sRecordingFile, "/");
+
                     if (m_bIsDispose) return;
-                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, m_sRecordingFile)).ContinueWith((task) =>
+                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, _m_sRecordingFile)).ContinueWith((task) =>
                     {
                         try
                         {
@@ -1120,8 +1124,12 @@ namespace CenoFsSharp
                     string m_sBackUpRecordingFile = string.Format(m_sRecSub, m_sBackupRecords);
                     string m_sBackupRecordingFolder = Path.GetDirectoryName(m_sBackUpRecordingFile);
                     if (!Directory.Exists(m_sBackupRecordingFolder)) Directory.CreateDirectory(m_sBackupRecordingFolder);
+
+                    ///修正备份录音路径,防止出错
+                    string _m_sBackUpRecordingFile = Cmn_v1.Cmn.PathFmt(m_sBackUpRecordingFile, "/");
+
                     if (m_bIsDispose) return;
-                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, m_sBackUpRecordingFile)).ContinueWith((task) =>
+                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, _m_sBackUpRecordingFile)).ContinueWith((task) =>
                     {
                         try
                         {
@@ -2206,8 +2214,12 @@ WHERE
                 if (!Directory.Exists(m_sRecordingFolder)) Directory.CreateDirectory(m_sRecordingFolder);
                 string m_sRecordingID = Path.GetFileNameWithoutExtension(m_sRecordingFile);
                 {
+
+                    ///修正录音路径,防止出错
+                    string _m_sRecordingFile = Cmn_v1.Cmn.PathFmt(m_sRecordingFile, "/");
+
                     if (m_bIsDispose) return;
-                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, m_sRecordingFile)).ContinueWith((task) =>
+                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, _m_sRecordingFile)).ContinueWith((task) =>
                     {
                         try
                         {
@@ -2249,8 +2261,12 @@ WHERE
                     string m_sBackUpRecordingFile = string.Format(m_sRecSub, m_sBackupRecords);
                     string m_sBackupRecordingFolder = Path.GetDirectoryName(m_sBackUpRecordingFile);
                     if (!Directory.Exists(m_sBackupRecordingFolder)) Directory.CreateDirectory(m_sBackupRecordingFolder);
+
+                    ///修正备份录音路径,防止出错
+                    string _m_sBackUpRecordingFile = Cmn_v1.Cmn.PathFmt(m_sBackUpRecordingFile, "/");
+
                     if (m_bIsDispose) return;
-                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, m_sBackUpRecordingFile)).ContinueWith((task) =>
+                    var m_pRecordingResult = await m_pOutboundSocket.SendApi(string.Format("uuid_record {0} start {1}", uuid, _m_sBackUpRecordingFile)).ContinueWith((task) =>
                     {
                         try
                         {
