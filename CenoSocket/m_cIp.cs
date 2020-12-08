@@ -106,7 +106,8 @@ namespace CenoSocket
                     ///判断所有的黑名单即可
                     foreach (m_mWblist item in m_cWblist.m_lWblist)
                     {
-                        if (item.wbtype == 2)
+                        ///兼容呼入呼出黑名单
+                        if (item.wbtype == 2 && (item.wblimittype & 2) > 0)
                         {
                             if (item.regex.IsMatch(m_sDealWithPhoneNumberStr))
                             {
@@ -144,7 +145,10 @@ namespace CenoSocket
                 /// 如果客户需要同时使用客户端与网页?这里放开0不注册的权限
                 /// ]]>
 
-                if (m_uCh == -1 || m_mChannel == null || m_mChannel?.channel_type != Special.SIP || (m_mChannel?.IsRegister != 0 && m_mChannel?.IsRegister != -1))
+                if (m_uCh == -1 || m_mChannel == null || m_mChannel?.channel_type != Special.SIP
+                    ///接触模式限制,都接受API调用即可
+                    ///|| (m_mChannel?.IsRegister != 0 && m_mChannel?.IsRegister != -1)
+                    )
                 {
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} miss channel or not sip channel]");
                     m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err通道有误");

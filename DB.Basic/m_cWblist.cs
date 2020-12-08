@@ -16,6 +16,7 @@ namespace DB.Basic
         public float ordernum;
         public Regex regex;
         public int wbtype;
+        public int wblimittype;
     }
 
     public class m_cWblist
@@ -38,6 +39,7 @@ SELECT
 	`call_wblist`.`wbid` AS `ID`,
 	`call_wblist`.`wbnumber`,
 	`call_wblist`.`wbtype`,
+	`call_wblist`.`wblimittype`,
 	`call_wblist`.`ordernum` 
 FROM
 	`call_wblist` 
@@ -63,6 +65,7 @@ ORDER BY
 
                         _m_mWblist.ordernum = float.Parse(item["ordernum"].ToString());
                         _m_mWblist.wbtype = Convert.ToInt32(item["wbtype"]);
+                        _m_mWblist.wblimittype = Convert.ToInt32(item["wblimittype"]);
                         m_lWblist.Add(_m_mWblist);
                     }
                     Log.Instance.Success($"[DB.Basic][m_cWblist][m_fInit][wblist init success:{m_lWblist.Count}]");

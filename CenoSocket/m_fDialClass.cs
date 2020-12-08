@@ -208,7 +208,8 @@ namespace CenoSocket
                         ///判断所有的黑名单即可
                         foreach (m_mWblist item in m_cWblist.m_lWblist)
                         {
-                            if (item.wbtype == 2)
+                            ///兼容呼入呼出黑名单
+                            if (item.wbtype == 2 && (item.wblimittype & 2) > 0)
                             {
                                 if (item.regex.IsMatch(m_sDealWithRealPhoneNumberStr))
                                 {
