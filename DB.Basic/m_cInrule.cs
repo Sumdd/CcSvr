@@ -17,10 +17,12 @@ namespace DB.Basic
         public int inruleport;
         public string inruleua;
         public string inrulesuffix;
+        public int inrulemain;
     }
 
     public class m_cInrule
     {
+        public static m_mInrule m_pInrule;
         public static List<m_mInrule> m_lInrule;
         public static bool m_bInitInrule = false;
 
@@ -32,6 +34,9 @@ namespace DB.Basic
             {
                 m_bInitInrule = true;
 
+                ///清空本机内呼规则
+                m_pInrule = null;
+
                 m_lInrule = new List<m_mInrule>();
 
                 string m_sSQL = $@"
@@ -42,6 +47,7 @@ SELECT
 	`call_inrule`.`inruleport`,
 	`call_inrule`.`inruleua`,
 	`call_inrule`.`inrulesuffix`,
+	`call_inrule`.`inrulemain`,
 	`call_inrule`.`ordernum` 
 FROM
 	`call_inrule` 
@@ -61,7 +67,14 @@ ORDER BY
                         _m_mInrule.inruleport = Convert.ToInt32(item["inruleport"]);
                         _m_mInrule.inruleua = item["inruleua"].ToString();
                         _m_mInrule.inrulesuffix = item["inrulesuffix"].ToString();
+                        _m_mInrule.inrulemain = Convert.ToInt32(item["inrulemain"]);
                         m_lInrule.Add(_m_mInrule);
+
+                        ///加载本机内呼规则
+                        if (_m_mInrule.inrulemain == 1)
+                        {
+                            m_cInrule.m_pInrule = _m_mInrule;
+                        }
                     }
                     Log.Instance.Success($"[DB.Basic][m_cInrule][m_fInit][inrule init success:{m_lInrule.Count}]");
                 }

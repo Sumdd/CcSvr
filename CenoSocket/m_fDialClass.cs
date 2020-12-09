@@ -497,7 +497,7 @@ namespace CenoSocket
                     if (m_mRecord.T_PhoneNum.Length > 5)
                     {
                         ///分割即可
-                        int m_uContinue = 0;
+                        string m_sContinue = "IN未进行";
                         string[] m_lBf = m_mRecord.T_PhoneNum.Split('*');
                         if (m_lBf.Length == 2)
                         {
@@ -509,39 +509,46 @@ namespace CenoSocket
                                     m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulesuffix == m_lBf[0]).FirstOrDefault();
                                     if (_m_mInrule != null)
                                     {
-                                        ///根据内呼规则拼接终点表达式
-                                        m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
-                                        m_mRecord.LocalNum = $"{m_lBf[0]}*{m_mRecord.LocalNum}";
-                                        m_uContinue = 1;
+                                        if (m_cInrule.m_pInrule != null)
+                                        {
+                                            ///根据内呼规则拼接终点表达式
+                                            m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
+                                            m_mRecord.LocalNum = $"{m_cInrule.m_pInrule.inrulesuffix}*{m_mRecord.LocalNum}";
+                                            m_sContinue = null;
+                                        }
+                                        else
+                                        {
+                                            m_sContinue = "IN本机规则";
+                                        }
                                     }
                                     else
                                     {
                                         ///无内呼规则
-                                        m_uContinue = -3;
+                                        m_sContinue = "IN内呼规则";
                                     }
                                 }
                                 else
                                 {
                                     ///无内呼规则
-                                    m_uContinue = -3;
+                                    m_sContinue = "IN内呼规则";
                                 }
                             }
                             else
                             {
                                 ///拆分后的数据有误,无法继续处理
-                                m_uContinue = -2;
+                                m_sContinue = "IN无效拆分";
                             }
                         }
                         else
                         {
                             ///拆分时有误,无法继续处理
-                            m_uContinue = -1;
+                            m_sContinue = "IN拆分错误";
                         }
 
-                        if (m_uContinue != 1)
+                        if (m_sContinue != null)
                         {
-                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_uContinue}]");
-                            m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err内呼规则"));
+                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_sContinue}]");
+                            m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail(m_sContinue));
                             return;
                         }
                     }
