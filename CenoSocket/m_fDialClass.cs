@@ -511,7 +511,7 @@ namespace CenoSocket
                                     {
                                         ///根据内呼规则拼接终点表达式
                                         m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
-                                        m_mRecord.LocalNum += m_lBf[0];
+                                        m_mRecord.LocalNum = $"{m_lBf[0]}*{m_mRecord.LocalNum}";
                                         m_uContinue = 1;
                                     }
                                     else
