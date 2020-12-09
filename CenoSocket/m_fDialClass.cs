@@ -282,6 +282,8 @@ namespace CenoSocket
                 m_mDialLimit _m_mDialLimit = null;
                 string m_sCalleeNumberStr = m_sDealWithRealPhoneNumberStr;
                 string m_sCalleeRemove0000Prefix = string.Empty;
+                ///被叫的终点表达式提前
+                string m_sEndPointStrB = string.Empty;
 
                 #region 采取哪种dtmf的发送方式
                 string m_sDTMFSendMethod = Call_ParamUtil.m_sDTMFSendMethod;
@@ -490,11 +492,64 @@ namespace CenoSocket
                     m_mRecord.T_PhoneNum = m_sCalleeNumberStr;
                     m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
                     m_mRecord.PhoneAddress = m_sPhoneAddressStr;
+
+                    #region ***兼容内呼规则逻辑
+                    if (m_mRecord.T_PhoneNum.Length > 5)
+                    {
+                        ///分割即可
+                        int m_uContinue = 0;
+                        string[] m_lBf = m_mRecord.T_PhoneNum.Split('*');
+                        if (m_lBf.Length == 2)
+                        {
+                            if (m_lBf[0].Length > 0 && m_lBf[1].Length > 0)
+                            {
+                                ///对比内呼规则
+                                if (!m_cInrule.m_bInitInrule && m_cInrule.m_lInrule != null && m_cInrule.m_lInrule.Count > 0)
+                                {
+                                    m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulesuffix == m_lBf[0]).FirstOrDefault();
+                                    if (_m_mInrule != null)
+                                    {
+                                        ///根据内呼规则拼接终点表达式
+                                        m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
+                                        m_mRecord.LocalNum += m_lBf[0];
+                                        m_uContinue = 1;
+                                    }
+                                    else
+                                    {
+                                        ///无内呼规则
+                                        m_uContinue = -3;
+                                    }
+                                }
+                                else
+                                {
+                                    ///无内呼规则
+                                    m_uContinue = -3;
+                                }
+                            }
+                            else
+                            {
+                                ///拆分后的数据有误,无法继续处理
+                                m_uContinue = -2;
+                            }
+                        }
+                        else
+                        {
+                            ///拆分时有误,无法继续处理
+                            m_uContinue = -1;
+                        }
+
+                        if (m_uContinue != 1)
+                        {
+                            Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_uContinue}]");
+                            m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err内呼规则"));
+                            return;
+                        }
+                    }
+                    #endregion
                 }
 
                 bool m_bInboundTest = Call_ParamUtil.InboundTest;
                 string m_sEndPointStrA = $"user/{m_mChannel.channel_number}";
-                string m_sEndPointStrB = string.Empty;
 
                 if (m_sNumberType == Special.ApiShare)
                 {
@@ -504,7 +559,10 @@ namespace CenoSocket
                 else
                 {
                     #region ***原终点表达式
-                    if (m_bStar) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";
+                    if (m_bStar)
+                    {
+                        if (string.IsNullOrWhiteSpace(m_sEndPointStrB)) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";
+                    }
                     else
                     {
                         if (m_bInboundTest) m_sEndPointStrB = $"user/{m_sDealWithRealPhoneNumberStr}";

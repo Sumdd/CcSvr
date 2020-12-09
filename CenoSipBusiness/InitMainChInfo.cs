@@ -262,6 +262,12 @@ namespace CenoSipBusiness {
             }
             #endregion
 
+            #region ***加载内呼规则
+            {
+                DB.Basic.m_cInrule.m_fInit();
+            }
+            #endregion
+
             #region ***自动判断是否到期
             {
                 try

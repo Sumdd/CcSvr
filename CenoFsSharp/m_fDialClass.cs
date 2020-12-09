@@ -403,7 +403,98 @@ namespace CenoFsSharp
                     m_mRecord.PhoneAddress = "内呼";
                     m_mRecord.T_PhoneNum = $"{m_lStrings[1]}";
                     m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
-                    m_sEndPointStrB = $"user/{m_lStrings[0]}";
+
+                    #region ***兼容内呼规则逻辑
+                    if (m_lStrings[1].Length == 5)
+                    {
+                        m_sEndPointStrB = $"user/{m_lStrings[0]}";
+                    }
+                    else
+                    {
+                        ///分割即可
+                        int m_uContinue = 0;
+                        string[] m_lBf = m_lStrings[0].Split('*');
+                        if (m_lBf.Length == 2)
+                        {
+                            if (m_lBf[0].Length > 0 && m_lBf[1].Length > 0)
+                            {
+                                ///对比内呼规则
+                                if (!m_cInrule.m_bInitInrule && m_cInrule.m_lInrule != null && m_cInrule.m_lInrule.Count > 0)
+                                {
+                                    m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulesuffix == m_lBf[0]).FirstOrDefault();
+                                    if (_m_mInrule != null)
+                                    {
+                                        ///根据内呼规则拼接终点表达式
+                                        m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_lStrings[0]}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
+                                        m_mRecord.LocalNum += m_lBf[0];
+                                        m_uContinue = 1;
+                                    }
+                                    else
+                                    {
+                                        ///无内呼规则
+                                        m_uContinue = -3;
+                                    }
+                                }
+                                else
+                                {
+                                    ///无内呼规则
+                                    m_uContinue = -3;
+                                }
+                            }
+                            else
+                            {
+                                ///拆分后的数据有误,无法继续处理
+                                m_uContinue = -2;
+                            }
+                        }
+                        else
+                        {
+                            ///拆分时有误,无法继续处理
+                            m_uContinue = -1;
+                        }
+
+                        if (m_uContinue != 1)
+                        {
+                            Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_uContinue}]");
+
+                            if (m_bIsDispose) return;
+                            await m_pOutboundSocket.Hangup(uuid, HangupCause.NoRouteDestination).ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Hangup cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Hangup error:{ex.Message}]");
+                                }
+                            });
+
+                            if (m_bIsDispose) return;
+                            if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                            {
+                                await m_pOutboundSocket.Exit().ContinueWith(task =>
+                                {
+                                    try
+                                    {
+                                        if (m_bIsDispose) return;
+                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Exit cancel]");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} Exit error:{ex.Message}]");
+                                    }
+                                });
+                            }
+
+                            if (m_bIsDispose) return;
+                            m_pOutboundSocket?.Dispose();
+
+                            return;
+                        }
+                    }
+                    #endregion
                 }
                 else
                 {

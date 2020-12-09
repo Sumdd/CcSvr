@@ -29,6 +29,8 @@ namespace DB.Basic
             string m_sPhoneAddressStr = string.Empty;
             string m_sCityCodeStr = string.Empty;
             string m_sDealWithStr = string.Empty;
+            ///修改规则,如果尾缀有*1000等格式则判断为内呼,并兼容内呼规则
+            Regex m_rRegex = new Regex("(.*)[*][0-9][0-9][0-9][0-9]$");
 
             try
             {
@@ -53,7 +55,6 @@ namespace DB.Basic
                      */
 
                     case '*':
-                        Regex m_rRegex = new Regex("^[*][0-9][0-9][0-9][0-9]$");
                         if (m_rRegex.IsMatch(m_sPhoneNumber))
                         {
                             m_sFirstChar = Special.Star;
@@ -73,7 +74,16 @@ namespace DB.Basic
                     default:
                         m_sFirstChar = Special.Zero;
 
-                        if (m_sPhoneNumber.Contains(Special.Star) ||
+                        if (m_rRegex.IsMatch(m_sPhoneNumber))
+                        {
+                            ///判断为内呼,并兼容内呼规则
+                            m_sFirstChar = Special.Star;
+                            ///真实号码不做处理即可
+                            m_sRealPhoneNumberStr = m_sPhoneNumber;
+                            m_sPhoneAddressStr = "内呼";
+                            m_sDealWithStr = Special.Complete;
+                        }
+                        else if (m_sPhoneNumber.Contains(Special.Star) ||
                             m_sPhoneNumber.Contains(Special.Hash))
                         {
                             /*

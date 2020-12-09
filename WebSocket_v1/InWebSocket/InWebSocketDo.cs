@@ -276,6 +276,12 @@ namespace WebSocket_v1 {
             string m_sType = SocketMain.GetBody(dataStack, M_WebSocket._zdwh, 0);
             switch (m_sType)
             {
+                case "ReloadInrule":
+                    {
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inrule]");
+                        DB.Basic.m_cInrule.m_fInit();
+                    }
+                    break;
                 case "ReloadWbList":
                     {
                         Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload wblist]");

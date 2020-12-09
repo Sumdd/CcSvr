@@ -36,10 +36,15 @@ namespace CenoFsSharp
             Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
             ///被叫
             string _m_sRealCalleeNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Destination-Number")?.Replace("gw+", "")?.Replace("+86", "0");
+
             ///兼容86而不是+86开头
-            if (_m_sRealCalleeNumberStr.StartsWith("86"))
+            if (false)
             {
-                _m_sRealCalleeNumberStr = $"+{_m_sRealCalleeNumberStr}".Replace("+86", "0");
+                ///有使用此做号码的情况,这里去掉先
+                if (_m_sRealCalleeNumberStr.StartsWith("86"))
+                {
+                    _m_sRealCalleeNumberStr = $"+{_m_sRealCalleeNumberStr}".Replace("+86", "0");
+                }
             }
 
             string m_sRealCalleeNumberStr = m_rReplaceRegex.Replace(_m_sRealCalleeNumberStr, string.Empty);
@@ -272,7 +277,8 @@ namespace CenoFsSharp
                 {
                     if (m_bStar)
                     {
-                        m_sCalleeNumberStr = m_sRealCalleeNumberStr.Substring(1);
+                        string[] m_lBf = m_sRealCalleeNumberStr.Split('*');
+                        if (m_lBf.Length > 1) m_sCalleeNumberStr = m_lBf[1];
                         m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_number == m_sCalleeNumberStr);
                     }
                     else
@@ -647,7 +653,10 @@ namespace CenoFsSharp
                 }
                 #endregion
 
-                m_bWeb = (m_mChannel.IsRegister == -1 || m_mChannel.IsRegister == 0);
+                ///解除PC注册模式的限制,但是用客户端的人怎么办?可能需要加一个字段来开启和关闭轮询API弹屏
+                ///暂时不做处理,直接跳过注册模式
+                m_bWeb = true;///(m_mChannel.IsRegister == -1 || m_mChannel.IsRegister == 0);
+
                 m_mRecord.ChannelID = m_mChannel.channel_id;
 
                 #region 未连接(IP话机的引入,可以没有WebSocket,越过此处,后续增加一个判定)
