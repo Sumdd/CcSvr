@@ -1155,7 +1155,7 @@ namespace CenoFsSharp
                     //录音中来电主叫或去掉被叫的真实号码获取
                     string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
                     if (!m_bIsQueryRecUUID || string.IsNullOrWhiteSpace(m_sQueryUUID) || string.IsNullOrWhiteSpace(m_dtString))
-                        m_sRecSub = $"{{0}}\\{m_dtAnswerTimeNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtAnswerTimeNow.ToString("yyyyMMdd")}\\Rec_{m_dtAnswerTimeNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr}_{(m_bStar ? "N" : "")}Q_{m_sCalleeNumberStr.Replace("*", "X")}{m_sExtensionStr}";
+                        m_sRecSub = $"{{0}}\\{m_dtAnswerTimeNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtAnswerTimeNow.ToString("yyyyMMdd")}\\Rec_{m_dtAnswerTimeNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}Q_{m_sCalleeNumberStr.Replace("*", "X")}{m_sExtensionStr}";
                     else
                         m_sRecSub = $"{{0}}\\{m_dtString.Substring(0, 4)}\\{m_dtString.Substring(0, 6)}\\{m_dtString.Substring(0, 8)}\\{m_sQueryUUID}{m_sExtensionStr}";
 
