@@ -261,9 +261,11 @@ namespace CenoFsSharp
                 AGENT_INFO m_mAgent = null;
                 bool m_bInboundTest = Call_ParamUtil.InboundTest;
                 List<string> m_lStrings = m_cPhone.m_fGetPhoneNumberMemo(m_sRealCallerNumberStr);//解析主叫
-                bool m_bStar = m_sRealCalleeNumberStr.StartsWith(Special.Star);
+                bool m_bStar = m_lStrings[2] == Special.Star;
                 string m_sCalleeNumberStr = m_sRealCalleeNumberStr;
                 bool m_bShareReject = false;
+                ///是否使用了内呼规则,存储原被叫
+                string m_sLocalNum = null;
 
                 ///本呼叫中心呼入坐席
                 AGENT_INFO m_mTheAgent = null;
@@ -278,7 +280,11 @@ namespace CenoFsSharp
                     if (m_bStar)
                     {
                         string[] m_lBf = m_sRealCalleeNumberStr.Split('*');
-                        if (m_lBf.Length > 1) m_sCalleeNumberStr = m_lBf[1];
+                        if (m_lBf.Length > 1)
+                        {
+                            m_sLocalNum = m_sCalleeNumberStr;
+                            m_sCalleeNumberStr = m_lBf[1];
+                        }
                         m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_number == m_sCalleeNumberStr);
                     }
                     else
@@ -524,7 +530,16 @@ namespace CenoFsSharp
                     if (m_bStar)
                     {
                         m_mRecord.PhoneAddress = "内呼";
-                        m_mRecord.T_PhoneNum = $"{Special.Star}{m_sRealCallerNumberStr}";
+
+                        ///如果走了内呼规则,特殊处理对方号码
+                        if (m_sLocalNum != null)
+                        {
+                            m_mRecord.LocalNum = m_sLocalNum;
+                            m_mRecord.T_PhoneNum = m_sRealCallerNumberStr;
+                        }
+                        else
+                            m_mRecord.T_PhoneNum = $"{Special.Star}{m_sRealCallerNumberStr}";
+
                         m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
                     }
                     else
