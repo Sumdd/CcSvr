@@ -276,6 +276,12 @@ namespace WebSocket_v1 {
             string m_sType = SocketMain.GetBody(dataStack, M_WebSocket._zdwh, 0);
             switch (m_sType)
             {
+                case "ReloadInlimit_2":
+                    {
+                        Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inlimit_2,开发中...]");
+                        ///DB.Basic.m_cInrule.m_fInit();
+                    }
+                    break;
                 case "ReloadInrule":
                     {
                         Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inrule]");
