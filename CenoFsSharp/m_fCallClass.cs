@@ -564,29 +564,53 @@ namespace CenoFsSharp
                 bool m_bInlimit = false;
                 if (!m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
                 {
+                    ///时间、星期的判断
+                    DateTime m_pDateTime = DateTime.Now;
+                    DayOfWeek m_sWeekday = m_pDateTime.DayOfWeek;
+                    int m_uWeekday = (int)m_sWeekday;
+                    if (m_uWeekday == 0) m_uWeekday = 7;
+                    m_uWeekday = m_uWeekday - 1;
+                    int m_uDay = (int)Math.Pow(2, m_uWeekday);
+
                     if (m_uLimitId != -1)
                     {
-                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.inlimit_2id == m_uLimitId)?.FirstOrDefault();
+                        ///再加一个星期条件
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.inlimit_2id == m_uLimitId && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
                     }
                     ///假如通过ID未找到内转信息,如未配置,则找一下该坐席的其它内转信息
                     if (_m_mInlimit_2 == null)
                     {
                         Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} no inlimit_2 by:{m_uLimitId},then by ua:{m_mAgent.AgentID}]");
-                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_mAgent.AgentID)?.FirstOrDefault();
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_mAgent.AgentID && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
                     }
                     ///得到内转信息,配置内转表达式
                     if (_m_mInlimit_2 != null)
                     {
-                        if (_m_mInlimit_2.m_bGatewayType)
-                            m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                        DateTime m_dtStart = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2starttime}"));
+                        DateTime m_dtEnd = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2endtime}"));
+                        int m_uBs = DateTime.Compare(m_dtStart, m_dtEnd);
+                        if (m_uBs == 0) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} not time]");
                         else
-                            m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
+                        {
+                            if (m_uBs > 0) m_dtStart = m_dtStart.AddDays(-1);
+                            ///判断时间
+                            if (DateTime.Compare(m_dtStart, m_pDateTime) <= 0 && DateTime.Compare(m_dtEnd, m_pDateTime) > 0)
+                                m_bInlimit = true;
+                            else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} not time]");
+                        }
+                        ///如果符合内转规则
+                        if (m_bInlimit)
+                        {
+                            if (_m_mInlimit_2.m_bGatewayType)
+                                m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                            else
+                                m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
 
-                        ///打印呼叫转移日志
-                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
-                        ///归属地增加内转标记
-                        m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
-                        m_bInlimit = true;
+                            ///打印呼叫转移日志
+                            Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
+                            ///归属地增加内转标记
+                            m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                        }
                     }
                     else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} no inlimit_2]");
                 }
@@ -1877,31 +1901,57 @@ WHERE
                 #region ***呼叫内转逻辑
                 ///得到是否有呼叫内转的线路
                 m_mInlimit_2 _m_mInlimit_2 = null;
+                ///是否内转
+                bool m_bInlimit = false;
                 ///如果找到内转信息
                 if (m_pAddRecByRec.inlimit_2id != -1 && !m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
                 {
+                    ///时间、星期的判断
+                    DateTime m_pDateTime = DateTime.Now;
+                    DayOfWeek m_sWeekday = m_pDateTime.DayOfWeek;
+                    int m_uWeekday = (int)m_sWeekday;
+                    if (m_uWeekday == 0) m_uWeekday = 7;
+                    m_uWeekday = m_uWeekday - 1;
+                    int m_uDay = (int)Math.Pow(2, m_uWeekday);
+
                     if (m_pAddRecByRec.inlimit_2id != -1)
                     {
-                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.inlimit_2id == m_pAddRecByRec.inlimit_2id)?.FirstOrDefault();
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.inlimit_2id == m_pAddRecByRec.inlimit_2id && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
                     }
                     ///假如通过ID未找到内转信息,如未配置,则找一下该坐席的其它内转信息
                     if (_m_mInlimit_2 == null)
                     {
                         Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} no inlimit_2 by:{m_pAddRecByRec.inlimit_2id},then by ua:{m_pAddRecByRec.m_uAgentID}]");
-                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_pAddRecByRec.m_uAgentID)?.FirstOrDefault();
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_pAddRecByRec.m_uAgentID && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
                     }
                     ///得到内转信息,配置内转表达式
                     if (_m_mInlimit_2 != null)
                     {
-                        if (_m_mInlimit_2.m_bGatewayType)
-                            m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                        DateTime m_dtStart = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2starttime}"));
+                        DateTime m_dtEnd = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2endtime}"));
+                        int m_uBs = DateTime.Compare(m_dtStart, m_dtEnd);
+                        if (m_uBs == 0) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} not time]");
                         else
-                            m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
+                        {
+                            if (m_uBs > 0) m_dtStart = m_dtStart.AddDays(-1);
+                            ///判断时间
+                            if (DateTime.Compare(m_dtStart, m_pDateTime) <= 0 && DateTime.Compare(m_dtEnd, m_pDateTime) > 0)
+                                m_bInlimit = true;
+                            else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} not time]");
+                        }
+                        ///如果符合内转规则
+                        if (m_bInlimit)
+                        {
+                            if (_m_mInlimit_2.m_bGatewayType)
+                                m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                            else
+                                m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
 
-                        ///打印呼叫转移日志
-                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
-                        ///归属地增加内转标记
-                        m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                            ///打印呼叫转移日志
+                            Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
+                            ///归属地增加内转标记
+                            m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                        }
                     }
                     else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} no inlimit_2]");
                 }
