@@ -330,6 +330,14 @@ namespace Model_v1
         {
             get; set;
         }
+        /// <summary>
+        /// 续联接口个性化
+        /// 没有则使用默认的接口配置
+        /// </summary>
+        public string XxHttp
+        {
+            get; set;
+        }
     }
     public enum SHARE_NUM_STATUS
     {

@@ -342,7 +342,8 @@ SELECT
 	`dial_limit_xx`.`xxUa` AS `xxUa`,
 	`dial_limit_xx`.`xxPwd` AS `xxPwd`,
 	`dial_limit_xx`.`xxNum` AS `xxNum`,
-	`dial_limit_xx`.`xxUse` AS `xxUse` 
+	`dial_limit_xx`.`xxUse` AS `xxUse`,
+	`dial_limit_xx`.`XxHttp` 
 FROM
 	`dial_limit`
 	INNER JOIN `call_gateway` ON `dial_limit`.`gwuid` = `call_gateway`.`UniqueID`
@@ -404,6 +405,8 @@ WHERE
                                         m_pShareNumber.xxPwd = m_pDataRow["xxPwd"].ToString();
                                         m_pShareNumber.xxLogin = 0;
                                         m_pShareNumber.xxUse = (m_pDataRow["xxUse"] == DBNull.Value ? -1 : Convert.ToInt32(m_pDataRow["xxUse"]));
+                                        ///续联接口个性化
+                                        m_pShareNumber.XxHttp = m_pDataRow["XxHttp"].ToString();
                                         ///本地前缀加拨
                                         m_pShareNumber.diallocalprefix = m_pDataRow["diallocalprefix"].ToString();
 

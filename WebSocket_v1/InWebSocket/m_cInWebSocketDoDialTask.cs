@@ -227,9 +227,16 @@ namespace WebSocket_v1
                                 ///申请号码
                                 share_number m_pShareNumber = Redis2.m_fApplyXx(m_sIP, m_pAddRecByRec.UAID, m_pAddRecByRec.m_uAgentID, m_pAddRecByRec.m_uChannelID, DB.Basic.Call_ParamUtil.m_uShareNumSetting, m_bBind, m_lNumber, out m_sStatus, out m_sErrMsg);
 
-                                ///未配置续联接口
+                                ///优先使用个性化的续联接口
                                 string m_sXxHttp = DB.Basic.Call_ParamUtil.m_sXxHttp;
-                                if (string.IsNullOrWhiteSpace(m_sXxHttp))
+                                if (!string.IsNullOrWhiteSpace(m_pShareNumber?.XxHttp))
+                                {
+                                    m_sXxHttp = m_pShareNumber?.XxHttp;
+                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][special XxHttp:{m_sXxHttp}]");
+                                }
+                                else if (!string.IsNullOrWhiteSpace(m_sXxHttp))
+                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][default XxHttp:{m_sXxHttp}]");
+                                else
                                     throw new Exception("未配置续联接口");
 
                                 #region ***续联电话呼出
