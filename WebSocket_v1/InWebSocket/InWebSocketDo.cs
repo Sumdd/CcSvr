@@ -278,8 +278,8 @@ namespace WebSocket_v1 {
             {
                 case "ReloadInlimit_2":
                     {
-                        Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inlimit_2,开发中...]");
-                        ///DB.Basic.m_cInrule.m_fInit();
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inlimit_2]");
+                        DB.Basic.m_cInlimit_2.m_fInit();
                     }
                     break;
                 case "ReloadInrule":

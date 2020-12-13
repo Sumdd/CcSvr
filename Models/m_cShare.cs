@@ -380,5 +380,10 @@ namespace Model_v1
         {
             get; set;
         }
+        public int inlimit_2id
+        {
+            get; set;
+
+        } = -1;
     }
 }

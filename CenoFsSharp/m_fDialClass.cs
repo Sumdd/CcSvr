@@ -116,11 +116,14 @@ namespace CenoFsSharp
                     /// 兼容了某次调试注册文件在5060端口的情况,其余暂无走此分支的情况
                     /// 优化为一次查询即可
                     /// ]]>
-                    int _m_uAgentID = m_fDialLimit.m_fGetAgentID(m_sRealCalleeNumberStr, out m_stNumberStr, true, string.Empty);
+
+                    ///为呼入内转做准备
+                    int _m_uLimitId = -1;
+                    int _m_uAgentID = m_fDialLimit.m_fGetAgentID(m_sRealCalleeNumberStr, out m_stNumberStr, true, string.Empty, out _m_uLimitId);
                     if (_m_uAgentID > -1)
                     {
                         Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{uuid} dial -> call]");
-                        m_fCallClass.m_fCall(m_pOutboundSocket, null, 0, null, _m_uAgentID);
+                        m_fCallClass.m_fCall(m_pOutboundSocket, null, 0, null, _m_uAgentID, _m_uLimitId);
                         return;
                     }
 

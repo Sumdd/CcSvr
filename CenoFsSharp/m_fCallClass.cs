@@ -27,7 +27,7 @@ namespace CenoFsSharp
         public delegate void m_dBusySendMsg(IWebSocketConnection m_pWebSocket, string m_sMsg);
         public static m_dBusySendMsg m_fBusySendMsg;
 
-        public static async void m_fCall(OutboundSocket m_pOutboundSocket, string m_sTransfer = null, int m_uShare = 0, share_number m_pShareNumber = null, int _m_mAgentID = -1)
+        public static async void m_fCall(OutboundSocket m_pOutboundSocket, string m_sTransfer = null, int m_uShare = 0, share_number m_pShareNumber = null, int _m_mAgentID = -1, int _m_uLimitId = -1)
         {
             string uuid = m_pOutboundSocket.ChannelData.UUID;
             string m_sRealCallerNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Caller-ID-Number")?.Replace("gw+", "")?.Replace("+86", "0");//主叫
@@ -61,6 +61,8 @@ namespace CenoFsSharp
             string m_sFreeSWITCHIPv4 = InboundMain.FreesSWITCHIPv4;
             //真实号码
             string m_stNumberStr = string.Empty;
+            ///呼入所属拨号限制ID
+            int m_uLimitId = -1;
             //呼入回铃
             string m_sCallMusic = Call_ParamUtil.m_sCallMusic;
 
@@ -301,7 +303,12 @@ namespace CenoFsSharp
                                 ///先查出需要转接的号码,增加主叫号码的带入
                                 if (_m_mAgentID == -1)
                                 {
-                                    _m_mAgentID = m_fDialLimit.m_fGetAgentID(m_sCalleeNumberStr, out m_stNumberStr, false, m_sRealCallerNumberStr);
+                                    _m_mAgentID = m_fDialLimit.m_fGetAgentID(m_sCalleeNumberStr, out m_stNumberStr, false, m_sRealCallerNumberStr, out m_uLimitId);
+                                }
+                                ///存储拨号限制ID,为呼叫内转做准备
+                                else if (_m_uLimitId != -1)
+                                {
+                                    m_uLimitId = _m_uLimitId;
                                 }
                                 m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.AgentID == _m_mAgentID);
                             }
@@ -521,7 +528,7 @@ namespace CenoFsSharp
                 if (m_bTransfer)
                 {
                     m_bStar = false;
-                    m_mRecord.PhoneAddress = $"ivr:{m_lStrings[3]}";
+                    m_mRecord.PhoneAddress = $"{m_lStrings[3]} IVR";
                     m_mRecord.T_PhoneNum = m_sRealCallerNumberStr;
                     m_mRecord.C_PhoneNum = m_sRealCallerNumberStr;
                 }
@@ -550,6 +557,41 @@ namespace CenoFsSharp
                     }
                 }
 
+                #region ***呼叫内转逻辑
+                ///得到是否有呼叫内转的线路
+                m_mInlimit_2 _m_mInlimit_2 = null;
+                ///是否内转
+                bool m_bInlimit = false;
+                if (!m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
+                {
+                    if (m_uLimitId != -1)
+                    {
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.inlimit_2id == m_uLimitId)?.FirstOrDefault();
+                    }
+                    ///假如通过ID未找到内转信息,如未配置,则找一下该坐席的其它内转信息
+                    if (_m_mInlimit_2 == null)
+                    {
+                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} no inlimit_2 by:{m_uLimitId},then by ua:{m_mAgent.AgentID}]");
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_mAgent.AgentID)?.FirstOrDefault();
+                    }
+                    ///得到内转信息,配置内转表达式
+                    if (_m_mInlimit_2 != null)
+                    {
+                        if (_m_mInlimit_2.m_bGatewayType)
+                            m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                        else
+                            m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
+
+                        ///打印呼叫转移日志
+                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
+                        ///归属地增加内转标记
+                        m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                        m_bInlimit = true;
+                    }
+                    else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} no inlimit_2]");
+                }
+                #endregion
+
                 #region ***测试南昌Unknown
                 if (true)
                 {
@@ -577,8 +619,8 @@ namespace CenoFsSharp
 
                 m_mChannel = m_mAgent.ChInfo;
 
-                #region 无通道信息
-                if (m_mChannel == null || m_mChannel?.channel_type != Special.SIP)
+                #region 1.非内转2.无通道信息
+                if (!m_bInlimit && (m_mChannel == null || m_mChannel?.channel_type != Special.SIP))
                 {
                     string m_sMsgStr = $"can,t find channel or not sip channel";
                     Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} {m_sMsgStr},play link error music]");
@@ -674,8 +716,8 @@ namespace CenoFsSharp
 
                 m_mRecord.ChannelID = m_mChannel.channel_id;
 
-                #region 未连接(IP话机的引入,可以没有WebSocket,越过此处,后续增加一个判定)
-                if (m_mChannel.IsRegister == 1 && m_mChannel.channel_websocket == null)
+                #region 未连接(1.非内转2.IP话机可无WebSocket)
+                if (!m_bInlimit && m_mChannel.IsRegister == 1 && m_mChannel.channel_websocket == null)
                 {
                     string m_sMsgStr = $"user no connect";
                     Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} {m_sMsgStr}]");
@@ -1728,10 +1770,12 @@ WHERE
                 ///<![CDATA[
                 /// <6>如果进入此,共享号码已经进行了呼入锁定,使用完成后需要解锁
                 /// 共享号码未锁定成功,此时直接添加来电记录并挂断即可
+                /// 后续部分也不判断是否找到内转ID,因为要做本机任何线路的来电通道的状态变更
                 /// ]]>
-                if ((m_uShare > 1 && m_uShare <= 10) || (m_uShare > 11 && m_uShare <= 20)
+                if (m_pAddRecByRec.inlimit_2id == -1 &&///必须未找到呼叫内转信息,前置
+                    ((m_uShare > 1 && m_uShare <= 10) || (m_uShare > 11 && m_uShare <= 20)
                     || m_qInCall == -1//反查不到坐席ID
-                    || (m_qInCall == 1 && (m_mTheChannel == null || m_mTheChannel?.channel_type != Special.SIP))//坐席通道信息有误
+                    || (m_qInCall == 1 && (m_mTheChannel == null || m_mTheChannel?.channel_type != Special.SIP)))//坐席通道信息有误
                     )
                 //if (m_uShare > 1 || m_uShare > 11)
                 {
@@ -1830,107 +1874,137 @@ WHERE
                 }
                 #endregion
 
+                #region ***呼叫内转逻辑
+                ///得到是否有呼叫内转的线路
+                m_mInlimit_2 _m_mInlimit_2 = null;
+                ///如果找到内转信息
+                if (m_pAddRecByRec.inlimit_2id != -1 && !m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
+                {
+                    if (m_pAddRecByRec.inlimit_2id != -1)
+                    {
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.inlimit_2id == m_pAddRecByRec.inlimit_2id)?.FirstOrDefault();
+                    }
+                    ///假如通过ID未找到内转信息,如未配置,则找一下该坐席的其它内转信息
+                    if (_m_mInlimit_2 == null)
+                    {
+                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} no inlimit_2 by:{m_pAddRecByRec.inlimit_2id},then by ua:{m_pAddRecByRec.m_uAgentID}]");
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_pAddRecByRec.m_uAgentID)?.FirstOrDefault();
+                    }
+                    ///得到内转信息,配置内转表达式
+                    if (_m_mInlimit_2 != null)
+                    {
+                        if (_m_mInlimit_2.m_bGatewayType)
+                            m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                        else
+                            m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
+
+                        ///打印呼叫转移日志
+                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
+                        ///归属地增加内转标记
+                        m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                    }
+                    else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} no inlimit_2]");
+                }
+                #endregion
+
                 ///记录一下呼入了哪个坐席,方便查错
                 Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} -> {m_uTheAgentID}]");
 
                 #region 未连接(IP话机的引入,可以没有WebSocket,越过此处,后续增加一个判定)
                 ///如果呼入为本机坐席
-                if (m_qInCall == 1)
+                if (m_qInCall == 1 && m_mTheChannel.IsRegister == 1 && m_mTheChannel.channel_websocket == null && m_pAddRecByRec.inlimit_2id == -1)
                 {
-                    if (m_mTheChannel.IsRegister == 1 && m_mTheChannel.channel_websocket == null)
+                    string m_sMsgStr = $"user no connect";
+                    Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} {m_sMsgStr}]");
+
+                    #region 播放提示音
+                    if (m_uPlayLoops > 0)
                     {
-                        string m_sMsgStr = $"user no connect";
-                        Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} {m_sMsgStr}]");
-
-                        #region 播放提示音
-                        if (m_uPlayLoops > 0)
-                        {
-                            //应答播放声音
-                            if (m_bIsDispose) return;
-                            await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
-                            {
-                                try
-                                {
-                                    if (m_bIsDispose) return;
-                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} cancel]");
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} error:{ex.Message}]");
-                                }
-                            });
-
-                            for (int i = 0; i < m_uPlayLoops; i++)
-                            {
-                                if (m_bIsDispose) return;
-                                await m_pOutboundSocket.Play(uuid, m_mPlay.m_mNotConnectedMusic).ContinueWith(task =>
-                                {
-                                    try
-                                    {
-                                        if (m_bIsDispose) return;
-                                        if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play link error music cancel]");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play link error music error:{ex.Message}]");
-                                    }
-                                });
-                            }
-                        }
-                        #endregion
-
-                        m_mRecord.CallType = m_bStar ? 8 : 4;
-                        m_mRecord.CallResultID = m_bStar ? 45 : 18;
-                        m_mRecord.C_EndTime = Cmn.m_fDateTimeString();
-                        m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_mRecord.C_EndTime, m_mRecord.C_StartTime);
-                        m_mRecord.Uhandler = 0;
-                        m_mRecord.Remark = m_sMsgStr;
-
-                        if (!m_bDeleteRedisLock)
-                        {
-                            m_bDeleteRedisLock = true;
-                            Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
-                        }
-
-                        call_record.Insert(m_mRecord, true, m_pDialArea, true);
-                        Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} insert record]");
-
+                        //应答播放声音
                         if (m_bIsDispose) return;
-                        await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                        await m_pOutboundSocket.SendApi($"{m_sAnswer} {uuid}").ContinueWith(task =>
                         {
                             try
                             {
                                 if (m_bIsDispose) return;
-                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Hangup cancel]");
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} cancel]");
                             }
                             catch (Exception ex)
                             {
-                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Hangup error:{ex.Message}]");
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} {m_sAnswer} error:{ex.Message}]");
                             }
                         });
 
-                        if (m_bIsDispose) return;
-                        if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                        for (int i = 0; i < m_uPlayLoops; i++)
                         {
-                            await m_pOutboundSocket.Exit().ContinueWith(task =>
+                            if (m_bIsDispose) return;
+                            await m_pOutboundSocket.Play(uuid, m_mPlay.m_mNotConnectedMusic).ContinueWith(task =>
                             {
                                 try
                                 {
                                     if (m_bIsDispose) return;
-                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Exit cancel]");
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play link error music cancel]");
                                 }
                                 catch (Exception ex)
                                 {
-                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Exit error:{ex.Message}]");
+                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} Play link error music error:{ex.Message}]");
                                 }
                             });
                         }
-
-                        if (m_bIsDispose) return;
-                        m_pOutboundSocket?.Dispose();
-
-                        return;
                     }
+                    #endregion
+
+                    m_mRecord.CallType = m_bStar ? 8 : 4;
+                    m_mRecord.CallResultID = m_bStar ? 45 : 18;
+                    m_mRecord.C_EndTime = Cmn.m_fDateTimeString();
+                    m_mRecord.C_WaitTime = Cmn.m_fUnsignedSeconds(m_mRecord.C_EndTime, m_mRecord.C_StartTime);
+                    m_mRecord.Uhandler = 0;
+                    m_mRecord.Remark = m_sMsgStr;
+
+                    if (!m_bDeleteRedisLock)
+                    {
+                        m_bDeleteRedisLock = true;
+                        Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                    }
+
+                    call_record.Insert(m_mRecord, true, m_pDialArea, true);
+                    Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} insert record]");
+
+                    if (m_bIsDispose) return;
+                    await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
+                    {
+                        try
+                        {
+                            if (m_bIsDispose) return;
+                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Hangup cancel]");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Hangup error:{ex.Message}]");
+                        }
+                    });
+
+                    if (m_bIsDispose) return;
+                    if (m_pOutboundSocket != null && m_pOutboundSocket.IsConnected)
+                    {
+                        await m_pOutboundSocket.Exit().ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Exit cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uTheAgentID} Exit error:{ex.Message}]");
+                            }
+                        });
+                    }
+
+                    if (m_bIsDispose) return;
+                    m_pOutboundSocket?.Dispose();
+
+                    return;
                 }
                 #endregion
 

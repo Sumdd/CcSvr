@@ -125,6 +125,7 @@
     <Compile Include="m_cDialLimit.cs" />
     <Compile Include="fs_channel.cs" />
     <Compile Include="m_cEsySQL.cs" />
+    <Compile Include="m_cInlimit_2.cs" />
     <Compile Include="m_cInrule.cs" />
     <Compile Include="m_cPhone.cs" />
     <Compile Include="MySQLDBConnectionString.cs" />

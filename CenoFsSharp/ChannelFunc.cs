@@ -627,7 +627,8 @@ namespace CenoFsSharp {
                 else
                 {
                     string m_stNumberStr = string.Empty;
-                    int m_uAgentID = m_fDialLimit.m_fGetAgentID(Destination_Number, out m_stNumberStr, true, string.Empty);
+                    int m_uLimitId = -1;
+                    int m_uAgentID = m_fDialLimit.m_fGetAgentID(Destination_Number, out m_stNumberStr, true, string.Empty, out m_uLimitId);
                     agent = call_factory.agent_list.FirstOrDefault(x => x.AgentID == m_uAgentID);
                 }
             }

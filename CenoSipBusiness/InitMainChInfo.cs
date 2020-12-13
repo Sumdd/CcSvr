@@ -268,6 +268,12 @@ namespace CenoSipBusiness {
             }
             #endregion
 
+            #region ***加载呼叫内转配置
+            {
+                DB.Basic.m_cInlimit_2.m_fInit();
+            }
+            #endregion
+
             #region ***自动判断是否到期
             {
                 try

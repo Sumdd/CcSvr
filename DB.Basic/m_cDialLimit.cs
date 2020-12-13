@@ -122,7 +122,7 @@ namespace DB.Basic
         /// <summary>
         /// 获取,即便禁用,也要接进来
         /// </summary>
-        public static int m_fGetAgentID(string m_sCallee, out string m_stNumberStr, bool m_bOnlyLimit, string m_sCaller)
+        public static int m_fGetAgentID(string m_sCallee, out string m_stNumberStr, bool m_bOnlyLimit, string m_sCaller, out int m_uLimitId)
         {
             //得到系统的呼入路由查找规则
             ///<![CDATA[
@@ -141,6 +141,8 @@ namespace DB.Basic
             m_stNumberStr = string.Empty;
             //得到号码的呼入路由查找规则
             int m_iLimitCallRule = 0;
+            ///为呼叫内转做准备
+            m_uLimitId = -1;
             //查询路由
             try
             {
@@ -149,6 +151,20 @@ namespace DB.Basic
                 {
                     string m_sSQL = $@"
 SELECT
+	(
+	SELECT
+		`T0`.`id` 
+	FROM
+		`dial_limit` AS `T0` 
+	WHERE
+		`T0`.`useuser` = `dial_limit`.`useuser` 
+		AND `T0`.`isuse` = 1 
+		AND `T0`.`isdel` = 0 
+		AND `T0`.`isshare` = ( - 2 ) 
+	ORDER BY
+		`T0`.`ordernum` 
+		LIMIT 1 
+	) AS `id`,
 	`dial_limit`.`useuser`,
 	`dial_limit`.`tnumber`,
 	`dial_limit`.`LimitCallRule` 
@@ -163,6 +179,7 @@ WHERE
                     DataTable dt = MySQL_Method.BindTable(m_sSQL);
                     if (dt != null && dt.Rows.Count > 0)
                     {
+                        int.TryParse(dt.Rows[0]["id"]?.ToString(), out m_uLimitId);
                         int.TryParse(dt.Rows[0]["LimitCallRule"]?.ToString(), out m_iLimitCallRule);
                         int.TryParse(dt.Rows[0]["useuser"]?.ToString(), out m_iLimitInt);
                         m_sLimittNumberStr = dt.Rows[0]["tnumber"]?.ToString();
@@ -523,11 +540,25 @@ WHERE
 
                 string m_sSQL = $@"
 SELECT
+	(
+	SELECT
+		`T0`.`id` 
+	FROM
+		`dial_limit` AS `T0` 
+	WHERE
+		`T0`.`useuser` = `call_record`.`AgentID` 
+		AND `T0`.`isuse` = 1 
+		AND `T0`.`isdel` = 0 
+		AND `T0`.`isshare` = ( - 2 ) 
+	ORDER BY
+		`T0`.`ordernum` 
+		LIMIT 1 
+	) AS `id`,
 	AgentID,
-    fromagentid,
+	fromagentid,
 	ChannelID,
 	FreeSWITCHIPv4,
-	UAID
+	UAID 
 FROM
 	`call_record` 
 WHERE
@@ -565,6 +596,8 @@ ORDER BY
                     m_pAddRecByRec.m_uFromAgentID = Convert.ToInt32(m_pDataRow["fromagentid"]);
                     m_pAddRecByRec.m_uChannelID = Convert.ToInt32(m_pDataRow["ChannelID"]);
                     m_pAddRecByRec.UAID = m_pDataRow["UAID"].ToString();
+                    ///缓存查询出的呼叫内转ID
+                    m_pAddRecByRec.inlimit_2id = Convert.ToInt32(m_pDataRow["id"]);
                     return m_pAddRecByRec;
                 }
             }
