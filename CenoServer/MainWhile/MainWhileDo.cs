@@ -449,7 +449,7 @@ namespace CenoServer
                         #region ***测试JSON转换是否出问题
                         case "json":
                             {
-                                if (Cmn_v1.Cmn.m_dfJSON != null) Cmn_v1.Cmn.m_dfJSON();
+                                if (Cmn_v1.Cmn.m_dfJSON != null) Cmn_v1.Cmn.m_dfJSON("");
                             }
                             break;
                         #endregion

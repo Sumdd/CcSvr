@@ -1080,6 +1080,10 @@ namespace Core_v1
             {
                 m_sErrMsg = $"ErrRedis{ex.Message}";
                 Log.Instance.Error($"[Core_v1][Redis2][m_fApplyXx][Exception][lock fail:{ex.Message},{ex.StackTrace},{_m_sJSONStr}]");
+
+                ///直接测试是否可解
+                m_fJSON(_m_sJSONStr);
+
                 Log.Instance.Debug(ex);
                 return null;
             }
@@ -1174,14 +1178,15 @@ namespace Core_v1
         #endregion
 
         #region ***测试JSON解析
-        public static void m_fJSON()
+        public static void m_fJSON(string m_sJSONStr = "")
         {
             try
             {
                 while (true)
                 {
-                    string m_sJSONStr = Redis2.Instance.Get<string>(Redis2.m_sDialAreaName);
-                    Log.Instance.Warn($"[Core_v1][Redis2][m_fJSON][str:{m_sJSONStr}]");
+                    string _m_sJSONStr = Redis2.Instance.Get<string>(Redis2.m_sDialAreaName);
+                    if (string.IsNullOrWhiteSpace(m_sJSONStr)) m_sJSONStr = _m_sJSONStr;
+                    Log.Instance.Warn($"[Core_v1][Redis2][m_fJSON][str:{m_sJSONStr},tsr:{_m_sJSONStr}]");
                     List<dial_area> m_lDialArea1 = JsonConvert.DeserializeObject<List<dial_area>>(m_sJSONStr);
                     Log.Instance.Success($"[Core_v1][Redis2][m_fJSON][obj:{m_lDialArea1?.Count}]");
                     break;

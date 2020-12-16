@@ -224,7 +224,7 @@ namespace Cmn_v1
         public static m_dGetCPU m_dfGetCPU;
 
         ///委托
-        public delegate void m_dJSON();
+        public delegate void m_dJSON(string m_sJSONStr);
         public static m_dJSON m_dfJSON;
     }
 }

@@ -302,7 +302,7 @@ ORDER BY
                         ///<![CDATA[
                         /// 状态,加入是否可以使用共享号码的判断逻辑
                         /// ]]>
-                        m_lDialArea.Add(m_pDialArea);
+                        if (m_pDialArea.astate == 2) m_lDialArea.Add(m_pDialArea);
 
                         if (m_pDialArea.amain == 2 && m_pDialArea.astate == 2)
                             Redis2.m_EsyDialArea = m_pDialArea;
