@@ -123,6 +123,8 @@ namespace CenoServer
 
   send redis [keys *|del *|set|nx|getall *|getalldata|key] `Redis命令`
 
+  json `测试json转换是否会出问题`
+
   cpu `查询cpu编码`
 
   exit `退出服务端`
@@ -441,6 +443,14 @@ namespace CenoServer
                         case "show":
                             int? m_uCount = call_factory.agent_list?.Where(x => x?.LoginState == true)?.Count();
                             Console.WriteLine($"online:{m_uCount}");
+                            break;
+                        #endregion
+
+                        #region ***测试JSON转换是否出问题
+                        case "json":
+                            {
+                                if (Cmn_v1.Cmn.m_dfJSON != null) Cmn_v1.Cmn.m_dfJSON();
+                            }
                             break;
                         #endregion
 

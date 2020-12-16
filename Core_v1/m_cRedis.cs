@@ -898,6 +898,7 @@ namespace Core_v1
         #region ***获取申请式号码,并载入申请者信息(出现Redis的错误,这里有可能需要直接使用内存,待定)
         public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, bool m_bBind, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg)
         {
+            string _m_sJSONStr = string.Empty;
             try
             {
                 ///容错判断,看看什么情况
@@ -942,7 +943,9 @@ namespace Core_v1
                     }
 
                     ///判断是否可以使用域内的号码
-                    List<dial_area> m_lDialArea = JsonConvert.DeserializeObject<List<dial_area>>(Redis2.Instance.Get<string>(Redis2.m_sDialAreaName));
+                    string m_sJSONStr = Redis2.Instance.Get<string>(Redis2.m_sDialAreaName);
+                    _m_sJSONStr = m_sJSONStr;
+                    List<dial_area> m_lDialArea = JsonConvert.DeserializeObject<List<dial_area>>(m_sJSONStr);
                     var m_uCount = m_lDialArea.Where(x => x.aip == m_pDialArea?.aip && (x.astate == 2 || x.astate == 4))?.Count();
                     if (m_uCount <= 0)
                     {
@@ -1076,7 +1079,7 @@ namespace Core_v1
             catch (Exception ex)
             {
                 m_sErrMsg = $"ErrRedis{ex.Message}";
-                Log.Instance.Error($"[Core_v1][Redis2][m_fApplyXx][Exception][lock fail:{ex.Message},{ex.StackTrace}]");
+                Log.Instance.Error($"[Core_v1][Redis2][m_fApplyXx][Exception][lock fail:{ex.Message},{ex.StackTrace},{_m_sJSONStr}]");
                 Log.Instance.Debug(ex);
                 return null;
             }
@@ -1166,6 +1169,28 @@ namespace Core_v1
             catch (Exception ex)
             {
                 Log.Instance.Error($"[Core_v1][Redis2][m_fCmdRedis][Exception][{ex.Message}]");
+            }
+        }
+        #endregion
+
+        #region ***测试JSON解析
+        public static void m_fJSON()
+        {
+            try
+            {
+                while (true)
+                {
+                    string m_sJSONStr = Redis2.Instance.Get<string>(Redis2.m_sDialAreaName);
+                    Log.Instance.Warn($"[Core_v1][Redis2][m_fJSON][str:{m_sJSONStr}]");
+                    List<dial_area> m_lDialArea1 = JsonConvert.DeserializeObject<List<dial_area>>(m_sJSONStr);
+                    Log.Instance.Success($"[Core_v1][Redis2][m_fJSON][obj:{m_lDialArea1?.Count}]");
+                    break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[Core_v1][Redis2][m_fJSON][Exception][{ex.Message},{ex.StackTrace}]");
+                Log.Instance.Debug(ex);
             }
         }
         #endregion

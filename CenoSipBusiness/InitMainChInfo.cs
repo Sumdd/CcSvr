@@ -274,6 +274,12 @@ namespace CenoSipBusiness {
             }
             #endregion
 
+            #region ***测试JSON的委托
+            {
+                Cmn_v1.Cmn.m_dfJSON += Core_v1.Redis2.m_fJSON;
+            }
+            #endregion
+
             #region ***自动判断是否到期
             {
                 try

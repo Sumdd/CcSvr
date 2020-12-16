@@ -410,6 +410,8 @@ WHERE
                                         ///本地前缀加拨
                                         m_pShareNumber.diallocalprefix = m_pDataRow["diallocalprefix"].ToString();
 
+                                        ///续联地址个性化处理
+                                        if (!string.IsNullOrWhiteSpace(m_pShareNumber.XxHttp)) m_sXxHttp = m_pShareNumber.XxHttp;
                                         ///调用续联接口,登录,不注销即可,每次加载前都登录即可
                                         if (m_pShareNumber.isshare == 2 && !string.IsNullOrWhiteSpace(m_sXxHttp))
                                         {
