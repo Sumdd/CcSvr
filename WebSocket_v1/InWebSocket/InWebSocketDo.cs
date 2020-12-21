@@ -414,7 +414,7 @@ namespace WebSocket_v1 {
                         call_factory.agent_list.ForEach(x =>
                         {
                             string m_sLoginName = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.LoginName;
-                            if (string.IsNullOrWhiteSpace(m_sLoginName) && x.LoginName != m_sLoginName)
+                            if (!string.IsNullOrWhiteSpace(m_sLoginName) && x.LoginName != m_sLoginName)
                                 x.LoginName = m_sLoginName;
                         });
                     }
