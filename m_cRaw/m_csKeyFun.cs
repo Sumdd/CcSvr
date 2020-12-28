@@ -9,6 +9,8 @@ namespace m_cRaw
 {
     public class m_csKeyFun
     {
+        ///人数限制
+        public const int m_uUa = 1000;
         ///到期时间
         public static DateTime m_dtEndTime = new DateTime(2021, 1, 1, 0, 0, 0);
         ///获取CPU

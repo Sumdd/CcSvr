@@ -342,12 +342,13 @@ namespace CenoSocket
                 {
                     m_mRecord.LocalNum = m_mAgent.ChInfo.channel_number;
                     m_mRecord.CallType = 6;
-                    m_mRecord.T_PhoneNum = m_sCalleeNumberStr;
+                    ///修正需带星号
+                    m_mRecord.T_PhoneNum = $"*{m_sCalleeNumberStr.TrimStart('*')}";
                     m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
                     m_mRecord.PhoneAddress = m_sPhoneAddressStr;
 
                     #region ***兼容内呼规则逻辑
-                    if (m_mRecord.T_PhoneNum.Length > 5)
+                    if (true)
                     {
                         ///分割即可
                         string m_sContinue = "IN未进行";
@@ -359,7 +360,7 @@ namespace CenoSocket
                                 ///对比内呼规则
                                 if (!m_cInrule.m_bInitInrule && m_cInrule.m_lInrule != null && m_cInrule.m_lInrule.Count > 0)
                                 {
-                                    m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulesuffix == m_lBf[0]).FirstOrDefault();
+                                    m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulesuffix == m_lBf[0] && !x.type).FirstOrDefault();
                                     if (_m_mInrule != null)
                                     {
                                         if (m_cInrule.m_pInrule != null)
@@ -386,6 +387,41 @@ namespace CenoSocket
                                     m_sContinue = "IN内呼规则";
                                 }
                             }
+                            else if (m_lBf[0].Length == 0 && m_lBf[1].Length > 0)
+                            {
+                                ///查找便捷电话薄
+                                if (!m_cInrule.m_bInitInrule && m_cInrule.m_lInrule != null && m_cInrule.m_lInrule.Count > 0)
+                                {
+                                    m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulebookfkey == m_lBf[1] && x.type).FirstOrDefault();
+                                    if (_m_mInrule != null)
+                                    {
+                                        if (m_cInrule.m_pInrule != null)
+                                        {
+                                            ///转换成短号形式
+                                            m_mRecord.T_PhoneNum = $"{_m_mInrule.inrulesuffix}*{_m_mInrule.inrulebooktkey}";
+                                            m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
+                                            ///根据内呼规则拼接终点表达式
+                                            m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
+                                            m_mRecord.LocalNum = $"{m_cInrule.m_pInrule.inrulesuffix}*{m_mRecord.LocalNum}";
+                                            m_sContinue = null;
+                                        }
+                                        else
+                                        {
+                                            m_sContinue = "IN内呼规则";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        ///无内呼规则
+                                        m_sContinue = "IN内呼规则";
+                                    }
+                                }
+                                else
+                                {
+                                    ///无内呼规则
+                                    m_sContinue = "IN内呼规则";
+                                }
+                            }
                             else
                             {
                                 ///拆分后的数据有误,无法继续处理
@@ -398,7 +434,8 @@ namespace CenoSocket
                             m_sContinue = "IN拆分错误";
                         }
 
-                        if (m_sContinue != null)
+                        ///兼容可以直接*4位分机号本机内呼
+                        if (m_mRecord.T_PhoneNum.Length != 5 && m_sContinue != null)
                         {
                             Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_sContinue}]");
                             m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, m_sContinue);

@@ -18,6 +18,17 @@ namespace DB.Basic
         public string inruleua;
         public string inrulesuffix;
         public int inrulemain;
+        /// <summary>
+        /// 是否为快捷电话薄项
+        /// </summary>
+        public bool type;
+        /// <summary>
+        /// 增加快捷电话簿功能,兼容原有逻辑
+        /// </summary>
+        public string inrulebookname { get; set; }
+        public string inrulebookfkey { get; set; }
+        public string inrulebooktkey { get; set; }
+        public float inrulebookordernum { get; set; }
     }
 
     public class m_cInrule
@@ -41,18 +52,48 @@ namespace DB.Basic
 
                 string m_sSQL = $@"
 SELECT
-	`call_inrule`.`inruleid` AS `ID`,
-	`call_inrule`.`inrulename`,
-	`call_inrule`.`inruleip`,
-	`call_inrule`.`inruleport`,
-	`call_inrule`.`inruleua`,
-	`call_inrule`.`inrulesuffix`,
-	`call_inrule`.`inrulemain`,
-	`call_inrule`.`ordernum` 
+	* 
 FROM
-	`call_inrule` 
+	(
+	SELECT
+		`call_inrule`.`inruleid` AS `ID`,
+		`call_inrule`.`inrulename`,
+		`call_inrule`.`inruleip`,
+		`call_inrule`.`inruleport`,
+		`call_inrule`.`inruleua`,
+		`call_inrule`.`inrulesuffix`,
+		`call_inrule`.`inrulemain`,
+		`call_inrule`.`ordernum`,
+		'0' AS `type`,
+		0 AS `inrulebookordernum`,
+		'' AS `inrulebookname`,
+		'' AS `inrulebookfkey`,
+		'' AS `inrulebooktkey` 
+	FROM
+		`call_inrule` UNION ALL
+	SELECT
+		`call_inrule`.`inruleid` AS `ID`,
+		`call_inrule`.`inrulename`,
+		`call_inrule`.`inruleip`,
+		`call_inrule`.`inruleport`,
+		`call_inrule`.`inruleua`,
+		`call_inrule`.`inrulesuffix`,
+		`call_inrule`.`inrulemain`,
+		`call_inrule`.`ordernum`,
+		'1' AS `type`,
+		`call_inrulebook`.`inrulebookordernum`,
+		`call_inrulebook`.`inrulebookname`,
+		`call_inrulebook`.`inrulebookfkey`,
+		`call_inrulebook`.`inrulebooktkey` 
+	FROM
+		`call_inrulebook`
+		LEFT JOIN `call_inrule` ON `call_inrule`.`inruleid` = `call_inrulebook`.`inruleid` 
+	WHERE
+		`call_inrulebook`.`inruleid` 
+	) `T0` 
 ORDER BY
-	`call_inrule`.`ordernum`;
+	`T0`.`ordernum`,
+	`T0`.`inrulebookordernum`;
 ";
                 DataSet m_pDataSet = DB.Basic.MySQL_Method.GetDataSetAll(m_sSQL);
                 if (m_pDataSet != null && m_pDataSet.Tables.Count == 1 && m_pDataSet.Tables[0].Rows.Count > 0)
@@ -68,10 +109,15 @@ ORDER BY
                         _m_mInrule.inruleua = item["inruleua"].ToString();
                         _m_mInrule.inrulesuffix = item["inrulesuffix"].ToString();
                         _m_mInrule.inrulemain = Convert.ToInt32(item["inrulemain"]);
+                        _m_mInrule.type = item["type"]?.ToString() == "1" ? true : false;
+                        _m_mInrule.inrulebookname = item["inrulebookname"]?.ToString();
+                        _m_mInrule.inrulebookfkey = item["inrulebookfkey"]?.ToString();
+                        _m_mInrule.inrulebooktkey = item["inrulebooktkey"]?.ToString();
+                        _m_mInrule.inrulebookordernum = float.Parse(item["inrulebookordernum"].ToString());
                         m_lInrule.Add(_m_mInrule);
 
                         ///加载本机内呼规则
-                        if (_m_mInrule.inrulemain == 1)
+                        if (_m_mInrule.inrulemain == 1 && !_m_mInrule.type)
                         {
                             m_cInrule.m_pInrule = _m_mInrule;
                         }

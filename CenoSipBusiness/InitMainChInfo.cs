@@ -44,12 +44,102 @@ namespace CenoSipBusiness {
 
             intilizete_channel();
 
-            ///<![CDATA[
-            /// 网关现查现用,这里用不到加载
-            /// ]]>
-            //intilizate_gateway();
+            #region ***自动判断是否到期
+            {
+                try
+                {
+                    ///加载类库
+                    string m_sPath = $"{Cmn_v1.Cmn.m_fMPath}/m_cRaw.dll";
+                    Assembly asm = Assembly.LoadFrom(m_sPath);
+                    Type type = asm.GetType("m_cRaw.m_csKeyFun");
 
-            intilizate_agent();
+                    ///将此类中的方法加载至委托,后续
+                    Cmn_v1.Cmn.m_dfGetCPU += () =>
+                    {
+                        string m_sCPU = string.Empty;
+                        try
+                        {
+                            object obj = type.InvokeMember("GetCPUSerialNumber", BindingFlags.InvokeMethod, null, null, new object[] { });
+                            m_sCPU = obj?.ToString();
+                            if (!string.IsNullOrWhiteSpace(m_sCPU)) m_sCPU = Core_v1.m_cSafe.EncryptString(m_sCPU);
+
+                            ///查看到期时间
+                            string m_sEndTime = "-Err";
+                            MemberInfo[] m_pMembers = type.GetMembers();
+                            MemberInfo m_pTime = m_pMembers.Where(x => x.Name == "m_dtEndTime")?.FirstOrDefault();
+                            if (m_pTime != null)
+                            {
+                                m_sEndTime = Convert.ToDateTime(type.InvokeMember("m_dtEndTime", BindingFlags.GetField, null, null, new object[] { })).ToString("yyyy-MM-dd HH:mm:ss");
+                            }
+
+                            ///查看设定人数
+                            string m_sUa = "-Err";
+                            MemberInfo m_pUa = m_pMembers.Where(x => x.Name == "m_uUa")?.FirstOrDefault();
+                            if (m_pUa != null)
+                            {
+                                m_sUa = type.InvokeMember("m_uUa", BindingFlags.GetField, null, null, new object[] { }).ToString();
+                            }
+
+                            Log.Instance.Warn($"cpu:{m_sCPU},status:{Model_v1.m_cModel.m_uUseStatus},time:{m_sEndTime},ua:{m_sUa}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][m_dfGetCPU][Exception][{ex.Message}]");
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][m_dfGetCPU][InnerException][{ex?.InnerException?.Message}]");
+                        }
+                        return m_sCPU;
+                    };
+
+                    ///默认为4,故障
+                    Model_v1.m_cModel.m_uUseStatus = 4;
+
+                    m_tSeeUseStatus = new Timer();
+                    m_tSeeUseStatus.AutoReset = false;
+                    m_tSeeUseStatus.Interval = 1000 * 60 * 15;
+
+                    ///需要同步调用
+                    Action doUa = () =>
+                    {
+                        try
+                        {
+                            object obj = type.InvokeMember("m_fCanUse", BindingFlags.InvokeMethod, null, null, new object[] { });
+                            Model_v1.m_cModel.m_uUseStatus = Convert.ToInt32(obj);
+                            ///如果为零,执行
+                            if (Model_v1.m_cModel.m_uUa == 0)
+                            {
+                                MemberInfo[] m_pMembers = type.GetMembers();
+                                MemberInfo m_pUa = m_pMembers.Where(x => x.Name == "m_uUa")?.FirstOrDefault();
+                                if (m_pUa != null)
+                                {
+                                    Model_v1.m_cModel.m_uUa = Convert.ToInt32(type.InvokeMember("m_uUa", BindingFlags.GetField, null, null, new object[] { }));
+                                    ///坐席加载
+                                    intilizate_agent();
+                                }
+                                else throw new Exception("坐席尚未开通请联系管理员");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][Exception][{ex.Message}]");
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][InnerException][{ex?.InnerException?.Message}]");
+                        }
+                    };
+
+                    ElapsedEventHandler m_pElapsedEventHandler = (a, b) =>
+                    {
+                        m_tSeeUseStatus.Stop();
+                        doUa();
+                        m_tSeeUseStatus.Start();
+                    };
+                    m_tSeeUseStatus.Elapsed += m_pElapsedEventHandler;
+                    doUa();
+                }
+                catch (Exception ex)
+                {
+                    Log.Instance.Error($"[CenoSipBusiness][intilizate_services][InitSysInfo][Exception][{ex.Message}]");
+                }
+            }
+            #endregion
 
             ///<![CDATA[
             /// 表结构换了,这里没必要加载了,太慢了
@@ -277,66 +367,6 @@ namespace CenoSipBusiness {
             #region ***测试JSON的委托
             {
                 Cmn_v1.Cmn.m_dfJSON += Core_v1.Redis2.m_fJSON;
-            }
-            #endregion
-
-            #region ***自动判断是否到期
-            {
-                try
-                {
-                    ///加载类库
-                    string m_sPath = $"{Cmn_v1.Cmn.m_fMPath}/m_cRaw.dll";
-                    Assembly asm = Assembly.LoadFrom(m_sPath);
-                    Type type = asm.GetType("m_cRaw.m_csKeyFun");
-
-                    ///将此类中的方法加载至委托,后续
-                    Cmn_v1.Cmn.m_dfGetCPU += () =>
-                    {
-                        string m_sCPU = string.Empty;
-                        try
-                        {
-                            object obj = type.InvokeMember("GetCPUSerialNumber", BindingFlags.InvokeMethod, null, null, new object[] { });
-                            m_sCPU = obj?.ToString();
-                            if (!string.IsNullOrWhiteSpace(m_sCPU)) m_sCPU = Core_v1.m_cSafe.EncryptString(m_sCPU);
-                            Log.Instance.Warn($"cpu:{m_sCPU},status:{Model_v1.m_cModel.m_uUseStatus}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][m_dfGetCPU][Exception][{ex.Message}]");
-                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][m_dfGetCPU][InnerException][{ex?.InnerException?.Message}]");
-                        }
-                        return m_sCPU;
-                    };
-
-                    ///默认为4,故障
-                    Model_v1.m_cModel.m_uUseStatus = 4;
-
-                    m_tSeeUseStatus = new Timer();
-                    m_tSeeUseStatus.AutoReset = false;
-                    m_tSeeUseStatus.Interval = 1000 * 60 * 15;
-
-                    ElapsedEventHandler m_pElapsedEventHandler = (a, b) =>
-                    {
-                        m_tSeeUseStatus.Stop();
-                        try
-                        {
-                            object obj = type.InvokeMember("m_fCanUse", BindingFlags.InvokeMethod, null, null, new object[] { });
-                            Model_v1.m_cModel.m_uUseStatus = Convert.ToInt32(obj);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][Exception][{ex.Message}]");
-                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][InnerException][{ex?.InnerException?.Message}]");
-                        }
-                        m_tSeeUseStatus.Start();
-                    };
-                    m_tSeeUseStatus.Elapsed += m_pElapsedEventHandler;
-                    m_pElapsedEventHandler(null, null);
-                }
-                catch (Exception ex)
-                {
-                    Log.Instance.Error($"[CenoSipBusiness][intilizate_services][InitSysInfo][Exception][{ex.Message}]");
-                }
             }
             #endregion
 

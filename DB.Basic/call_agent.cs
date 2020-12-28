@@ -4,19 +4,22 @@ using System.Linq;
 using System.Text;
 using MySql.Data.MySqlClient;
 using DB.Model;
+using System.Data;
 
-namespace DB.Basic {
-    public class call_agent_basic {
-        public static IList<call_agent_model> GetList(int top = 1000, string m_sSQL = "") {
+namespace DB.Basic
+{
+    public class call_agent_basic
+    {
+        public static IList<call_agent_model> GetList(string m_sSQL = "")
+        {
             IList<call_agent_model> list = new List<call_agent_model>();
-            string sql = $"select ID,UniqueID,AgentName,LoginName,LoginPassWord,LoginState,AgentNumber,AgentPassword,LastLoginIp,TeamID,StateID,RoleID,ChannelID,ClientParamID,Usable,LinkUser,LU_LoginName,LU_Password,Remark from call_agent WHERE 1=1 {m_sSQL} limit ?top";
-            MySqlParameter[] parameters = {
-     new MySqlParameter("?top", MySqlDbType.Int32)
-                };
-            parameters[0].Value = top;
-            using(var dr = MySQL_Method.ExecuteDataReader(sql, parameters)) {
-                while(dr != null && dr.HasRows && dr.Read()) {
-                    list.Add(new call_agent_model() {
+            string sql = $"select ID,UniqueID,AgentName,LoginName,LoginPassWord,LoginState,AgentNumber,AgentPassword,LastLoginIp,TeamID,StateID,RoleID,ChannelID,ClientParamID,Usable,LinkUser,LU_LoginName,LU_Password,Remark from call_agent WHERE 1=1 {m_sSQL} limit {Model_v1.m_cModel.m_uUa}";
+            using (var dr = MySQL_Method.ExecuteDataReader(sql))
+            {
+                while (dr != null && dr.HasRows && dr.Read())
+                {
+                    list.Add(new call_agent_model()
+                    {
                         ID = int.Parse(dr["ID"].ToString()),
                         UniqueID = dr["UniqueID"].ToString(),
                         AgentName = dr["AgentName"].ToString(),
@@ -42,7 +45,8 @@ namespace DB.Basic {
             return list;
         }
 
-        public static int UpdateAgentLoginState(string State, string Ipaddress, string UserID) {
+        public static int UpdateAgentLoginState(string State, string Ipaddress, string UserID)
+        {
             StringBuilder Sqlstr = new StringBuilder();
             Sqlstr.Append("update Call_Agent set ");
             Sqlstr.Append("LoginState=@LoginState,");
@@ -55,6 +59,19 @@ namespace DB.Basic {
                 new MySqlParameter("@ID",UserID)};
 
             return MySQL_Method.ExecuteNonQuery(Sqlstr.ToString(), parameters);
+        }
+
+        public static DataTable m_fGetOperatePower()
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                Core_v1.Log.Instance.Error($"[DB.Basic][call_agent_basic][m_fGetOperatePower][Exception][{ex.Message}]");
+            }
+            return null;
         }
     }
 }

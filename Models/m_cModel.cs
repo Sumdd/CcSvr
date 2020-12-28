@@ -17,5 +17,10 @@ namespace Model_v1
         {
             get; set;
         }
+
+        public static int m_uUa
+        {
+            get; set;
+        }
     }
 }

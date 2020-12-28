@@ -276,33 +276,39 @@ namespace WebSocket_v1 {
             string m_sType = SocketMain.GetBody(dataStack, M_WebSocket._zdwh, 0);
             switch (m_sType)
             {
+                case "ReloadO":
+                    {
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> opreate][reload opreate,unfinished]");
+                        ///尚未完成
+                    }
+                    break;
                 case "ReloadInlimit_2":
                     {
-                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inlimit_2]");
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> inlimit_2][reload inlimit_2]");
                         DB.Basic.m_cInlimit_2.m_fInit();
                     }
                     break;
                 case "ReloadInrule":
                     {
-                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload inrule]");
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> inrule][reload inrule]");
                         DB.Basic.m_cInrule.m_fInit();
                     }
                     break;
                 case "ReloadWbList":
                     {
-                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload wblist]");
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> wblist][reload wblist]");
                         DB.Basic.m_cWblist.m_fInit();
                     }
                     break;
                 case "ReloadRoute":
                     {
-                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][reload route]");
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> route][reload route]");
                         DB.Basic.m_cRoute.m_fInit();
                     }
                     break;
                 case "UpdUa":
                     {
-                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][ua update]");
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> agent][ua update]");
                         //单线更新
                         lock (InWebSocketDo.m_pUpdUaLock)
                         {
@@ -362,7 +368,7 @@ namespace WebSocket_v1 {
                                 #endregion
                                 #region ***再更新Ua
                                 string m_sSQL2 = $" AND ID NOT IN ('{string.Join("','", call_factory.agent_list.Select(x => x.AgentID))}') ";
-                                List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList(1000, m_sSQL2));
+                                List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList(m_sSQL2));
                                 if (m_lAgent?.Count > 0)
                                 {
                                     m_lAgent.ForEach(x =>
@@ -408,7 +414,7 @@ namespace WebSocket_v1 {
                     break;
                 case "UpdLoginName":
                     {
-                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> channel][ua update login name]");
+                        Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> agent][ua update login name]");
                         //查出所有坐席信息
                         List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList());
                         call_factory.agent_list.ForEach(x =>

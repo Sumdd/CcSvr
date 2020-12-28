@@ -219,11 +219,11 @@ namespace Cmn_v1
             }
         }
 
-        ///委托
+        ///获取服务器CPU委托
         public delegate string m_dGetCPU();
         public static m_dGetCPU m_dfGetCPU;
 
-        ///委托
+        ///Redis中JSON字符串解析委托
         public delegate void m_dJSON(string m_sJSONStr);
         public static m_dJSON m_dfJSON;
     }
