@@ -33,6 +33,16 @@ namespace CenoCommon
         public static string m_mNotConnectedMusic = $"{m_fPlayMusicPathString}\\m_mNotConnectedMusic.wav";
         public static string m_mUnavailableMusic = $"{m_fPlayMusicPathString}\\m_mUnavailableMusic.wav";
 
+        ///呼叫转移提示
+        public static string _2closeerr = $"{m_fPlayMusicPathString}\\2closeerr.wav";
+        public static string _2closeok = $"{m_fPlayMusicPathString}\\2closeok.wav";
+        public static string _2openerr = $"{m_fPlayMusicPathString}\\2openerr.wav";
+        public static string _2openok = $"{m_fPlayMusicPathString}\\2openok.wav";
+        public static string _2timeerr = $"{m_fPlayMusicPathString}\\2timeerr.wav";
+        public static string _2timeok = $"{m_fPlayMusicPathString}\\2timeok.wav";
+        public static string _2whatdayok = $"{m_fPlayMusicPathString}\\2whatdayok.wav";
+        public static string _2whatdayerr = $"{m_fPlayMusicPathString}\\2whatdayerr.wav";
+
         /// <summary>
         /// 空白音
         /// </summary>

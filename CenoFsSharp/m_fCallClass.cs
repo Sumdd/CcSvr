@@ -614,6 +614,7 @@ namespace CenoFsSharp
                                 m_bInlimit = false;
                             }
                         }
+                        if (string.IsNullOrWhiteSpace(inlimit_2number)) m_bInlimit = false;
 
                         ///如果符合内转规则
                         if (m_bInlimit)
@@ -1991,6 +1992,7 @@ WHERE
                                 m_bInlimit = false;
                             }
                         }
+                        if (string.IsNullOrWhiteSpace(inlimit_2number)) m_bInlimit = false;
 
                         ///如果符合内转规则
                         if (m_bInlimit)

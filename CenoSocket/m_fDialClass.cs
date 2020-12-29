@@ -236,6 +236,127 @@ namespace CenoSocket
                     return;
                 }
 
+                #region ***判断前缀,支持特殊命令
+                if (m_bStar)
+                {
+                    string m_sDtmfCmdMsg = string.Empty;
+                    string[] m_lDfmfCmd = m_sDealWithRealPhoneNumberStr.Trim('*').Split(new string[] { "*" }, StringSplitOptions.RemoveEmptyEntries);
+                    string m_sDtmfCmd = m_lDfmfCmd[0];
+                    switch (m_sDtmfCmd)
+                    {
+                        case "70":///取消
+                            {
+                                if (m_fDialLimit.m_fSetUa2(m_uAgentID, "isinlimit_2", 0))
+                                {
+                                    m_mAgent.isinlimit_2 = false;
+                                    m_sDtmfCmdMsg = "2取消OK";
+                                }
+                                else m_sDtmfCmdMsg = "2取消Err";
+                            }
+                            break;
+                        case "71":///开启
+                            {
+                                if (m_lDfmfCmd.Length > 1)
+                                {
+                                    if (
+                                        m_fDialLimit.m_fSetUa2(m_uAgentID, "isinlimit_2", 1) &&
+                                        m_fDialLimit.m_fSetUa2(m_uAgentID, "inlimit_2number", m_lDfmfCmd[1])
+                                        )
+                                    {
+                                        m_mAgent.isinlimit_2 = true;
+                                        m_mAgent.inlimit_2number = m_lDfmfCmd[1];
+                                        m_sDtmfCmdMsg = "2开启OK";
+                                    }
+                                    else m_sDtmfCmdMsg = "2开启Err";
+                                }
+                                else
+                                {
+                                    if (m_fDialLimit.m_fSetUa2(m_uAgentID, "isinlimit_2", 1))
+                                    {
+                                        m_mAgent.isinlimit_2 = true;
+                                        m_sDtmfCmdMsg = "2开启OK";
+                                    }
+                                    else m_sDtmfCmdMsg = "2开启Err";
+                                }
+                            }
+                            break;
+                        case "77":///设定星期
+                            {
+                                if (m_lDfmfCmd.Length > 1)
+                                {
+                                    string m_s77 = m_lDfmfCmd[1];
+                                    int m_u77 = 0;
+                                    for (int i = 0; i < m_s77.Length; i++)
+                                    {
+                                        char item = m_s77[i];
+                                        if (item >= 49 && item <= 55)
+                                        {
+                                            int val = (int)(Math.Pow(2, item - 48 - 1));
+                                            if ((m_u77 & val) <= 0) m_u77 += val;
+                                        }
+                                    }
+                                    if (m_fDialLimit.m_fSetUa2(m_uAgentID, "inlimit_2whatday", m_u77))
+                                    {
+                                        m_mAgent.inlimit_2whatday = m_u77;
+                                        m_sDtmfCmdMsg = "2星期OK";
+                                    }
+                                    else m_sDtmfCmdMsg = "2星期Err";
+                                }
+                                else m_sDtmfCmdMsg = "2星期Err";
+                            }
+                            break;
+                        case "78":///开始结束时间
+                            {
+                                if (m_lDfmfCmd.Length > 1)
+                                {
+                                    string m_sSE = m_lDfmfCmd[1];
+                                    int[] m_lSE = new int[8] { 0, 0, 0, 0, 0, 0, 0, 0 };
+                                    if (m_sSE.Length == 8)
+                                    {
+                                        for (int i = 0; i < m_sSE.Length; i++)
+                                        {
+                                            char item = m_sSE[i];
+                                            if (item >= 48 && item <= 57)
+                                            {
+                                                m_lSE[i] = item - 48;
+                                            }
+                                        }
+                                        int m_uSH = m_lSE[0] * 10 + m_lSE[1];
+                                        int m_uSM = m_lSE[2] * 10 + m_lSE[3];
+                                        int m_uEH = m_lSE[4] * 10 + m_lSE[5];
+                                        int m_uEM = m_lSE[6] * 10 + m_lSE[7];
+                                        if (m_uSH >= 0 && m_uSH <= 23 && m_uEH >= 0 && m_uEH <= 23 && m_uSM >= 0 && m_uSM <= 59 && m_uEM >= 0 && m_uEM <= 59)
+                                        {
+                                            string m_sSHM = $"{m_uSH.ToString().PadLeft(2, '0')}:{m_uSM.ToString().PadLeft(2, '0')}:00";
+                                            string m_sEHM = $"{m_uEH.ToString().PadLeft(2, '0')}:{m_uEM.ToString().PadLeft(2, '0')}:00";
+                                            if (
+                                                m_fDialLimit.m_fSetUa2(m_uAgentID, "inlimit_2starttime", m_sSHM) &&
+                                                m_fDialLimit.m_fSetUa2(m_uAgentID, "inlimit_2endtime", m_sEHM)
+                                                )
+                                            {
+                                                m_mAgent.inlimit_2starttime = m_sSHM;
+                                                m_mAgent.inlimit_2endtime = m_sEHM;
+                                                m_sDtmfCmdMsg = "2时间OK";
+                                            }
+                                            else m_sDtmfCmdMsg = "2时间Err";
+                                        }
+                                        else m_sDtmfCmdMsg = "2时间Err";
+                                    }
+                                    else m_sDtmfCmdMsg = "2时间Err";
+                                }
+                                else m_sDtmfCmdMsg = "2时间Err";
+                            }
+                            break;
+                    }
+                    if (!string.IsNullOrWhiteSpace(m_sDtmfCmdMsg))
+                    {
+                        Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} set inlimit_2:{m_sDtmfCmdMsg}]");
+                        m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail(m_sDtmfCmdMsg));
+                        return;
+                    }
+                }
+                #endregion
+
                 if (m_bShare) m_sUAID = m_mChannel.channel_number;
                 m_bIp = (m_mChannel.IsRegister == 0);
                 if (

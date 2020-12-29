@@ -12,6 +12,9 @@ namespace DB.Basic
 {
     public class m_cPhone
     {
+        ///修改规则,如果尾缀有*1000等格式则判断为内呼,并兼容内呼规则
+        public static Regex m_rRegex = new Regex("(.*)[*][0-9][0-9][0-9][0-9]$");
+        public static Regex m_rRegex2 = new Regex("^(\\*?)[7][0178][\\*](\\d*)$");
         public static List<string> m_fGetPhoneNumberMemo(string m_sPhoneNumber)
         {
             /*
@@ -29,8 +32,6 @@ namespace DB.Basic
             string m_sPhoneAddressStr = string.Empty;
             string m_sCityCodeStr = string.Empty;
             string m_sDealWithStr = string.Empty;
-            ///修改规则,如果尾缀有*1000等格式则判断为内呼,并兼容内呼规则
-            Regex m_rRegex = new Regex("(.*)[*][0-9][0-9][0-9][0-9]$");
 
             try
             {
@@ -68,6 +69,9 @@ namespace DB.Basic
                             m_sRealPhoneNumberStr = m_sPhoneNumber;
                             m_sPhoneAddressStr = "业务";
                             m_sDealWithStr = Special.Complete;
+
+                            ///验证业务性
+                            if (m_rRegex2.IsMatch(m_sPhoneNumber)) m_sFirstChar = Special.Star;
                         }
                         break;
                     case '0':
@@ -94,6 +98,9 @@ namespace DB.Basic
                             m_sRealPhoneNumberStr = m_sPhoneNumber.TrimStart('0');
                             m_sPhoneAddressStr = "业务";
                             m_sDealWithStr = Special.Complete;
+
+                            ///验证业务性
+                            if (m_rRegex2.IsMatch(m_sPhoneNumber)) m_sFirstChar = Special.Star;
                         }
                         else
                         {

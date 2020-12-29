@@ -782,5 +782,24 @@ GROUP BY
             }
             return m_lNumber;
         }
+
+        public static bool m_fSetUa2(int m_uAgentID, string m_sKey, object m_sValue)
+        {
+            try
+            {
+                string m_sSQL = $@"
+UPDATE `call_clientparam` 
+SET `call_clientparam`.`{m_sKey}` = '{m_sValue}' 
+WHERE
+	`call_clientparam`.`ID` = ( SELECT `call_agent`.`ClientParamID` FROM `call_agent` WHERE `call_agent`.`ID` = '{m_uAgentID}' LIMIT 1 );
+";
+                return MySQL_Method.ExecuteNonQuery(m_sSQL) > 0;
+            }
+            catch (Exception ex)
+            {
+                Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fSetUa2][{ex.Message}]");
+            }
+            return false;
+        }
     }
 }
