@@ -151,19 +151,21 @@ namespace DB.Basic
                 {
                     string m_sSQL = $@"
 SELECT
-	(
-	SELECT
-		`T0`.`id` 
-	FROM
-		`dial_limit` AS `T0` 
-	WHERE
-		`T0`.`useuser` = `dial_limit`.`useuser` 
-		AND `T0`.`isuse` = 1 
-		AND `T0`.`isdel` = 0 
-		AND `T0`.`isshare` = ( - 2 ) 
-	ORDER BY
-		`T0`.`ordernum` 
-		LIMIT 1 
+	IFNULL(
+		(
+		SELECT
+			`T0`.`id` 
+		FROM
+			`dial_limit` AS `T0` 
+		WHERE
+			`T0`.`useuser` = `dial_limit`.`useuser` 
+			AND `T0`.`isuse` = 1 
+			AND `T0`.`isdel` = 0 
+			AND `T0`.`isshare` = ( - 2 ) 
+		ORDER BY
+			`T0`.`ordernum` 
+			LIMIT 1 
+		),- 1 
 	) AS `id`,
 	`dial_limit`.`useuser`,
 	`dial_limit`.`tnumber`,
@@ -545,19 +547,21 @@ WHERE
 
                 string m_sSQL = $@"
 SELECT
-	(
-	SELECT
-		`T0`.`id` 
-	FROM
-		`dial_limit` AS `T0` 
-	WHERE
-		`T0`.`useuser` = `call_record`.`AgentID` 
-		AND `T0`.`isuse` = 1 
-		AND `T0`.`isdel` = 0 
-		AND `T0`.`isshare` = ( - 2 ) 
-	ORDER BY
-		`T0`.`ordernum` 
-		LIMIT 1 
+	IFNULL(
+		(
+		SELECT
+			`T0`.`id` 
+		FROM
+			`dial_limit` AS `T0` 
+		WHERE
+			`T0`.`useuser` = `call_record`.`AgentID` 
+			AND `T0`.`isuse` = 1 
+			AND `T0`.`isdel` = 0 
+			AND `T0`.`isshare` = ( - 2 ) 
+		ORDER BY
+			`T0`.`ordernum` 
+			LIMIT 1 
+		),- 1 
 	) AS `id`,
 	AgentID,
 	fromagentid,
@@ -565,7 +569,7 @@ SELECT
 	FreeSWITCHIPv4,
 	UAID 
 FROM
-	`call_record` 
+	`call_record`
 WHERE
 	`call_record`.`isshare` = 1 
 	AND `call_record`.`LocalNum` = '{m_sCaller}' 

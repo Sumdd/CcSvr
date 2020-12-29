@@ -6,18 +6,18 @@ using System.Threading.Tasks;
 
 namespace CenoSipFactory
 {
-	public class AGENT_INFO
-	{
-		public AGENT_INFO()
-		{
+    public class AGENT_INFO
+    {
+        public AGENT_INFO()
+        {
 
-		}
+        }
 
-		public int AgentID
-		{
-			get;
-			set;
-		}
+        public int AgentID
+        {
+            get;
+            set;
+        }
 
         public string AgentUUID
         {
@@ -25,58 +25,73 @@ namespace CenoSipFactory
             set;
         }
 
-		public string LoginName
-		{
-			get;
-			set;
-		}
+        public string LoginName
+        {
+            get;
+            set;
+        }
 
-		public string AgentName
-		{
-			get;
-			set;
-		}
+        public string AgentName
+        {
+            get;
+            set;
+        }
 
-		public string LoginPsw
-		{
-			get;
-			set;
-		}
+        public string LoginPsw
+        {
+            get;
+            set;
+        }
 
-		public string LastLoginIp
-		{
-			get;
-			set;
-		}
+        public string LastLoginIp
+        {
+            get;
+            set;
+        }
 
-		public ChannelInfo ChInfo
-		{
-			get;
-			set;
-		}
+        public ChannelInfo ChInfo
+        {
+            get;
+            set;
+        }
 
-		public string AgentNum
-		{
-			get;
-			set;
-		}
+        public string AgentNum
+        {
+            get;
+            set;
+        }
 
-		public string RoleName
-		{
-			get;
-			set;
-		}
+        public string RoleName
+        {
+            get;
+            set;
+        }
 
-		public string TeamName
-		{
-			get;
-			set;
-		}
+        public string TeamName
+        {
+            get;
+            set;
+        }
 
-		public bool LoginState
-		{
-			get;
-			set;
-		}
-	}
+        public bool LoginState
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// 先设定存储8个开关,暂时用不到那么多
+        /// 1.全号显示:0禁止1启用
+        /// 尚未完成成
+        /// </summary>
+        public int opreate1_8 { get; set; }
+        /// <summary>
+        /// 呼叫转移坐席本身的设定值缓存
+        /// </summary>
+        public bool isinlimit_2 { get; set; }
+        public string inlimit_2number { get; set; }
+        public string inlimit_2starttime { get; set; }
+        public string inlimit_2endtime { get; set; }
+        public int inlimit_2whatday { get; set; }
+    }
 }

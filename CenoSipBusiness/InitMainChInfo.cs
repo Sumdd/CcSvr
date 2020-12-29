@@ -457,7 +457,8 @@ namespace CenoSipBusiness {
             }
             foreach(call_agent_model cam in agentList)
                 try {
-                    call_factory.agent_list.Add(new AGENT_INFO() {
+                    call_factory.agent_list.Add(new AGENT_INFO()
+                    {
                         AgentID = cam.ID,
                         AgentUUID = cam.UniqueID,
                         LoginName = cam.LoginName,
@@ -469,7 +470,7 @@ namespace CenoSipBusiness {
                         /// 减压,没必要再到数据库进行查询
                         /// ]]>
                         ChInfo = call_factory.channel_list.FirstOrDefault(x => x.channel_id == cam.ChannelID),
-                            //call_factory.channel_list.FirstOrDefault(x => x.channel_number == call_channel.GetModel(cam.ChannelID).ChNum),
+                        //call_factory.channel_list.FirstOrDefault(x => x.channel_number == call_channel.GetModel(cam.ChannelID).ChNum),
                         AgentNum = cam.AgentNumber,
 
                         ///<![CDATA[
@@ -477,7 +478,14 @@ namespace CenoSipBusiness {
                         /// ]]>
                         //RoleName = call_role.GetModel(cam.RoleID).RoleName,
                         //TeamName = call_team.GetModel(cam.TeamID).TeamName,
-                        LoginState = false
+                        LoginState = false,
+
+                        ///内转缓存赋值
+                        isinlimit_2 = cam.isinlimit_2,
+                        inlimit_2starttime = cam.inlimit_2starttime,
+                        inlimit_2endtime = cam.inlimit_2endtime,
+                        inlimit_2number = cam.inlimit_2number,
+                        inlimit_2whatday = cam.inlimit_2whatday
                     });
                     _Ilog.Info("initilizate agent(" + cam.UniqueID + ") info");
 

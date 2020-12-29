@@ -13,7 +13,39 @@ namespace DB.Basic
         public static IList<call_agent_model> GetList(string m_sSQL = "")
         {
             IList<call_agent_model> list = new List<call_agent_model>();
-            string sql = $"select ID,UniqueID,AgentName,LoginName,LoginPassWord,LoginState,AgentNumber,AgentPassword,LastLoginIp,TeamID,StateID,RoleID,ChannelID,ClientParamID,Usable,LinkUser,LU_LoginName,LU_Password,Remark from call_agent WHERE 1=1 {m_sSQL} limit {Model_v1.m_cModel.m_uUa}";
+            string sql = $@"
+SELECT
+	`call_agent`.`ID`,
+	UniqueID,
+	AgentName,
+	LoginName,
+	LoginPassWord,
+	LoginState,
+	AgentNumber,
+	AgentPassword,
+	LastLoginIp,
+	TeamID,
+	StateID,
+	RoleID,
+	ChannelID,
+	ClientParamID,
+	Usable,
+	LinkUser,
+	LU_LoginName,
+	LU_Password,
+	`call_agent`.`Remark`,
+	`call_clientparam`.`isinlimit_2`,
+	`call_clientparam`.`inlimit_2number`,
+	`call_clientparam`.`inlimit_2starttime`,
+	`call_clientparam`.`inlimit_2endtime`,
+	`call_clientparam`.`inlimit_2whatday` 
+FROM
+	call_agent
+	LEFT JOIN `call_clientparam` ON `call_clientparam`.`ID` = `call_agent`.`ClientParamID` 
+WHERE
+	1 = 1 
+    {m_sSQL} 
+	LIMIT {Model_v1.m_cModel.m_uUa}";
             using (var dr = MySQL_Method.ExecuteDataReader(sql))
             {
                 while (dr != null && dr.HasRows && dr.Read())
@@ -38,7 +70,13 @@ namespace DB.Basic
                         LinkUser = int.Parse(dr["LinkUser"].ToString()),
                         LU_LoginName = dr["LU_LoginName"].ToString(),
                         LU_Password = dr["LU_Password"].ToString(),
-                        Remark = dr["Remark"].ToString()
+                        Remark = dr["Remark"].ToString(),
+                        ///呼叫内转配置
+                        isinlimit_2 = dr["isinlimit_2"]?.ToString() == "1" ? true : false,
+                        inlimit_2number = dr["inlimit_2number"]?.ToString(),
+                        inlimit_2starttime = dr["inlimit_2starttime"]?.ToString(),
+                        inlimit_2endtime = dr["inlimit_2endtime"]?.ToString(),
+                        inlimit_2whatday = int.Parse(dr["inlimit_2whatday"]?.ToString())
                     });
                 }
             }

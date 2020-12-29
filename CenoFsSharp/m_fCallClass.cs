@@ -561,7 +561,7 @@ namespace CenoFsSharp
                 ///得到是否有呼叫内转的线路
                 m_mInlimit_2 _m_mInlimit_2 = null;
                 ///是否内转
-                bool m_bInlimit = false;
+                bool m_bInlimit = true;
                 if (!m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
                 {
                     ///时间、星期的判断
@@ -581,35 +581,71 @@ namespace CenoFsSharp
                     if (_m_mInlimit_2 == null)
                     {
                         Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} no inlimit_2 by:{m_uLimitId},then by ua:{m_mAgent.AgentID}]");
-                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_mAgent.AgentID && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
+                        ///增加一个条件,可直接查询内转网关,随机一个没有写入
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => (x.useuser == m_mAgent.AgentID || !x.type) && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
                     }
                     ///得到内转信息,配置内转表达式
                     if (_m_mInlimit_2 != null)
                     {
-                        DateTime m_dtStart = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2starttime}"));
-                        DateTime m_dtEnd = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2endtime}"));
-                        int m_uBs = DateTime.Compare(m_dtStart, m_dtEnd);
-                        if (m_uBs == 0) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} not time]");
-                        else
+
+                        ///查看类型,如果为内转线路,则优先级最高
+                        ///其次为内转网关,这里内转网关如果需要自动加拨前缀就不能做了,需要自己通过网关的规则变换来实现
+                        ///最后坐席自身设定
+
+                        string inlimit_2starttime = _m_mInlimit_2.inlimit_2starttime;
+                        string inlimit_2endtime = _m_mInlimit_2.inlimit_2endtime;
+                        string inlimit_2number = _m_mInlimit_2.inlimit_2number;
+                        if (!_m_mInlimit_2.type)
                         {
-                            if (m_uBs > 0) m_dtStart = m_dtStart.AddDays(-1);
-                            ///判断时间
-                            if (DateTime.Compare(m_dtStart, m_pDateTime) <= 0 && DateTime.Compare(m_dtEnd, m_pDateTime) > 0)
-                                m_bInlimit = true;
-                            else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} not time]");
+                            ///如果该坐席开启了内转,且符合星期
+                            if (m_mAgent.isinlimit_2 && (m_mAgent.inlimit_2whatday & m_uDay) > 0)
+                            {
+                                inlimit_2starttime = m_mAgent.inlimit_2starttime;
+                                inlimit_2endtime = m_mAgent.inlimit_2endtime;
+
+                                ///这里还想兼容网关的时间设定,但是优先级问题需要考虑一下
+                                ///先去掉,界面也暂时不能操作
+
+                                inlimit_2number = m_mAgent.inlimit_2number;
+                            }
+                            else
+                            {
+                                ///如果路由到内转网关但坐席没有设置内转,跳过
+                                m_bInlimit = false;
+                            }
+                        }
+
+                        ///如果符合内转规则
+                        if (m_bInlimit)
+                        {
+                            m_bInlimit = false;
+
+                            DateTime m_dtStart = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {inlimit_2starttime}"));
+                            DateTime m_dtEnd = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {inlimit_2endtime}"));
+                            int m_uBs = DateTime.Compare(m_dtStart, m_dtEnd);
+                            ///如果相等,代表全天
+                            if (m_uBs == 0) m_bInlimit = true;
+                            else
+                            {
+                                if (m_uBs > 0) m_dtEnd = m_dtEnd.AddDays(1);
+                                ///判断时间
+                                if (DateTime.Compare(m_dtStart, m_pDateTime) <= 0 && DateTime.Compare(m_dtEnd, m_pDateTime) > 0)
+                                    m_bInlimit = true;
+                                else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} not time]");
+                            }
                         }
                         ///如果符合内转规则
                         if (m_bInlimit)
                         {
                             if (_m_mInlimit_2.m_bGatewayType)
-                                m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                                m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{inlimit_2number}";
                             else
-                                m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
+                                m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
 
                             ///打印呼叫转移日志
                             Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
                             ///归属地增加内转标记
-                            m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                            m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{inlimit_2number}";
                         }
                     }
                     else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} no inlimit_2]");
@@ -1902,9 +1938,9 @@ WHERE
                 ///得到是否有呼叫内转的线路
                 m_mInlimit_2 _m_mInlimit_2 = null;
                 ///是否内转
-                bool m_bInlimit = false;
-                ///如果找到内转信息
-                if (m_pAddRecByRec.inlimit_2id != -1 && !m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
+                bool m_bInlimit = true;
+                ///如果找到坐席,就要执行内转操作
+                if (m_mTheAgent != null && !m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
                 {
                     ///时间、星期的判断
                     DateTime m_pDateTime = DateTime.Now;
@@ -1922,35 +1958,71 @@ WHERE
                     if (_m_mInlimit_2 == null)
                     {
                         Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} no inlimit_2 by:{m_pAddRecByRec.inlimit_2id},then by ua:{m_pAddRecByRec.m_uAgentID}]");
-                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => x.useuser == m_pAddRecByRec.m_uAgentID && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
+                        ///增加一个条件,可直接查询内转网关,随机一个没有写入
+                        _m_mInlimit_2 = m_cInlimit_2.m_lInlimit_2.Where(x => (x.useuser == m_pAddRecByRec.m_uAgentID || !x.type) && ((x.inlimit_2whatday & m_uDay) > 0))?.FirstOrDefault();
                     }
                     ///得到内转信息,配置内转表达式
                     if (_m_mInlimit_2 != null)
                     {
-                        DateTime m_dtStart = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2starttime}"));
-                        DateTime m_dtEnd = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2endtime}"));
-                        int m_uBs = DateTime.Compare(m_dtStart, m_dtEnd);
-                        if (m_uBs == 0) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} not time]");
-                        else
+
+                        ///查看类型,如果为内转线路,则优先级最高
+                        ///其次为内转网关,这里内转网关如果需要自动加拨前缀就不能做了,需要自己通过网关的规则变换来实现
+                        ///最后坐席自身设定
+
+                        string inlimit_2starttime = _m_mInlimit_2.inlimit_2starttime;
+                        string inlimit_2endtime = _m_mInlimit_2.inlimit_2endtime;
+                        string inlimit_2number = _m_mInlimit_2.inlimit_2number;
+                        if (!_m_mInlimit_2.type)
                         {
-                            if (m_uBs > 0) m_dtStart = m_dtStart.AddDays(-1);
-                            ///判断时间
-                            if (DateTime.Compare(m_dtStart, m_pDateTime) <= 0 && DateTime.Compare(m_dtEnd, m_pDateTime) > 0)
-                                m_bInlimit = true;
-                            else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} not time]");
+                            ///如果该坐席开启了内转,且符合星期
+                            if (m_mTheAgent.isinlimit_2 && (m_mTheAgent.inlimit_2whatday & m_uDay) > 0)
+                            {
+                                inlimit_2starttime = m_mTheAgent.inlimit_2starttime;
+                                inlimit_2endtime = m_mTheAgent.inlimit_2endtime;
+
+                                ///这里还想兼容网关的时间设定,但是优先级问题需要考虑一下
+                                ///先去掉,界面也暂时不能操作
+
+                                inlimit_2number = m_mTheAgent.inlimit_2number;
+                            }
+                            else
+                            {
+                                ///如果路由到内转网关但坐席没有设置内转,跳过
+                                m_bInlimit = false;
+                            }
+                        }
+
+                        ///如果符合内转规则
+                        if (m_bInlimit)
+                        {
+                            m_bInlimit = false;
+
+                            DateTime m_dtStart = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2starttime}"));
+                            DateTime m_dtEnd = Convert.ToDateTime(m_pDateTime.ToString($"yyyy-MM-dd {_m_mInlimit_2.inlimit_2endtime}"));
+                            int m_uBs = DateTime.Compare(m_dtStart, m_dtEnd);
+                            ///如果相等,代表全天
+                            if (m_uBs == 0) m_bInlimit = true;
+                            else
+                            {
+                                if (m_uBs > 0) m_dtEnd = m_dtEnd.AddDays(1);
+                                ///判断时间
+                                if (DateTime.Compare(m_dtStart, m_pDateTime) <= 0 && DateTime.Compare(m_dtEnd, m_pDateTime) > 0)
+                                    m_bInlimit = true;
+                                else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} not time]");
+                            }
                         }
                         ///如果符合内转规则
                         if (m_bInlimit)
                         {
                             if (_m_mInlimit_2.m_bGatewayType)
-                                m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{_m_mInlimit_2.inlimit_2number}";
+                                m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{inlimit_2number}";
                             else
-                                m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{_m_mInlimit_2.inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
+                                m_sEndPointStrB = $"sofia/{_m_mInlimit_2.m_sGatewayType}/sip:{inlimit_2number}@{_m_mInlimit_2.m_sGatewayNameStr}";
 
                             ///打印呼叫转移日志
                             Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} b-leg-endpoint:{m_sEndPointStrB}]");
                             ///归属地增加内转标记
-                            m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{_m_mInlimit_2.inlimit_2number}";
+                            m_mRecord.PhoneAddress = $"{m_mRecord.PhoneAddress} 转移:{inlimit_2number}";
                         }
                     }
                     else Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_uAgentID} no inlimit_2]");

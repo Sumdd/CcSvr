@@ -363,11 +363,11 @@ namespace WebSocket_v1 {
                                             IsRegister = x.IsRegister
                                         });
                                     });
-                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdChannel][{m_lChannel?.Count}]");
+                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][AddChannel][{m_lChannel?.Count}]");
                                 }
                                 #endregion
                                 #region ***再更新Ua
-                                string m_sSQL2 = $" AND ID NOT IN ('{string.Join("','", call_factory.agent_list.Select(x => x.AgentID))}') ";
+                                string m_sSQL2 = $" AND `call_agent`.`ID` NOT IN ('{string.Join("','", call_factory.agent_list.Select(x => x.AgentID))}') ";
                                 List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList(m_sSQL2));
                                 if (m_lAgent?.Count > 0)
                                 {
@@ -394,11 +394,21 @@ namespace WebSocket_v1 {
                                             /// ]]>
                                             //RoleName = call_role.GetModel(cam.RoleID).RoleName,
                                             //TeamName = call_team.GetModel(cam.TeamID).TeamName,
-                                            LoginState = false
+                                            LoginState = false,
+
+                                            ///内转缓存赋值
+                                            isinlimit_2 = x.isinlimit_2,
+                                            inlimit_2starttime = x.inlimit_2starttime,
+                                            inlimit_2endtime = x.inlimit_2endtime,
+                                            inlimit_2number = x.inlimit_2number,
+                                            inlimit_2whatday = x.inlimit_2whatday
                                         });
                                     });
-                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][{m_lAgent?.Count}]");
+                                    Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][AddUa][{m_lAgent?.Count}]");
                                 }
+                                #endregion
+                                #region ***追加一项内转缓存的更新
+                                InWebSocketDo.m_fUpdInlimit_2();
                                 #endregion
                             }
                             catch (Exception ex)
@@ -467,11 +477,87 @@ namespace WebSocket_v1 {
                     break;
                 default:
                     {
+                        ///仅更新对应坐席的内容
+                        if (m_sType.StartsWith("UpdUa_"))
+                        {
+                            int m_uAgentID = -1;
+                            string m_sAgentID = m_sType.Replace("UpdUa_", "");
+                            int.TryParse(m_sAgentID, out m_uAgentID);
+                            if (m_uAgentID > 0) InWebSocketDo.m_fUpdInlimit_2(m_uAgentID);
+                            else Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][_zdwh_do -> updua n][n error:{m_sType}]");
+                            return;
+                        }
+
                         Log.Instance.Success($"[WebSocket_v1][InWebSocketDo][_zdwh_do][auto channel activate]");
                         CenoFsSharp.m_fQueueTask.m_fActivate();
                     }
                     break;
             }
+        }
+        #endregion
+
+        #region ***更新内转缓存
+        private static void m_fUpdInlimit_2(int? m_uAgentID = null)
+        {
+            //查出所有缓存的坐席,更新一下内转缓存
+            string m_sSQL = $" AND `call_agent`.`ID` IN ('{string.Join("','", call_factory.agent_list.Select(x => x.AgentID))}') ";
+            if (m_uAgentID != null) m_sSQL = $@" AND `call_agent`.`ID` = {m_uAgentID} ";
+            List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList(m_sSQL));
+            if (m_uAgentID != null)
+            {
+                AGENT_INFO z = call_factory.agent_list.Where(y => y.AgentID == m_uAgentID.Value).FirstOrDefault();
+                call_agent_model x = m_lAgent.Where(y => y.ID == m_uAgentID.Value).FirstOrDefault();
+                if (x != null && z != null)
+                {
+                    ///是否开启了内转
+                    bool? isinlimit_2 = x.isinlimit_2;
+                    if (isinlimit_2 != null && z.isinlimit_2 != isinlimit_2.Value)
+                        z.isinlimit_2 = isinlimit_2.Value;
+                    ///内转开始时间
+                    string inlimit_2starttime = x.inlimit_2starttime;
+                    if (!string.IsNullOrWhiteSpace(inlimit_2starttime) && z.inlimit_2starttime != inlimit_2starttime)
+                        z.inlimit_2starttime = inlimit_2starttime;
+                    ///内转结束时间
+                    string inlimit_2endtime = x.inlimit_2endtime;
+                    if (!string.IsNullOrWhiteSpace(inlimit_2endtime) && z.inlimit_2endtime != inlimit_2endtime)
+                        z.inlimit_2endtime = inlimit_2endtime;
+                    ///内转号码
+                    string inlimit_2number = x.inlimit_2number;
+                    if (!string.IsNullOrWhiteSpace(inlimit_2number) && z.inlimit_2number != inlimit_2number)
+                        z.inlimit_2number = inlimit_2number;
+                    ///星期
+                    int? inlimit_2whatday = x.inlimit_2whatday;
+                    if (inlimit_2whatday != null && z.inlimit_2whatday != inlimit_2whatday.Value)
+                        z.inlimit_2whatday = inlimit_2whatday.Value;
+                }
+            }
+            else
+            {
+                call_factory.agent_list.ForEach(x =>
+                {
+                    ///是否开启了内转
+                    bool? isinlimit_2 = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.isinlimit_2;
+                    if (isinlimit_2 != null && x.isinlimit_2 != isinlimit_2.Value)
+                        x.isinlimit_2 = isinlimit_2.Value;
+                    ///内转开始时间
+                    string inlimit_2starttime = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.inlimit_2starttime;
+                    if (!string.IsNullOrWhiteSpace(inlimit_2starttime) && x.inlimit_2starttime != inlimit_2starttime)
+                        x.inlimit_2starttime = inlimit_2starttime;
+                    ///内转结束时间
+                    string inlimit_2endtime = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.inlimit_2endtime;
+                    if (!string.IsNullOrWhiteSpace(inlimit_2endtime) && x.inlimit_2endtime != inlimit_2endtime)
+                        x.inlimit_2endtime = inlimit_2endtime;
+                    ///内转号码
+                    string inlimit_2number = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.inlimit_2number;
+                    if (!string.IsNullOrWhiteSpace(inlimit_2number) && x.inlimit_2number != inlimit_2number)
+                        x.inlimit_2number = inlimit_2number;
+                    ///星期
+                    int? inlimit_2whatday = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.inlimit_2whatday;
+                    if (inlimit_2whatday != null && x.inlimit_2whatday != inlimit_2whatday.Value)
+                        x.inlimit_2whatday = inlimit_2whatday.Value;
+                });
+            }
+            Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][{m_lAgent?.Count}]");
         }
         #endregion
     }

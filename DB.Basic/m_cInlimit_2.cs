@@ -23,6 +23,10 @@ namespace DB.Basic
         public string m_sGatewayNameStr;
         public string m_sGatewayType;
         public bool m_bGatewayType;
+        /// <summary>
+        /// 是否未内呼号码项
+        /// </summary>
+        public bool type;
     }
 
     public class m_cInlimit_2
@@ -41,29 +45,59 @@ namespace DB.Basic
                 m_cInlimit_2.m_lInlimit_2 = new List<m_mInlimit_2>();
 
                 ///简化呼叫内转,只能接设置内转或不设置内转,去掉模式一说,暂不单独记通话记录
+                ///这里直接将网关加入,直接融入逻辑里
+                ///拓展呼叫内转逻辑
+
                 string m_sSQL = $@"
 SELECT
-	`dial_inlimit_2`.`inlimit_2id`,
-	`dial_limit`.`useuser`,
-	`dial_limit`.`ordernum`,
-	`dial_inlimit_2`.`inlimit_2starttime`,
-	`dial_inlimit_2`.`inlimit_2endtime`,
-	`dial_inlimit_2`.`inlimit_2number`,
-	`dial_inlimit_2`.`inlimit_2whatday`,
-	`dial_inlimit_2`.`inlimit_2way`,
-	`dial_inlimit_2`.`inlimit_2trycount`,
-	`dial_limit`.`number`,
-	`call_gateway`.`gw_name` AS `gw`,
-	`call_gateway`.`gwtype` 
+	* 
 FROM
-	`dial_inlimit_2`
-	INNER JOIN `dial_limit` ON `dial_inlimit_2`.`inlimit_2id` = `dial_limit`.`id`
-	INNER JOIN `call_gateway` ON `dial_limit`.`gwuid` = `call_gateway`.`UniqueID` 
-WHERE
-	`dial_limit`.`isuse` = 1 
-	AND `dial_limit`.`isdel` = 0 
+	(
+	SELECT
+		`dial_inlimit_2`.`inlimit_2id`,
+		`dial_limit`.`useuser`,
+		`dial_limit`.`ordernum`,
+		`dial_inlimit_2`.`inlimit_2starttime`,
+		`dial_inlimit_2`.`inlimit_2endtime`,
+		`dial_inlimit_2`.`inlimit_2number`,
+		`dial_inlimit_2`.`inlimit_2whatday`,
+		`dial_inlimit_2`.`inlimit_2way`,
+		`dial_inlimit_2`.`inlimit_2trycount`,
+		`dial_limit`.`number`,
+		`call_gateway`.`gw_name` AS `gw`,
+		`call_gateway`.`gwtype`,
+		1 AS `type` 
+	FROM
+		`dial_inlimit_2`
+		INNER JOIN `dial_limit` ON `dial_inlimit_2`.`inlimit_2id` = `dial_limit`.`id`
+		INNER JOIN `call_gateway` ON `dial_limit`.`gwuid` = `call_gateway`.`UniqueID` 
+	WHERE
+		`dial_limit`.`isuse` = 1 
+		AND `dial_limit`.`isshare` = - 2 
+		AND `dial_limit`.`isdel` = 0 UNION ALL
+	SELECT
+		- 1 AS `inlimit_2id`,
+		- 1 AS `useuser`,
+		0 AS `ordernum`,
+		ifnull( ( SELECT v FROM dial_parameter WHERE k = 'inlimit_2starttime' LIMIT 1 ), '19:00:00' ) AS inlimit_2starttime,
+		ifnull( ( SELECT v FROM dial_parameter WHERE k = 'inlimit_2endtime' LIMIT 1 ), '08:00:00' ) AS inlimit_2endtime,
+		'' AS `inlimit_2number`,
+		ifnull( ( SELECT v FROM dial_parameter WHERE k = 'inlimit_2whatday' LIMIT 1 ), 127 ) AS inlimit_2whatday,
+		2 AS `inlimit_2way`,
+		1 AS `inlimit_2trycount`,
+		`call_gateway`.`inlimit_2caller` AS `number`,
+		`call_gateway`.`gw_name` AS `gw`,
+		`call_gateway`.`gwtype` AS `gwtype`,
+		0 AS `type` 
+	FROM
+		`call_gateway` 
+	WHERE
+		1 = 1 
+		AND `call_gateway`.`isinlimit_2` = 1 
+	) `T0` 
 ORDER BY
-	`dial_limit`.`ordernum` ASC;
+	`T0`.`type` DESC,
+	`T0`.`ordernum` DESC;
 ";
                 DataSet m_pDataSet = DB.Basic.MySQL_Method.GetDataSetAll(m_sSQL);
                 if (m_pDataSet != null && m_pDataSet.Tables.Count == 1 && m_pDataSet.Tables[0].Rows.Count > 0)
@@ -84,6 +118,7 @@ ORDER BY
                         _m_mInlimit_2.m_sGatewayNameStr = item["gw"].ToString();
                         _m_mInlimit_2.m_sGatewayType = item["gwtype"].ToString();
                         _m_mInlimit_2.m_bGatewayType = item["gwtype"].ToString() == Model_v1.Special.Gateway;
+                        _m_mInlimit_2.type = item["type"]?.ToString() == "1" ? true : false;
                         m_cInlimit_2.m_lInlimit_2.Add(_m_mInlimit_2);
                     }
                     Log.Instance.Success($"[DB.Basic][m_cInlimit_2][m_fInit][inlimit_2 init success:{m_lInlimit_2.Count}]");

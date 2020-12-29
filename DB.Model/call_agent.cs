@@ -48,7 +48,16 @@ namespace DB.Model
         /// <summary>
         /// 先设定存储8个开关,暂时用不到那么多
         /// 1.全号显示:0禁止1启用
+        /// 尚未完成成
         /// </summary>
         public int opreate1_8 { get; set; }
+        /// <summary>
+        /// 呼叫转移坐席本身的设定值缓存
+        /// </summary>
+        public bool isinlimit_2 { get; set; }
+        public string inlimit_2number { get; set; }
+        public string inlimit_2starttime { get; set; }
+        public string inlimit_2endtime { get; set; }
+        public int inlimit_2whatday { get; set; }
     }
 }
