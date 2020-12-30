@@ -114,7 +114,8 @@ namespace WebSocket_v1
                         #endregion
                         break;
                     case m_cIpCmd._m_sIpDialv2://后续将此内容直接整合入拨号,因为都是同一个逻辑,维护俩份过于麻烦
-                        #region ***IP话机拨号版本2
+                    case m_cIpCmd._m_sIpDialv3:
+                        #region ***IP话机拨号版本2,IP话机拨号版本3
                         {
                             //交互唯一标识
                             string m_sUUID = m_pJObject["m_oObject"]["m_sUUID"].ToString();
@@ -147,8 +148,38 @@ namespace WebSocket_v1
                                 Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Exception][Get m_uMustNbr:{ex.Message}]");
                             }
 
+                            #region IP话机拨号版本3
+                            int m_uDescMode = 0;///脱敏模式
+                            int m_uDecryptMode = 0;///解密模式
+                            if (m_sUse == m_cIpCmd._m_sIpDialv3)
+                            {
+                                try
+                                {
+                                    if (_m_pJObject.ContainsKey("m_uDescMode"))
+                                    {
+                                        m_uDescMode = Convert.ToInt32(_m_pJObject.GetValue("m_uDescMode").ToString());
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Exception][Get m_uDescMode:{ex.Message}]");
+                                }
+                                try
+                                {
+                                    if (_m_pJObject.ContainsKey("m_uDecryptMode"))
+                                    {
+                                        m_uDecryptMode = Convert.ToInt32(_m_pJObject.GetValue("m_uDecryptMode").ToString());
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Exception][Get m_uDecryptMode:{ex.Message}]");
+                                }
+                            }
+                            #endregion
+
                             //执行IP话机拨号
-                            CenoSocket.m_cIp.m_fExecuteDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr);
+                            CenoSocket.m_cIp.m_fExecuteDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode);
                         }
                         #endregion
                         break;

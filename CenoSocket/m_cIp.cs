@@ -24,11 +24,11 @@ namespace CenoSocket
 {
     public class m_cIp
     {
-        public static async void m_fExecuteDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0)
+        public static async void m_fExecuteDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0)
         {
             try
             {
-                await m_fDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr);
+                await m_fDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode);
             }
             catch (Exception ex)
             {
@@ -36,7 +36,7 @@ namespace CenoSocket
             }
         }
 
-        public static async Task m_fDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0)
+        public static async Task m_fDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0)
         {
             int m_uAgentID = -1;
             ChannelInfo m_mChannel = null;
@@ -1098,6 +1098,20 @@ namespace CenoSocket
 
                 //呼叫主叫
                 string m_sCalleeRemove0000 = string.IsNullOrWhiteSpace(m_sCalleeRemove0000Prefix) ? m_sCalleeNumberStr : m_sCalleeRemove0000Prefix;
+                ///加密模式,不适用于客户端即可,客户端只需去掉全号显示
+                if (m_mChannel?.IsRegister != 1)
+                {
+                    switch (m_uDescMode)
+                    {
+                        case 1:///保留前3后4脱敏中间位
+                            m_sCalleeRemove0000 = Cmn_v1.Cmn.m_fSecret(m_sCalleeRemove0000);
+                            break;
+                        case 2:///本机外显号码
+                            m_sCalleeRemove0000 = m_mRecord.LocalNum;
+                            break;
+                    }
+                }
+
                 if (m_bIsDispose) return;
                 OriginateResult m_pOriginateResult = await m_sClient.Originate(m_sEndPointStrA, new OriginateOptions()
                 {
@@ -1264,6 +1278,12 @@ namespace CenoSocket
         /// <para>接口增加话单查询,可自行绑定录音,或者制造假录音放入话单以及生成文件</para>
         /// </summary>
         public const string _m_sIpDialv2 = "IpDialv2";
+        /// <summary>
+        /// 基于IP话机拨号版本2延申
+        /// 5.m_uDescMode,脱敏模式(0,正常;1,保留前3后4脱敏中间位;2.本机外显号码)
+        /// 6.m_uDecryptMode,解密模式(0,正常;1,交行解密)
+        /// </summary>
+        public const string _m_sIpDialv3 = "IpDialv3";
         /// <summary>
         /// 获取共享号码
         /// </summary>

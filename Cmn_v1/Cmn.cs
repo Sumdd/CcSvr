@@ -226,5 +226,30 @@ namespace Cmn_v1
         ///Redis中JSON字符串解析委托
         public delegate void m_dJSON(string m_sJSONStr);
         public static m_dJSON m_dfJSON;
+
+        /// <summary>
+        /// 电话号码脱敏
+        /// </summary>
+        /// <param name="m_sNumber"></param>
+        /// <returns></returns>
+        public static string m_fSecret(string m_sNumber)
+        {
+            if (!string.IsNullOrWhiteSpace(m_sNumber))
+            {
+                int m_uInt = m_sNumber.Length;
+                if (m_uInt > 7)
+                {
+                    return m_sNumber.Substring(0, 3) + "****" + m_sNumber.Substring(m_uInt - 4);
+                }
+                else
+                {
+                    return "*******";
+                }
+            }
+            else
+            {
+                return "*******";
+            }
+        }
     }
 }
