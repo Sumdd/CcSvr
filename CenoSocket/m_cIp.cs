@@ -342,8 +342,8 @@ namespace CenoSocket
                 {
                     m_mRecord.LocalNum = m_mAgent.ChInfo.channel_number;
                     m_mRecord.CallType = 6;
-                    ///修正需带星号
-                    m_mRecord.T_PhoneNum = $"*{m_sCalleeNumberStr.TrimStart('*')}";
+                    ///修正需带星号,后续逻辑更改
+                    m_mRecord.T_PhoneNum = m_sDealWithPhoneNumberStr;
                     m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
                     m_mRecord.PhoneAddress = m_sPhoneAddressStr;
 
@@ -352,7 +352,8 @@ namespace CenoSocket
                     {
                         ///分割即可
                         string m_sContinue = "IN未进行";
-                        string[] m_lBf = m_mRecord.T_PhoneNum.Split('*');
+                        ///这里前方不带星,无需处理
+                        string[] m_lBf = m_sDealWithRealPhoneNumberStr.Split('*');
                         if (m_lBf.Length == 2)
                         {
                             if (m_lBf[0].Length > 0 && m_lBf[1].Length > 0)
@@ -366,7 +367,7 @@ namespace CenoSocket
                                         if (m_cInrule.m_pInrule != null)
                                         {
                                             ///根据内呼规则拼接终点表达式
-                                            m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
+                                            m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_sDealWithRealPhoneNumberStr}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
                                             m_mRecord.LocalNum = $"{m_cInrule.m_pInrule.inrulesuffix}*{m_mRecord.LocalNum}";
                                             m_sContinue = null;
                                         }
@@ -435,9 +436,9 @@ namespace CenoSocket
                         }
 
                         ///兼容可以直接*4位分机号本机内呼
-                        if (m_mRecord.T_PhoneNum.Length != 5 && m_sContinue != null)
+                        if (m_sDealWithPhoneNumberStr.Length != 5 && m_sContinue != null)
                         {
-                            Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_sContinue}]");
+                            Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} inrule callee:{m_sDealWithPhoneNumberStr},way:{m_sContinue}]");
                             m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, m_sContinue);
                             return;
                         }

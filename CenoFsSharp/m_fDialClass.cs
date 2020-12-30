@@ -651,6 +651,7 @@ namespace CenoFsSharp
                     {
                         ///分割即可
                         string m_sContinue = "IN未进行";
+                        ///这里前方不带星,无需处理
                         string[] m_lBf = m_lStrings[0].Split('*');
                         if (m_lBf.Length == 2)
                         {
@@ -734,9 +735,9 @@ namespace CenoFsSharp
                         }
 
                         ///兼容可以直接*4位分机号本机内呼
-                        if (m_mRecord.T_PhoneNum.Length != 5 && m_sContinue != null)
+                        if (m_lStrings[1].Length != 5 && m_sContinue != null)
                         {
-                            Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} inrule callee:{m_mRecord.T_PhoneNum},way:{m_sContinue}]");
+                            Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} inrule callee:{m_lStrings[1]},way:{m_sContinue}]");
 
                             if (m_bIsDispose) return;
                             await m_pOutboundSocket.Hangup(uuid, HangupCause.NoRouteDestination).ContinueWith(task =>
