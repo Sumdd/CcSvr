@@ -978,23 +978,26 @@ namespace CenoFsSharp
                 #region ***设置183或者200,后续无需再设置
                 if (m_sAnswer == "uuid_pre_answer")
                 {
-                    Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback]");
-                    //修正无法解析变量的问题,这里先写成该固定参数即可
-                    string m_sData = $"ringback={m_sCallMusic}";
-                    //设置183铃声
-                    if (m_bIsDispose) return;
-                    await m_pOutboundSocket.ExecuteApplication(uuid, "set", m_sData).ContinueWith(task =>
+                    if (!string.IsNullOrWhiteSpace(m_sCallMusic))
                     {
-                        try
+                        Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback]");
+                        //修正无法解析变量的问题,这里先写成该固定参数即可
+                        string m_sData = $"ringback={m_sCallMusic}";
+                        //设置183铃声
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.ExecuteApplication(uuid, "set", m_sData).ContinueWith(task =>
                         {
-                            if (m_bIsDispose) return;
-                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback cancel]");
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback error:{ex.Message}]");
-                        }
-                    });
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback error:{ex.Message}]");
+                            }
+                        });
+                    }
 
                     Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{m_sAnswer} {uuid}]");
                     //早期应答
@@ -2251,23 +2254,26 @@ WHERE
                 #region ***设置183或者200,后续无需再设置
                 if (m_sAnswer == "uuid_pre_answer")
                 {
-                    Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback]");
-                    //修正无法解析变量的问题,这里先写成该固定参数即可
-                    string m_sData = $"ringback={m_sCallMusic}";
-                    //设置183铃声
-                    if (m_bIsDispose) return;
-                    await m_pOutboundSocket.ExecuteApplication(uuid, "set", m_sData).ContinueWith(task =>
+                    if (!string.IsNullOrWhiteSpace(m_sCallMusic))
                     {
-                        try
+                        Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback]");
+                        //修正无法解析变量的问题,这里先写成该固定参数即可
+                        string m_sData = $"ringback={m_sCallMusic}";
+                        //设置183铃声
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.ExecuteApplication(uuid, "set", m_sData).ContinueWith(task =>
                         {
-                            if (m_bIsDispose) return;
-                            if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback cancel]");
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback error:{ex.Message}]");
-                        }
-                    });
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fShareCall][{uuid} set ringback error:{ex.Message}]");
+                            }
+                        });
+                    }
 
                     Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fShareCall][{m_sAnswer} {uuid}]");
                     //早期应答
