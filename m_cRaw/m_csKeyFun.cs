@@ -12,7 +12,7 @@ namespace m_cRaw
         ///人数限制
         public const int m_uUa = 1000;
         ///到期时间
-        public static DateTime m_dtEndTime = new DateTime(2021, 1, 1, 0, 0, 0);
+        public static DateTime m_dtEndTime = new DateTime(2021, 6, 1, 0, 0, 0);
         ///获取CPU
         public static string GetCPUSerialNumber()
         {
