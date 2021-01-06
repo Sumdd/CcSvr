@@ -539,6 +539,22 @@ namespace CenoFsSharp
                         {
                             m_mRecord.LocalNum = m_sLocalNum;
                             m_mRecord.T_PhoneNum = m_sRealCallerNumberStr;
+
+                            ///查询号码快捷项
+                            if (!m_cInrule.m_bInitInrule && m_cInrule.m_lInrule != null && m_cInrule.m_lInrule.Count > 0)
+                            {
+                                m_mInrule _m_mInrule = m_cInrule.m_lInrule.Where(x => x.inrulebookfkey == m_lStrings[0] && x.type).FirstOrDefault();
+                                if (_m_mInrule != null)
+                                {
+                                    m_mRecord.T_PhoneNum = $"*{_m_mInrule.inrulebookfkey}";
+                                    m_mRecord.PhoneAddress = $"内呼 {_m_mInrule.inrulename} {_m_mInrule.inrulebookname}";
+                                }
+                                m_mInrule _m_mLocalInrule = m_cInrule.m_lInrule.Where(x => x.inrulemain == 1 && x.type && x.inrulebooktkey == m_sCalleeNumberStr).FirstOrDefault();
+                                if (_m_mLocalInrule != null)
+                                {
+                                    m_mRecord.LocalNum = $"*{_m_mLocalInrule.inrulebookfkey}";
+                                }
+                            }
                         }
                         else
                             m_mRecord.T_PhoneNum = $"{Special.Star}{m_sRealCallerNumberStr}";

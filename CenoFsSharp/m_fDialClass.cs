@@ -698,12 +698,18 @@ namespace CenoFsSharp
                                     {
                                         if (m_cInrule.m_pInrule != null)
                                         {
-                                            ///转换成短号形式
-                                            m_mRecord.T_PhoneNum = $"{_m_mInrule.inrulesuffix}*{_m_mInrule.inrulebooktkey}";
-                                            m_mRecord.C_PhoneNum = m_mRecord.T_PhoneNum;
+                                            ///转换成短号形式,不在保存及推送此外显
+                                            string _m_sCallee = $"{_m_mInrule.inrulesuffix}*{_m_mInrule.inrulebooktkey}";
                                             ///根据内呼规则拼接终点表达式
-                                            m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{m_mRecord.T_PhoneNum}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
+                                            m_sEndPointStrB = $"sofia/{_m_mInrule.inruleua}/sip:{_m_sCallee}@{_m_mInrule.inruleip}:{_m_mInrule.inruleport}";
                                             m_mRecord.LocalNum = $"{m_cInrule.m_pInrule.inrulesuffix}*{m_mRecord.LocalNum}";
+                                            m_mRecord.PhoneAddress = $"内呼 {_m_mInrule.inrulename} {_m_mInrule.inrulebookname}";
+                                            ///查询本机号码快捷项
+                                            m_mInrule _m_mLoaclInrule = m_cInrule.m_lInrule.Where(x => x.inrulemain == 1 && x.type && x.inrulebooktkey == m_mAgent.ChInfo.channel_number).FirstOrDefault();
+                                            if (_m_mLoaclInrule != null)
+                                            {
+                                                m_mRecord.LocalNum = $"*{_m_mLoaclInrule.inrulebookfkey}";
+                                            }
                                             m_sContinue = null;
                                         }
                                         else
@@ -1270,7 +1276,7 @@ namespace CenoFsSharp
                 }
                 #endregion
 
-                string m_sCallerStarPrefix = m_bStar ? $"*{m_mRecord.LocalNum}" : m_mRecord.LocalNum;
+                string m_sCallerStarPrefix = m_bStar ? $"*{m_mRecord.LocalNum.TrimStart('*')}" : m_mRecord.LocalNum;
 
                 if (m_bIsDispose) return;
                 BridgeResult m_pBridgeResult = await m_pOutboundSocket.Bridge(uuid, m_sEndPointStrB, new BridgeOptions()
