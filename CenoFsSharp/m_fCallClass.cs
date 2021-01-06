@@ -1942,7 +1942,7 @@ WHERE
                 ///得到是否有呼叫内转的线路
                 m_mInlimit_2 _m_mInlimit_2 = null;
                 ///是否内转
-                bool m_bInlimit = false;
+                bool m_bInlimit = true;
                 ///如果找到坐席,就要执行内转操作
                 if (m_mTheAgent != null && !m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
                 {
@@ -1968,7 +1968,7 @@ WHERE
                     ///得到内转信息,配置内转表达式
                     if (_m_mInlimit_2 != null)
                     {
-                        m_bInlimit = true;
+
                         ///查看类型,如果为内转线路,则优先级最高
                         ///其次为内转网关,这里内转网关如果需要自动加拨前缀就不能做了,需要自己通过网关的规则变换来实现
                         ///最后坐席自身设定
@@ -2253,8 +2253,8 @@ WHERE
                 }
                 #endregion
 
-                #region ***设置183或者200,后续无需再设置(呼叫转移时不做此设置)
-                if (m_sAnswer == "uuid_pre_answer" && !m_bInlimit)
+                #region ***设置183或者200,后续无需再设置
+                if (m_sAnswer == "uuid_pre_answer")
                 {
                     if (!string.IsNullOrWhiteSpace(m_sCallMusic))
                     {
