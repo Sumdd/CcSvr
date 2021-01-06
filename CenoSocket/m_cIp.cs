@@ -353,8 +353,9 @@ namespace CenoSocket
                         ///分割即可
                         string m_sContinue = "IN未进行";
                         ///这里前方不带星,无需处理
-                        string[] m_lBf = m_sDealWithRealPhoneNumberStr.Split('*');
-                        if (m_lBf.Length == 2)
+                        List<string> m_lBf = m_sDealWithRealPhoneNumberStr.Split('*').ToList();
+                        if (m_lBf.Count() == 1) m_lBf.Insert(0, "");
+                        if (m_lBf.Count() == 2)
                         {
                             if (m_lBf[0].Length > 0 && m_lBf[1].Length > 0)
                             {
@@ -502,6 +503,8 @@ namespace CenoSocket
                 if (!m_bStar) m_stNumberStr = _m_mDialLimit.m_stNumberStr;
                 //录音中真实号码赋值
                 m_mRecord.tnumber = m_stNumberStr;
+                //录音中来电主叫或去掉被叫的真实号码获取
+                string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
 
                 InboundSocket m_sClient = await InboundMain.fs_cli().ContinueWith(task =>
                 {
@@ -632,6 +635,10 @@ namespace CenoSocket
                     {
                         if (string.IsNullOrWhiteSpace(m_sWhoHangUpStr))
                         {
+                            ///桥接失败录音
+                            if (!m_bIsLinked)
+                                m_fDialLimit.m_fSetBridgeFialAudio(Call_ParamUtil.m_uBridgeFailAudio, m_sExtensionStr, m_sRectNumberStr, m_bStar, m_mRecord);
+
                             m_sWhoHangUpStr = "A";
                             Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} a-leg hangup]");
 
@@ -742,6 +749,9 @@ namespace CenoSocket
 
                         if (string.IsNullOrWhiteSpace(m_sWhoHangUpStr))
                         {
+                            ///桥接失败录音
+                            m_fDialLimit.m_fSetBridgeFialAudio(Call_ParamUtil.m_uBridgeFailAudio, m_sExtensionStr, m_sRectNumberStr, m_bStar, m_mRecord);
+
                             m_sWhoHangUpStr = "A";
 
                             string m_sSendMsgStr = "Err呼叫失败";
@@ -916,8 +926,6 @@ namespace CenoSocket
                         });
                         #endregion
 
-                        //录音中来电主叫或去掉被叫的真实号码获取
-                        string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
                         string m_sRecSub = $"{{0}}\\{m_dtAnswerTimeNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtAnswerTimeNow.ToString("yyyyMMdd")}\\Rec_{m_dtAnswerTimeNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}Q_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
                         string m_sRecordingFile = string.Format(m_sRecSub, ParamLib.RecordFilePath);
                         string m_sRecordingFolder = Path.GetDirectoryName(m_sRecordingFile);

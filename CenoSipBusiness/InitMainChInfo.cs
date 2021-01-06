@@ -370,6 +370,23 @@ namespace CenoSipBusiness {
             }
             #endregion
 
+            #region ***加载忙音缓存
+            {
+                try
+                {
+                    int m_uStatus = m_mPlay.m_fDuDuDu();
+                    if ((m_uStatus & 1) > 0)
+                        Log.Instance.Success($"[CenoSipBusiness][intilizate_services][InitSysInfo][dududu wav:OK]");
+                    if ((m_uStatus & 2) > 0)
+                        Log.Instance.Success($"[CenoSipBusiness][intilizate_services][InitSysInfo][dududu mp3:OK]");
+                }
+                catch (Exception ex)
+                {
+                    Log.Instance.Warn($"[CenoSipBusiness][intilizate_services][InitSysInfo][dududu:{ex.Message}]");
+                }
+            }
+            #endregion
+
             return true;
         }
 

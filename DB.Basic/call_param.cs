@@ -1536,5 +1536,52 @@ namespace DB.Basic {
             }
         }
         #endregion
+        #region ***是否设置Bridge失败音
+        public static int? _m_uBridgeFailAudio;
+        public static int m_uBridgeFailAudio
+        {
+            get
+            {
+                try
+                {
+                    if (_m_uBridgeFailAudio == null)
+                    {
+                        Call_ParamUtil._m_uBridgeFailAudio = Convert.ToInt32(Call_ParamUtil.GetParamValueByName("_m_uBridgeFailAudio".Replace("_m_u", "").Replace("m_u", "")));
+                    }
+                    return Call_ParamUtil._m_uBridgeFailAudio.Value;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_uBridgeFailAudio".Replace("_m_u", "").Replace("m_u", ""), value.ToString());
+                    _m_uBridgeFailAudio = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
+        #region ***录音文件路径
+        private static string _RecordFilePath;
+        public static string RecordFilePath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_RecordFilePath))
+                    _RecordFilePath = Call_ParamUtil.GetModel("RecordPath").P_Value;
+                return _RecordFilePath;
+            }
+            set
+            {
+                Call_ParamUtil.Update("RecordPath", value);
+                _RecordFilePath = value;
+            }
+        }
+        #endregion
     }
 }

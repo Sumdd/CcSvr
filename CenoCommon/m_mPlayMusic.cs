@@ -51,5 +51,36 @@ namespace CenoCommon
         /// 背景音乐
         /// </summary>
         public static string m_mBgMusic = $"{m_fPlayMusicPathString}\\BgMusic.wav";
+
+        /// <summary>
+        /// 嘟嘟嘟声音字节
+        /// </summary>
+        public static byte[] m_lDuDuDuWav = null;
+        public static byte[] m_lDuDuDuMp3 = null;
+        public static int m_fDuDuDu()
+        {
+            int m_uStatus = 0;
+            ///Wav
+            if (m_lDuDuDuWav == null)
+            {
+                string _dududu = $"{m_fPlayMusicPathString}\\busy.wav";
+                if (System.IO.File.Exists(_dududu))
+                {
+                    m_lDuDuDuWav = System.IO.File.ReadAllBytes(_dududu);
+                    m_uStatus |= 1;
+                }
+            }
+            ///Mp3
+            if (m_lDuDuDuMp3 == null)
+            {
+                string _dududu = $"{m_fPlayMusicPathString}\\busy.mp3";
+                if (System.IO.File.Exists(_dududu))
+                {
+                    m_lDuDuDuMp3 = System.IO.File.ReadAllBytes(_dududu);
+                    m_uStatus |= 2;
+                }
+            }
+            return m_uStatus;
+        }
     }
 }

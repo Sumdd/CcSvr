@@ -92,6 +92,7 @@ namespace CenoServer
    21.催收系统数据源地址:HomeConnString
    22.通过催收系统查出来电人姓名的语句:HomeSelectString
    23.桥接App:BridgeApp
+   24.设置Bridge失败音0否1设置2加D标识:BridgeFailAudio
 
   case play [count(>=-1)] `来电无法接听原因播报次数,-1表示支持早期媒体`
 
@@ -327,6 +328,8 @@ namespace CenoServer
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][HomeSelectString:{Call_ParamUtil.m_sHomeSelectString}]");
                             Call_ParamUtil._m_sBridgeApp = null;
                             Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][BridgeApp:{Call_ParamUtil.m_sBridgeApp}]");
+                            Call_ParamUtil._m_uBridgeFailAudio = null;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][BridgeFailAudio:{Call_ParamUtil.m_uBridgeFailAudio}]");
                             break;
                         #endregion
 

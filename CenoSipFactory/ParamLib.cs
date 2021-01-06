@@ -162,13 +162,16 @@ namespace CenoSipFactory {
         }
 
         private static string _RecordFilePath;
-        public static string RecordFilePath {
-            get {
-                if(string.IsNullOrEmpty(_RecordFilePath))
-                    _RecordFilePath = Call_ParamUtil.GetModel("RecordPath").P_Value;
+        public static string RecordFilePath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_RecordFilePath))
+                    _RecordFilePath = Call_ParamUtil.RecordFilePath;
                 return _RecordFilePath;
             }
-            set {
+            set
+            {
                 Call_ParamUtil.Update("RecordPath", value);
                 _RecordFilePath = value;
             }

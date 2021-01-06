@@ -13,7 +13,7 @@ namespace DB.Basic
     public class m_cPhone
     {
         ///修改规则,如果尾缀有*1000等格式则判断为内呼,并兼容内呼规则
-        public static Regex m_rRegex = new Regex("(.*)[*][0-9][0-9][0-9][0-9]$");
+        public static Regex m_rRegex = new Regex("(.*)[*](\\d{4,})$");
         public static Regex m_rRegex2 = new Regex("^(\\*?)[7][0178][\\*](\\d*)$");
         public static List<string> m_fGetPhoneNumberMemo(string m_sPhoneNumber)
         {
@@ -56,6 +56,7 @@ namespace DB.Basic
                      */
 
                     case '*':
+                        ///如果*开头未加0,默认都走内呼,也就是基本不会出现业务
                         if (m_rRegex.IsMatch(m_sPhoneNumber))
                         {
                             m_sFirstChar = Special.Star;
@@ -70,15 +71,17 @@ namespace DB.Basic
                             m_sPhoneAddressStr = "业务";
                             m_sDealWithStr = Special.Complete;
 
-                            ///验证业务性
+                            ///验证本地业务性
                             if (m_rRegex2.IsMatch(m_sPhoneNumber)) m_sFirstChar = Special.Star;
                         }
                         break;
                     case '0':
                     default:
                         m_sFirstChar = Special.Zero;
-
-                        if (m_rRegex.IsMatch(m_sPhoneNumber))
+                        ///兼容新内呼规则及呼叫前转的判断
+                        if (m_rRegex.IsMatch(m_sPhoneNumber) &&
+                            ///除去运营商的业务性
+                            !m_sPhoneNumber.StartsWith("0*") && !m_sPhoneNumber.StartsWith("0#") && !m_sPhoneNumber.StartsWith("#"))
                         {
                             ///判断为内呼,并兼容内呼规则
                             m_sFirstChar = Special.Star;
@@ -99,7 +102,7 @@ namespace DB.Basic
                             m_sPhoneAddressStr = "业务";
                             m_sDealWithStr = Special.Complete;
 
-                            ///验证业务性
+                            ///验证本地业务性
                             if (m_rRegex2.IsMatch(m_sPhoneNumber)) m_sFirstChar = Special.Star;
                         }
                         else

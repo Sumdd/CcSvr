@@ -9,6 +9,7 @@ using MySql.Data;
 using MySql.Data.MySqlClient;
 using System.Text.RegularExpressions;
 using Model_v1;
+using System.IO;
 
 namespace DB.Basic
 {
@@ -800,6 +801,54 @@ WHERE
                 Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fSetUa2][{ex.Message}]");
             }
             return false;
+        }
+
+        /// <summary>
+        /// 设置Bridge失败音
+        /// </summary>
+        /// <param name="m_uBridgeFailAudio"></param>
+        /// <param name="m_sExtensionStr"></param>
+        /// <param name="m_sRectNumberStr"></param>
+        /// <param name="m_bStar"></param>
+        /// <param name="m_mRecord"></param>
+        public static void m_fSetBridgeFialAudio(int m_uBridgeFailAudio, string m_sExtensionStr, string m_sRectNumberStr, bool m_bStar, Model.call_record_model m_mRecord)
+        {
+            if ((m_uBridgeFailAudio & 1) > 0)
+            {
+                byte[] m_lDuDuDu = null;
+                switch (m_sExtensionStr)
+                {
+                    case ".mp3":
+                        m_lDuDuDu = CenoCommon.m_mPlay.m_lDuDuDuMp3;
+                        break;
+                    case ".wav":
+                        m_lDuDuDu = CenoCommon.m_mPlay.m_lDuDuDuWav;
+                        break;
+                }
+                if (m_lDuDuDu != null)
+                {
+                    ///保存录音内容,创建真实文件
+                    DateTime m_dtFailTime = DateTime.Now;
+
+                    string m_sRecSub = $"{{0}}\\{m_dtFailTime.ToString("yyyy")}\\{m_dtFailTime.ToString("yyyyMM")}\\{m_dtFailTime.ToString("yyyyMMdd")}\\Rec_{m_dtFailTime.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}Q{((m_uBridgeFailAudio & 2) > 0 ? "D" : "")}_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
+                    string m_sRecordingFile = string.Format(m_sRecSub, Call_ParamUtil.RecordFilePath);
+                    string m_sRecordingFolder = Path.GetDirectoryName(m_sRecordingFile);
+                    if (!Directory.Exists(m_sRecordingFolder)) Directory.CreateDirectory(m_sRecordingFolder);
+                    string m_sRecordingID = Path.GetFileNameWithoutExtension(m_sRecordingFile);
+
+                    ///生成真实录音
+                    try
+                    {
+                        File.WriteAllBytes(m_sRecordingFile, m_lDuDuDu);
+                        m_mRecord.recordName = m_sRecordingID;
+                        m_mRecord.RecordFile = m_sRecordingFile;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Instance.Error($"[DB.Basic][m_fDialLimit][m_fSetBridgeFialAudio][{ex.Message}]");
+                    }
+                }
+            }
         }
     }
 }

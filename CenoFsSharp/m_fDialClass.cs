@@ -652,8 +652,9 @@ namespace CenoFsSharp
                         ///分割即可
                         string m_sContinue = "IN未进行";
                         ///这里前方不带星,无需处理
-                        string[] m_lBf = m_lStrings[0].Split('*');
-                        if (m_lBf.Length == 2)
+                        List<string> m_lBf = m_lStrings[0].Split('*').ToList();
+                        if (m_lBf.Count() == 1) m_lBf.Insert(0, "");
+                        if (m_lBf.Count() == 2)
                         {
                             if (m_lBf[0].Length > 0 && m_lBf[1].Length > 0)
                             {
@@ -1017,6 +1018,8 @@ namespace CenoFsSharp
                 if (!m_bStar) m_stNumberStr = _m_mDialLimit.m_stNumberStr;
                 //录音中真实号码赋值
                 m_mRecord.tnumber = m_stNumberStr;
+                //录音中来电主叫或去掉被叫的真实号码获取
+                string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
 
                 if (m_bIsDispose) return;
                 await m_pOutboundSocket.Linger().ContinueWith(task =>
@@ -1041,6 +1044,10 @@ namespace CenoFsSharp
                 {
                     if (string.IsNullOrWhiteSpace(m_sWhoHangUpStr))
                     {
+                        ///桥接失败录音
+                        if (!m_bIsLinked)
+                            m_fDialLimit.m_fSetBridgeFialAudio(Call_ParamUtil.m_uBridgeFailAudio, m_sExtensionStr, m_sRectNumberStr, m_bStar, m_mRecord);
+
                         m_sWhoHangUpStr = "A";
                         Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} a-leg hangup]");
 
@@ -1307,6 +1314,9 @@ namespace CenoFsSharp
 
                     if (string.IsNullOrWhiteSpace(m_sWhoHangUpStr))
                     {
+                        ///桥接失败录音
+                        m_fDialLimit.m_fSetBridgeFialAudio(Call_ParamUtil.m_uBridgeFailAudio, m_sExtensionStr, m_sRectNumberStr, m_bStar, m_mRecord);
+
                         m_sWhoHangUpStr = "B";
                         Log.Instance.Fail($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} {m_sMsgStr}]");
 
@@ -1434,8 +1444,6 @@ namespace CenoFsSharp
                     if (m_bIsQueryRecUUID) m_sQueryUUID = DB.Basic.m_fDialLimit.m_fGetDialUUID(m_mAgent.LoginName, out m_dtString);
                     string m_sRecSub = string.Empty;
 
-                    //录音中来电主叫或去掉被叫的真实号码获取
-                    string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
                     if (!m_bIsQueryRecUUID || string.IsNullOrWhiteSpace(m_sQueryUUID) || string.IsNullOrWhiteSpace(m_dtString))
                         m_sRecSub = $"{{0}}\\{m_dtAnswerTimeNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtAnswerTimeNow.ToString("yyyyMMdd")}\\Rec_{m_dtAnswerTimeNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}Q_{m_sCalleeNumberStr.Replace("*", "X")}{m_sExtensionStr}";
                     else
