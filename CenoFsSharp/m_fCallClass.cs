@@ -554,6 +554,7 @@ namespace CenoFsSharp
                 }
 
                 #region ***呼叫内转逻辑
+                string inlimit_2caller = string.Empty;
                 ///得到是否有呼叫内转的线路
                 m_mInlimit_2 _m_mInlimit_2 = null;
                 ///是否内转
@@ -634,6 +635,8 @@ namespace CenoFsSharp
                         ///如果符合内转规则
                         if (m_bInlimit)
                         {
+                            ///存储特定规则的前缀
+                            inlimit_2caller = _m_mInlimit_2.number;
                             if (_m_mInlimit_2.m_bGatewayType)
                                 m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{inlimit_2number}";
                             else
@@ -1304,7 +1307,7 @@ namespace CenoFsSharp
                 BridgeResult m_pBridgeResult = await m_pOutboundSocket.Bridge(uuid, m_sEndPointStrB, new BridgeOptions()
                 {
                     UUID = bridgeUUID,
-                    CallerIdNumber = m_mRecord.T_PhoneNum,
+                    CallerIdNumber = !string.IsNullOrWhiteSpace(inlimit_2caller) ? inlimit_2caller : m_mRecord.T_PhoneNum,
                     CallerIdName = m_sCallerIdName,
                     HangupAfterBridge = false,
                     ContinueOnFail = true,
@@ -1935,6 +1938,7 @@ WHERE
                 #endregion
 
                 #region ***呼叫内转逻辑
+                string inlimit_2caller = string.Empty;
                 ///得到是否有呼叫内转的线路
                 m_mInlimit_2 _m_mInlimit_2 = null;
                 ///是否内转
@@ -2015,6 +2019,8 @@ WHERE
                         ///如果符合内转规则
                         if (m_bInlimit)
                         {
+                            ///存储特定规则的前缀
+                            inlimit_2caller = _m_mInlimit_2.number;
                             if (_m_mInlimit_2.m_bGatewayType)
                                 m_sEndPointStrB = $"sofia/gateway/{_m_mInlimit_2.m_sGatewayNameStr}/{inlimit_2number}";
                             else
@@ -2247,8 +2253,8 @@ WHERE
                 }
                 #endregion
 
-                #region ***设置183或者200,后续无需再设置
-                if (m_sAnswer == "uuid_pre_answer")
+                #region ***设置183或者200,后续无需再设置(呼叫转移时不做此设置)
+                if (m_sAnswer == "uuid_pre_answer" && !m_bInlimit)
                 {
                     if (!string.IsNullOrWhiteSpace(m_sCallMusic))
                     {
@@ -2535,7 +2541,7 @@ WHERE
                 BridgeResult m_pBridgeResult = await m_pOutboundSocket.Bridge(uuid, m_sEndPointStrB, new BridgeOptions()
                 {
                     UUID = bridgeUUID,
-                    CallerIdNumber = m_mRecord.T_PhoneNum,
+                    CallerIdNumber = !string.IsNullOrWhiteSpace(inlimit_2caller) ? inlimit_2caller : m_mRecord.T_PhoneNum,
                     CallerIdName = m_sCallerIdName,
                     HangupAfterBridge = false,
                     ContinueOnFail = true,
