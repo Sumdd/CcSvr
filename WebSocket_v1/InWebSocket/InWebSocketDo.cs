@@ -449,6 +449,11 @@ namespace WebSocket_v1 {
                                 if (x.IsRegister != m_iIsRegister)
                                     x.IsRegister = m_iIsRegister;
                             }
+
+                            ///更新通道ua
+                            string ChNum = m_lChannelList.FirstOrDefault(q => q.ID == x.channel_id)?.ChNum;
+                            if (!string.IsNullOrWhiteSpace(ChNum) && x.channel_number != ChNum)
+                                x.channel_number = ChNum;
                         });
                         call_factory.agent_list.ForEach(x =>
                         {
