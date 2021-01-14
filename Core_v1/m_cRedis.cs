@@ -470,7 +470,10 @@ namespace Core_v1
                         share_number _m_pShareNumber = JsonConvert.DeserializeObject<share_number>(m_sData);
 
                         ///增加一个参数,如果拨打中,返回
-                        if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE || _m_pShareNumber.state == SHARE_NUM_STATUS.CALL) return;
+                        if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE
+                            ///如果拨号中,此处也需要状态回发
+                            ///|| _m_pShareNumber.state == SHARE_NUM_STATUS.CALL
+                            ) return;
                     }
                     else return;
                 }
