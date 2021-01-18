@@ -401,7 +401,9 @@ namespace WebSocket_v1 {
                                             inlimit_2starttime = x.inlimit_2starttime,
                                             inlimit_2endtime = x.inlimit_2endtime,
                                             inlimit_2number = x.inlimit_2number,
-                                            inlimit_2whatday = x.inlimit_2whatday
+                                            inlimit_2whatday = x.inlimit_2whatday,
+                                            ///每坐席的同号码限呼
+                                            limitthedial = x.limitthedial
                                         });
                                     });
                                     Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][AddUa][{m_lAgent?.Count}]");
@@ -534,6 +536,10 @@ namespace WebSocket_v1 {
                     int? inlimit_2whatday = x.inlimit_2whatday;
                     if (inlimit_2whatday != null && z.inlimit_2whatday != inlimit_2whatday.Value)
                         z.inlimit_2whatday = inlimit_2whatday.Value;
+                    ///每坐席的同号码限呼
+                    int? limitthedial = x.limitthedial;
+                    if (limitthedial != null && z.limitthedial != limitthedial.Value)
+                        z.limitthedial = limitthedial.Value;
                 }
             }
             else
@@ -560,6 +566,10 @@ namespace WebSocket_v1 {
                     int? inlimit_2whatday = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.inlimit_2whatday;
                     if (inlimit_2whatday != null && x.inlimit_2whatday != inlimit_2whatday.Value)
                         x.inlimit_2whatday = inlimit_2whatday.Value;
+                    ///每坐席的同号码限呼
+                    int? limitthedial = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.limitthedial;
+                    if (limitthedial != null && x.limitthedial != limitthedial.Value)
+                        x.limitthedial = limitthedial.Value;
                 });
             }
             Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][{m_lAgent?.Count}]");

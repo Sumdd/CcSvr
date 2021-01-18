@@ -38,7 +38,8 @@ SELECT
 	`call_clientparam`.`inlimit_2number`,
 	`call_clientparam`.`inlimit_2starttime`,
 	`call_clientparam`.`inlimit_2endtime`,
-	`call_clientparam`.`inlimit_2whatday` 
+	`call_clientparam`.`inlimit_2whatday`,
+	`call_clientparam`.`limitthedial` 
 FROM
 	call_agent
 	LEFT JOIN `call_clientparam` ON `call_clientparam`.`ID` = `call_agent`.`ClientParamID` 
@@ -76,7 +77,8 @@ WHERE
                         inlimit_2number = dr["inlimit_2number"]?.ToString(),
                         inlimit_2starttime = dr["inlimit_2starttime"]?.ToString(),
                         inlimit_2endtime = dr["inlimit_2endtime"]?.ToString(),
-                        inlimit_2whatday = int.Parse(dr["inlimit_2whatday"]?.ToString())
+                        inlimit_2whatday = int.Parse(dr["inlimit_2whatday"]?.ToString()),
+                        limitthedial = int.Parse(dr["limitthedial"]?.ToString())
                     });
                 }
             }

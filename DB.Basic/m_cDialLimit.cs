@@ -40,12 +40,14 @@ namespace DB.Basic
         /// </summary>
         /// <param name="nCh"></param>
         /// <returns></returns>
-        public static DataTable m_fGetDialLimit(string _phonenum, int _useuser, string m_sCaller = null, string m_sConnStr = null)
+        public static DataTable m_fGetDialLimit(string _phonenum, int _useuser, string m_sCaller = null, string m_sConnStr = null, int m_uWhiteList = 0, int m_uLimitTheDial = 0)
         {
             List<MySqlParameter> m_pMySqlParameter = new List<MySqlParameter>();
             m_pMySqlParameter.Add(new MySqlParameter("?_phonenum", _phonenum));
             m_pMySqlParameter.Add(new MySqlParameter("?_useuser", _useuser));
             m_pMySqlParameter.Add(new MySqlParameter("?m_sCaller", m_sCaller));
+            m_pMySqlParameter.Add(new MySqlParameter("?m_uWhiteList", m_uWhiteList));
+            m_pMySqlParameter.Add(new MySqlParameter("?m_uLimitTheDial", m_uLimitTheDial));
             DataSet ds = MySQL_Method.ExecuteDataSetByProcedure(m_sConnStr, "proc_get_dial_limit", m_pMySqlParameter.ToArray());
             if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
             {
@@ -54,9 +56,9 @@ namespace DB.Basic
             return null;
         }
 
-        public static m_mDialLimit m_fGetDialLimitObject(string _phonenum, int _useuser, string m_sCaller = null, string m_sConnStr = null)
+        public static m_mDialLimit m_fGetDialLimitObject(string _phonenum, int _useuser, string m_sCaller = null, string m_sConnStr = null, int m_uWhiteList = 0, int m_uLimitTheDial = 0)
         {
-            DataTable dt = m_fGetDialLimit(_phonenum, _useuser, m_sCaller, m_sConnStr);
+            DataTable dt = m_fGetDialLimit(_phonenum, _useuser, m_sCaller, m_sConnStr, m_uWhiteList, m_uLimitTheDial);
             if (dt != null && dt.Rows.Count > 0)
             {
                 m_mDialLimit _m_mDialLimit = new m_mDialLimit();

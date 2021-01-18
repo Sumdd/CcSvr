@@ -59,5 +59,9 @@ namespace DB.Model
         public string inlimit_2starttime { get; set; }
         public string inlimit_2endtime { get; set; }
         public int inlimit_2whatday { get; set; }
+        /// <summary>
+        /// 每坐席设置的同号码限呼
+        /// </summary>
+        public int limitthedial { get; set; }
     }
 }

@@ -65,6 +65,8 @@ namespace CenoSocket
             bool m_bDeleteRedisLock = false;
             //真实号码
             string m_stNumberStr = string.Empty;
+            ///白名单不受同号码限呼,0非1白名单
+            int m_uWhiteList = 0;
 
             try
             {
@@ -216,6 +218,21 @@ namespace CenoSocket
                                     Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} black list:{m_sDealWithRealPhoneNumberStr}]");
                                     m_fSend(m_pSocket, M_WebSocketSend._bhzt_fail("Err黑名单"));
                                     return;
+                                }
+                            }
+                        }
+
+                        ///判断所有的白名单,如果在白名单中,不受同号码限呼的限制
+                        foreach (m_mWblist item in m_cWblist.m_lWblist)
+                        {
+                            ///兼容呼入呼出白名单
+                            if (item.wbtype == 1 && (item.wblimittype & 2) > 0)
+                            {
+                                if (item.regex.IsMatch(m_sDealWithRealPhoneNumberStr))
+                                {
+                                    Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} white list:{m_sDealWithRealPhoneNumberStr}]");
+                                    m_uWhiteList = 1;
+                                    break;
                                 }
                             }
                         }
@@ -433,7 +450,8 @@ namespace CenoSocket
                         {
                             case Special.Common:
                                 {
-                                    _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sTypeUUID);
+                                    ///增加白名单、坐席同号码限呼参数的传入
+                                    _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sTypeUUID, null, m_uWhiteList, m_mAgent.limitthedial);
                                     break;
                                 }
                             case Special.Share:

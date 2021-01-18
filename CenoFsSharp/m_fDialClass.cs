@@ -49,6 +49,8 @@ namespace CenoFsSharp
             ///是否有自己的180放音
             bool m_b180 = false;
             bool m_b183 = false;
+            ///白名单不受同号码限呼,0非1白名单
+            int m_uWhiteList = 0;
 
             try
             {
@@ -379,6 +381,21 @@ namespace CenoFsSharp
                                 m_pOutboundSocket?.Dispose();
 
                                 return;
+                            }
+                        }
+                    }
+
+                    ///判断所有的白名单,如果在白名单中,不受同号码限呼的限制
+                    foreach (m_mWblist item in m_cWblist.m_lWblist)
+                    {
+                        ///兼容呼入呼出白名单
+                        if (item.wbtype == 1 && (item.wblimittype & 2) > 0)
+                        {
+                            if (item.regex.IsMatch(m_sRealCalleeNumberStr))
+                            {
+                                Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} white list:{m_sRealCalleeNumberStr}]");
+                                m_uWhiteList = 1;
+                                break;
                             }
                         }
                     }
@@ -798,7 +815,8 @@ namespace CenoFsSharp
                     }
                     else
                     {
-                        _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sRealCalleeNumberStr, m_uAgentID);
+                        ///增加白名单、坐席同号码限呼参数的传入
+                        _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sRealCalleeNumberStr, m_uAgentID, null, null, m_uWhiteList, m_mAgent.limitthedial);
                         if (_m_mDialLimit != null && !string.IsNullOrWhiteSpace(_m_mDialLimit.m_sNumberStr))
                         {
                             #region 网关有误

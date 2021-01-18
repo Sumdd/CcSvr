@@ -57,6 +57,8 @@ namespace CenoSocket
             bool m_bIsIpShowWhere = Call_ParamUtil.m_bIsIpShowWhere;
             //IP话机显示归属地
             string _m_sPhoneAddressStr = string.Empty;
+            ///白名单不受同号码限呼,0非1白名单
+            int m_uWhiteList = 0;
 
             try
             {
@@ -114,6 +116,21 @@ namespace CenoSocket
                                 Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} black list:{m_sDealWithPhoneNumberStr}]");
                                 m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err黑名单");
                                 return;
+                            }
+                        }
+                    }
+
+                    ///判断所有的白名单,如果在白名单中,不受同号码限呼的限制
+                    foreach (m_mWblist item in m_cWblist.m_lWblist)
+                    {
+                        ///兼容呼入呼出白名单
+                        if (item.wbtype == 1 && (item.wblimittype & 2) > 0)
+                        {
+                            if (item.regex.IsMatch(m_sDealWithPhoneNumberStr))
+                            {
+                                Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} white list:{m_sDealWithPhoneNumberStr}]");
+                                m_uWhiteList = 1;
+                                break;
                             }
                         }
                     }
@@ -186,7 +203,8 @@ namespace CenoSocket
                     {
                         case Special.Common:
                             {
-                                _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sCaller);
+                                ///增加白名单、坐席同号码限呼参数的传入
+                                _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sCaller, null, m_uWhiteList, m_mAgent.limitthedial);
                                 break;
                             }
                         case Special.Share:
