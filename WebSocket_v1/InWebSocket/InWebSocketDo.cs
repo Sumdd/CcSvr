@@ -322,7 +322,7 @@ namespace WebSocket_v1 {
 
                                 m_bUpdUaDoing = true;
 
-                                #region ***先更新通道信息
+                                #region ***先新增通道信息
                                 string m_sSQL1 = $" AND ID NOT IN ('{string.Join("','", call_factory.channel_list.Select(x => x.channel_id))}') ";
                                 List<call_channel_model> m_lChannel = new List<call_channel_model>(call_channel.GetList(m_sSQL1));
                                 if (m_lChannel?.Count > 0)
@@ -366,7 +366,7 @@ namespace WebSocket_v1 {
                                     Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][AddChannel][{m_lChannel?.Count}]");
                                 }
                                 #endregion
-                                #region ***再更新Ua
+                                #region ***再新增Ua
                                 string m_sSQL2 = $" AND `call_agent`.`ID` NOT IN ('{string.Join("','", call_factory.agent_list.Select(x => x.AgentID))}') ";
                                 List<call_agent_model> m_lAgent = new List<call_agent_model>(call_agent_basic.GetList(m_sSQL2));
                                 if (m_lAgent?.Count > 0)
@@ -403,7 +403,9 @@ namespace WebSocket_v1 {
                                             inlimit_2number = x.inlimit_2number,
                                             inlimit_2whatday = x.inlimit_2whatday,
                                             ///每坐席的同号码限呼
-                                            limitthedial = x.limitthedial
+                                            limitthedial = x.limitthedial,
+                                            ///拨号首发设定
+                                            f99d999 = x.f99d999
                                         });
                                     });
                                     Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][AddUa][{m_lAgent?.Count}]");
@@ -540,6 +542,10 @@ namespace WebSocket_v1 {
                     int? limitthedial = x.limitthedial;
                     if (limitthedial != null && z.limitthedial != limitthedial.Value)
                         z.limitthedial = limitthedial.Value;
+                    ///拨号首发设定
+                    int? f99d999 = x.f99d999;
+                    if (f99d999 != null && z.f99d999 != f99d999.Value)
+                        z.f99d999 = f99d999.Value;
                 }
             }
             else
@@ -570,6 +576,10 @@ namespace WebSocket_v1 {
                     int? limitthedial = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.limitthedial;
                     if (limitthedial != null && x.limitthedial != limitthedial.Value)
                         x.limitthedial = limitthedial.Value;
+                    ///拨号首发设定
+                    int? f99d999 = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.f99d999;
+                    if (f99d999 != null && x.f99d999 != f99d999.Value)
+                        x.f99d999 = f99d999.Value;
                 });
             }
             Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][{m_lAgent?.Count}]");

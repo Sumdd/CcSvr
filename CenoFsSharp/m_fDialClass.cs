@@ -816,7 +816,7 @@ namespace CenoFsSharp
                     else
                     {
                         ///增加白名单、坐席同号码限呼参数的传入
-                        _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sRealCalleeNumberStr, m_uAgentID, null, null, m_uWhiteList, m_mAgent.limitthedial);
+                        _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sRealCalleeNumberStr, m_uAgentID, null, null, m_uWhiteList, m_mAgent.limitthedial, m_mAgent.f99d999);
                         if (_m_mDialLimit != null && !string.IsNullOrWhiteSpace(_m_mDialLimit.m_sNumberStr))
                         {
                             #region 网关有误

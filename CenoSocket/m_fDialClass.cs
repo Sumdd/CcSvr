@@ -451,7 +451,7 @@ namespace CenoSocket
                             case Special.Common:
                                 {
                                     ///增加白名单、坐席同号码限呼参数的传入
-                                    _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sTypeUUID, null, m_uWhiteList, m_mAgent.limitthedial);
+                                    _m_mDialLimit = m_fDialLimit.m_fGetDialLimitObject(m_sDealWithRealPhoneNumberStr, m_uAgentID, m_sTypeUUID, null, m_uWhiteList, m_mAgent.limitthedial, m_mAgent.f99d999);
                                     break;
                                 }
                             case Special.Share:

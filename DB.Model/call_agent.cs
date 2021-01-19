@@ -63,5 +63,9 @@ namespace DB.Model
         /// 每坐席设置的同号码限呼
         /// </summary>
         public int limitthedial { get; set; }
+        /// <summary>
+        /// 拨号首发设定
+        /// </summary>
+        public int f99d999 { get; set; }
     }
 }

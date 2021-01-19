@@ -504,7 +504,9 @@ namespace CenoSipBusiness {
                         inlimit_2number = cam.inlimit_2number,
                         inlimit_2whatday = cam.inlimit_2whatday,
                         ///每坐席设置的同号码限呼
-                        limitthedial = cam.limitthedial
+                        limitthedial = cam.limitthedial,
+                        ///拨号首发设定
+                        f99d999 = cam.f99d999
                     });
                     _Ilog.Info("initilizate agent(" + cam.UniqueID + ") info");
 
