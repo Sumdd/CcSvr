@@ -39,7 +39,8 @@ SELECT
 	`call_clientparam`.`inlimit_2starttime`,
 	`call_clientparam`.`inlimit_2endtime`,
 	`call_clientparam`.`inlimit_2whatday`,
-	`call_clientparam`.`limitthedial` 
+	`call_clientparam`.`limitthedial`, 
+	`call_clientparam`.`f99d999` 
 FROM
 	call_agent
 	LEFT JOIN `call_clientparam` ON `call_clientparam`.`ID` = `call_agent`.`ClientParamID` 
@@ -78,7 +79,10 @@ WHERE
                         inlimit_2starttime = dr["inlimit_2starttime"]?.ToString(),
                         inlimit_2endtime = dr["inlimit_2endtime"]?.ToString(),
                         inlimit_2whatday = int.Parse(dr["inlimit_2whatday"]?.ToString()),
-                        limitthedial = int.Parse(dr["limitthedial"]?.ToString())
+                        ///坐席同号码限呼
+                        limitthedial = int.Parse(dr["limitthedial"]?.ToString()),
+                        ///号码模式
+                        f99d999 = int.Parse(dr["f99d999"]?.ToString())
                     });
                 }
             }
