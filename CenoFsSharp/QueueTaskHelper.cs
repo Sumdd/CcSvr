@@ -141,6 +141,9 @@ namespace CenoFsSharp
         {
             lock (m_oQueueTaskLocker)
             {
+                ///当退出或参数为空时,不再读取数据
+                if (m_fQueueTask.m_bIsExit && m_lQueueTaskList == null) return;
+
                 if (m_lQueueTaskList == null)
                 {
                     int m_uLimit = m_fQueueTask.m_uQueueMaxCount - m_qQueueTaskList.Count;
@@ -276,15 +279,111 @@ namespace CenoFsSharp
             }
             return _m_qQueueTaskList;
         }
-        public static void Dispose()
+        public static void Dispose(bool m_bClearQueue = false)
         {
-            m_bIsExit = true;
-            m_lThreadList.ForEach(x =>
+            lock (m_fQueueTask.m_oQueueTaskLocker)
             {
-                x.m_eEventWaitHandle.Set();
-                x.m_tThread.Join();
-                x.m_eEventWaitHandle.Close();
-            });
+                m_bIsExit = true;
+                m_lThreadList.ForEach(x =>
+                {
+                    x.m_eEventWaitHandle.Set();
+                    x.m_tThread.Join();
+                    x.m_eEventWaitHandle.Close();
+                });
+
+                ///清空队列
+                if (m_bClearQueue)
+                {
+                    List<string> m_lSQL = new List<string>();
+                    while (true)
+                    {
+                        if (CenoFsSharp.m_fQueueTask.m_qQueueTaskList != null && CenoFsSharp.m_fQueueTask.m_qQueueTaskList.Count > 0)
+                        {
+                            CenoFsSharp.m_mQueueTask _m_mQueueTask = CenoFsSharp.m_fQueueTask.m_qQueueTaskList.Dequeue();
+                            ///拼接语句,防止SQL语句IN受限制
+                            if (_m_mQueueTask != null)
+                            {
+                                if (_m_mQueueTask.ID != null) m_lSQL.Add($@"SELECT {_m_mQueueTask.ID} AS `ID`");
+                                else
+                                {
+                                    #region 无ID处理
+
+                                    PhoneAutoCall_model _m_mPhoneAutoCall = new PhoneAutoCall_model();
+                                    _m_mPhoneAutoCall.PhoneNum = _m_mQueueTask.PhoneNum;
+                                    _m_mPhoneAutoCall.pici = _m_mQueueTask.pici;
+                                    try
+                                    {
+                                        if (string.IsNullOrWhiteSpace(_m_mQueueTask.progressFlag)) _m_mPhoneAutoCall.progressFlag = null;
+                                        else _m_mPhoneAutoCall.progressFlag = Convert.ToInt32(_m_mQueueTask.progressFlag);
+                                    }
+                                    catch { }
+                                    _m_mPhoneAutoCall.contentTxt = _m_mQueueTask.contentTxt;
+                                    _m_mPhoneAutoCall.status = _m_mQueueTask.status;
+                                    try
+                                    {
+                                        if (string.IsNullOrWhiteSpace(_m_mQueueTask.addTime)) _m_mPhoneAutoCall.addTime = DateTime.Now;
+                                        else _m_mPhoneAutoCall.addTime = Convert.ToDateTime(_m_mQueueTask.addTime);
+                                    }
+                                    catch { }
+                                    try
+                                    {
+                                        if (string.IsNullOrWhiteSpace(_m_mQueueTask.callTime)) _m_mPhoneAutoCall.callTime = null;
+                                        else _m_mPhoneAutoCall.callTime = Convert.ToDateTime(_m_mQueueTask.callTime);
+                                    }
+                                    catch { }
+                                    try
+                                    {
+                                        if (string.IsNullOrWhiteSpace(_m_mQueueTask.endTime)) _m_mPhoneAutoCall.endTime = null;
+                                        else _m_mPhoneAutoCall.endTime = Convert.ToDateTime(_m_mQueueTask.endTime);
+                                    }
+                                    catch { }
+                                    _m_mPhoneAutoCall.result = _m_mQueueTask.result;
+                                    _m_mPhoneAutoCall.IsUpdate = _m_mQueueTask.IsUpdate;
+                                    _m_mPhoneAutoCall.luyinId = _m_mQueueTask.luyinId;
+                                    _m_mPhoneAutoCall.CallNum = _m_mQueueTask.CallNum;
+                                    _m_mPhoneAutoCall.CallStatus = _m_mQueueTask.CallStatus;
+                                    _m_mPhoneAutoCall.CallCount = _m_mQueueTask.CallCount;
+                                    try
+                                    {
+                                        if (string.IsNullOrWhiteSpace(_m_mQueueTask.source_id)) _m_mPhoneAutoCall.source_id = null;
+                                        else _m_mPhoneAutoCall.source_id = Convert.ToInt32(_m_mQueueTask.source_id);
+                                    }
+                                    catch { }
+                                    _m_mPhoneAutoCall.ajid = _m_mQueueTask.ajid;
+                                    _m_mPhoneAutoCall.inpici = _m_mQueueTask.inpici;
+                                    _m_mPhoneAutoCall.shfzh18 = _m_mQueueTask.shfzh18;
+                                    _m_mPhoneAutoCall.czy = _m_mQueueTask.czy;
+                                    _m_mPhoneAutoCall.asr_status = _m_mQueueTask.asr_status;
+                                    if (!Call_ParamUtil.m_bIsDialTaskAsr)
+                                    {
+                                        _m_mPhoneAutoCall.asr_status = 2;
+                                    }
+
+                                    //不需要上报,但需要保存记录
+                                    bool m_bInsert = PhoneAutoCall.Insert(_m_mPhoneAutoCall);
+                                    if (m_bInsert)
+                                        Log.Instance.Success($"[CenoFsSharp][m_fQueueTask][Dispose][update -> insert auto dial task success]");
+                                    else
+                                        Log.Instance.Fail($"[CenoFsSharp][m_fQueueTask][Dispose][update -> insert auto dial task fail]");
+
+                                    #endregion
+                                }
+                            }
+                            else Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][warning,null data]");
+                        }
+                        else break;
+                    }
+                    ///将这些自动拨号任务状态进行回发
+                    string m_sSQL = $@"
+UPDATE `phoneautocall`
+INNER JOIN ( {string.Join("\r\nUNION\r\n", m_lSQL)} ) `T0` ON `T0`.`ID` = `phoneautocall`.`ID` 
+SET `phoneautocall`.`CallStatus` = 0
+";
+                    int m_uCount = DB.Basic.MySQL_Method.ExecuteNonQuery(m_sSQL);
+                    if (m_uCount == m_lSQL.Count) Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][success,data:{m_lSQL.Count};reset:{m_uCount}]");
+                    else Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][warning,data:{m_lSQL.Count};reset:{m_uCount}]");
+                }
+            }
         }
 
         public static void m_fActivate()
@@ -296,6 +395,9 @@ namespace CenoFsSharp
                     //查询出所有通道的最新的通道类型
                     List<call_channel_model> m_lAutoChannelList = new List<call_channel_model>(call_channel.GetList());
                     DateTime m_dtNow = DateTime.Now;
+
+                    ///设置为开启状态
+                    if (m_fQueueTask.m_bIsExit) m_fQueueTask.m_bIsExit = false;
 
                     //自动外呼队列唤醒
                     m_lThreadList.ForEach(x =>

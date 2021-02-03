@@ -128,6 +128,10 @@ namespace CenoServer
 
   cpu `查询cpu编码`
 
+  auto call stop `自动外呼停止,所有未拨打数据退出队列`
+
+  auto call start `自动外呼启动`
+
   exit `退出服务端`
 
 ";
@@ -460,6 +464,15 @@ namespace CenoServer
                         #region ***查询CPU
                         case "cpu":
                             if (Cmn_v1.Cmn.m_dfGetCPU != null) Cmn_v1.Cmn.m_dfGetCPU();
+                            break;
+                        #endregion
+
+                        #region ***自动外呼
+                        case "auto call stop":
+                            CenoFsSharp.m_fQueueTask.Dispose(true);
+                            break;
+                        case "auto call start":
+                            CenoFsSharp.m_fQueueTask.m_fActivate();
                             break;
                         #endregion
 
