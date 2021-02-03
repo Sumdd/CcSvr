@@ -373,15 +373,20 @@ namespace CenoFsSharp
                         }
                         else break;
                     }
-                    ///将这些自动拨号任务状态进行回发
-                    string m_sSQL = $@"
+
+                    if (m_lSQL.Count > 0)
+                    {
+                        ///将这些自动拨号任务状态进行回发
+                        string m_sSQL = $@"
 UPDATE `phoneautocall`
 INNER JOIN ( {string.Join("\r\nUNION\r\n", m_lSQL)} ) `T0` ON `T0`.`ID` = `phoneautocall`.`ID` 
 SET `phoneautocall`.`CallStatus` = 0
 ";
-                    int m_uCount = DB.Basic.MySQL_Method.ExecuteNonQuery(m_sSQL);
-                    if (m_uCount == m_lSQL.Count) Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][success,data:{m_lSQL.Count};reset:{m_uCount}]");
-                    else Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][warning,data:{m_lSQL.Count};reset:{m_uCount}]");
+                        int m_uCount = DB.Basic.MySQL_Method.ExecuteNonQuery(m_sSQL);
+                        if (m_uCount == m_lSQL.Count) Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][success,data:{m_lSQL.Count};reset:{m_uCount}]");
+                        else Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][warning,data:{m_lSQL.Count};reset:{m_uCount}]");
+                    }
+                    else Log.Instance.Warn($"[CenoFsSharp][m_fQueueTask][Dispose][warning,data:0]");
                 }
             }
         }
