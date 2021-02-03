@@ -869,18 +869,34 @@ namespace CenoFsSharp
 
                             ///<![CDATA[
                             /// 空也做强制加拨处理
+                            /// 最终根据昊舜,延申
+                            /// 0000或空：执行原号码加法
+                            /// 1111：执行真实号码加法
                             /// ]]>
 
                             ///强制加拨前缀只使用外地加拨即可
-                            if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
+                            if (_m_mDialLimit.m_sAreaCodeStr == "0000" || _m_mDialLimit.m_sAreaCodeStr == "1111" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
                             {
                                 if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
                                 {
                                     //强制加前缀
                                     Log.Instance.Warn($"[CenoFsSharp][m_fDialClass][m_fDial][{m_uAgentID} add prefix:{_m_mDialLimit.m_sDialPrefixStr}]");
                                 }
-                                m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[0]}";
-                                m_sCalleeRemove0000Prefix = m_lStrings[0];
+
+                                ///为了可不更新客户端,这里先兼容一下
+                                string m_sTs0 = m_lStrings[1].TrimStart('0');
+                                if (m_sTs0.StartsWith("400") || m_sTs0.StartsWith("800") || _m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
+                                {
+                                    m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[1]}";
+                                    //原号码
+                                    m_sCalleeRemove0000Prefix = $"{m_lStrings[1]}";
+                                }
+                                else
+                                {
+                                    m_mRecord.T_PhoneNum = $"{_m_mDialLimit.m_sDialPrefixStr}{m_lStrings[0]}";
+                                    //处理后的号码
+                                    m_sCalleeRemove0000Prefix = m_lStrings[0];
+                                }
                             }
                             else
                             {

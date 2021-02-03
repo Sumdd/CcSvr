@@ -524,10 +524,13 @@ namespace CenoSocket
 
                             ///<![CDATA[
                             /// 空也做强制加拨处理
+                            /// 最终根据昊舜,延申
+                            /// 0000或空：执行原号码加法
+                            /// 1111：执行真实号码加法
                             /// ]]>
 
                             ///强制加拨前缀只使用外地加拨即可
-                            if (_m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
+                            if (_m_mDialLimit.m_sAreaCodeStr == "0000" || _m_mDialLimit.m_sAreaCodeStr == "1111" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
                             {
                                 if (!string.IsNullOrWhiteSpace(_m_mDialLimit.m_sDialPrefixStr))
                                 {
@@ -536,7 +539,7 @@ namespace CenoSocket
 
                                 ///为了可不更新客户端,这里先兼容一下
                                 string m_sTs0 = m_sDealWithPhoneNumberStr.TrimStart('0');
-                                if (m_sTs0.StartsWith("400") || m_sTs0.StartsWith("800"))
+                                if (m_sTs0.StartsWith("400") || m_sTs0.StartsWith("800") || _m_mDialLimit.m_sAreaCodeStr == "0000" || string.IsNullOrWhiteSpace(_m_mDialLimit.m_sAreaCodeStr))
                                 {
                                     m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithPhoneNumberStr}";
                                     //原号码
@@ -545,7 +548,7 @@ namespace CenoSocket
                                 else
                                 {
                                     m_sCalleeNumberStr = $"{_m_mDialLimit.m_sDialPrefixStr}{m_sDealWithRealPhoneNumberStr}";
-                                    //原号码
+                                    //处理后的号码
                                     m_sCalleeRemove0000Prefix = $"{m_sDealWithRealPhoneNumberStr}";
                                 }
                             }
