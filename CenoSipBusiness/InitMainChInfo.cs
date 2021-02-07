@@ -121,7 +121,7 @@ namespace CenoSipBusiness {
                         catch (Exception ex)
                         {
                             Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][Exception][{ex.Message}]");
-                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][InnerException][{ex?.InnerException?.Message}]");
+                            Log.Instance.Debug(ex);
                         }
                     };
 
