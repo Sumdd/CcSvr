@@ -414,7 +414,7 @@ namespace CenoFsSharp
                     }
 
                     #region 播放提示音
-                    if (m_uPlayLoops > 0)
+                    if (!m_bMultiCall && m_uPlayLoops > 0)
                     {
                         //应答播放声音
                         if (m_bIsDispose) return;
@@ -451,7 +451,7 @@ namespace CenoFsSharp
                     #endregion
 
                     #region ***呼入,这里直接杀死,不再挂断,防止Freeswitch内存泄漏
-                    if (false)
+                    if (m_bMultiCall)
                     {
                         if (m_bIsDispose) return;
                         await m_pOutboundSocket.Hangup(uuid, HangupCause.UserNotRegistered).ContinueWith(task =>
@@ -510,7 +510,8 @@ namespace CenoFsSharp
                 if (m_bMultiCall)
                 {
                     ///如果是批量外呼,直接user/xxxx即可,兼容来电弹屏
-                    m_sEndPointStrB = $"user/{m_mAgent.ChInfo.channel_number}";
+                    m_sLocalNum = m_mAgent.ChInfo.channel_number;
+                    m_sEndPointStrB = $"user/{m_sLocalNum}";
                 }
                 else if (m_bStar) m_sEndPointStrB = $"user/{m_sCalleeNumberStr}";
                 else
@@ -732,7 +733,7 @@ namespace CenoFsSharp
                     Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} {m_sMsgStr},play link error music]");
 
                     #region 播放提示音
-                    if (m_uPlayLoops > 0)
+                    if (!m_bMultiCall && m_uPlayLoops > 0)
                     {
                         //应答播放声音
                         if (m_bIsDispose) return;
@@ -829,7 +830,7 @@ namespace CenoFsSharp
                     Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{m_uAgentID} {m_sMsgStr}]");
 
                     #region 播放提示音
-                    if (m_uPlayLoops > 0)
+                    if (!m_bMultiCall && m_uPlayLoops > 0)
                     {
                         //应答播放声音
                         if (m_bIsDispose) return;
@@ -925,7 +926,7 @@ namespace CenoFsSharp
 
                     #region 播放提示音
                     string m_sPlayMusic = m_mPlay.m_mBusyMusic;
-                    if (m_uPlayLoops > 0)
+                    if (!m_bMultiCall && m_uPlayLoops > 0)
                     {
                         //应答播放声音
                         if (m_bIsDispose) return;
@@ -1023,7 +1024,7 @@ namespace CenoFsSharp
                 #region ***设置183或者200,后续无需再设置
                 if (m_sAnswer == "uuid_pre_answer")
                 {
-                    if (!string.IsNullOrWhiteSpace(m_sCallMusic))
+                    if (!m_bMultiCall && !string.IsNullOrWhiteSpace(m_sCallMusic))
                     {
                         Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} set ringback]");
                         //修正无法解析变量的问题,这里先写成该固定参数即可
@@ -1452,7 +1453,7 @@ namespace CenoFsSharp
                     if (!string.IsNullOrWhiteSpace(m_sPlayMusic))
                     {
                         #region ***应答尝试放音,目前只有这种方式可以
-                        if (m_uPlayLoops > 0)
+                        if (!m_bMultiCall && m_uPlayLoops > 0)
                         {
                             if (m_sAnswer == "uuid_answer")
                             {
