@@ -34,9 +34,10 @@ namespace CenoFsSharp
 
             #region ***兼容批量外呼的取得
             bool m_bMultiCall = false;
-            string sip_h_X_loginname = m_pOutboundSocket.ChannelData.GetHeader("sip_h_X-loginname");
+            string sip_h_X_loginname = m_pOutboundSocket.ChannelData.GetHeader("variable_sip_h_X-loginname");
             if (!string.IsNullOrWhiteSpace(sip_h_X_loginname))
             {
+                Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} call {sip_h_X_loginname}]");
                 m_bMultiCall = true;
             }
             #endregion
@@ -398,11 +399,11 @@ namespace CenoFsSharp
                 #region ***无用户信息、共享号码呼入等,若条件不足时挂断
                 bool m_bHasShareEndPointStr = !string.IsNullOrWhiteSpace(m_pAddRecByRec?.m_sEndPointStr);
                 if (
-                    !m_bMultiCall &&
+                    (m_bMultiCall && m_mAgent == null) ||
                     //非共享,但未找到对应用户
-                    ((m_mAgent == null && m_uShare == 0) ||
+                    (m_mAgent == null && m_uShare == 0) ||
                     //共享,但不满足继续条件
-                    (m_uShare > 0 && m_bShareReject))
+                    (m_uShare > 0 && m_bShareReject)
                     )
                 {
                     Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} can,t find user,play no user music]");
