@@ -32,6 +32,15 @@ namespace CenoFsSharp
             string uuid = m_pOutboundSocket.ChannelData.UUID;
             string m_sRealCallerNumberStr = m_pOutboundSocket.ChannelData.GetHeader("Channel-Caller-ID-Number")?.Replace("gw+", "")?.Replace("+86", "0");//主叫
 
+            #region ***兼容批量外呼的取得
+            bool m_bMultiCall = false;
+            string sip_h_X_loginname = m_pOutboundSocket.ChannelData.GetHeader("sip_h_X-loginname");
+            if (!string.IsNullOrWhiteSpace(sip_h_X_loginname))
+            {
+                m_bMultiCall = true;
+            }
+            #endregion
+
             #region ***处理被叫号码,主要防止gateway、ims情况等,如有其它情况再做兼容
             Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
             ///被叫
@@ -72,7 +81,7 @@ namespace CenoFsSharp
 
                 #region 增加IVR逻辑
                 bool m_bTransfer = false;
-                if (!string.IsNullOrWhiteSpace(m_sTransfer))
+                if (!m_bMultiCall && !string.IsNullOrWhiteSpace(m_sTransfer))
                 {
                     m_bTransfer = true;
                     Log.Instance.Warn($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} callee:{m_sRealCalleeNumberStr} -> transfer callee:{m_sTransfer}]");
@@ -81,7 +90,7 @@ namespace CenoFsSharp
 
                 Regex m_rIsMatchRegex = new Regex("^[0-9*#]{3,20}$");
                 #region 号码有误
-                if (!m_rIsMatchRegex.IsMatch(m_sRealCalleeNumberStr))
+                if (!m_bMultiCall && !m_rIsMatchRegex.IsMatch(m_sRealCalleeNumberStr))
                 {
                     Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} invalid phone,play invalid music]");
 
@@ -161,7 +170,7 @@ namespace CenoFsSharp
                 #endregion
 
                 #region ***呼出只判断是否是黑名单,黑名单直接限制呼叫即可,如果更新中则暂时失效即可
-                if (!m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
+                if (!m_bMultiCall && !m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
                 {
                     ///判断所有的黑名单即可
                     foreach (m_mWblist item in m_cWblist.m_lWblist)
@@ -252,7 +261,7 @@ namespace CenoFsSharp
                 #endregion
 
                 #region ***是否需要查询联系人姓名
-                if (Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sRealCallerNumberStr);
+                if (!m_bMultiCall && Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sRealCallerNumberStr);
                 #endregion
 
                 string m_sEndPointStrB = string.Empty;
@@ -269,7 +278,12 @@ namespace CenoFsSharp
                 AGENT_INFO m_mTheAgent = null;
                 int m_qInCall = 0;//0不处理
 
-                if (m_bTransfer)
+                if (m_bMultiCall)
+                {
+                    ///如果是批量外呼,直接将登录名带入
+                    m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.LoginName == sip_h_X_loginname);
+                }
+                else if (m_bTransfer)
                 {
                     m_mAgent = call_factory.agent_list.FirstOrDefault(x => x.ChInfo.channel_number == m_sTransfer.Substring(1));
                 }
@@ -384,10 +398,11 @@ namespace CenoFsSharp
                 #region ***无用户信息、共享号码呼入等,若条件不足时挂断
                 bool m_bHasShareEndPointStr = !string.IsNullOrWhiteSpace(m_pAddRecByRec?.m_sEndPointStr);
                 if (
+                    !m_bMultiCall &&
                     //非共享,但未找到对应用户
-                    (m_mAgent == null && m_uShare == 0) ||
+                    ((m_mAgent == null && m_uShare == 0) ||
                     //共享,但不满足继续条件
-                    (m_uShare > 0 && m_bShareReject)
+                    (m_uShare > 0 && m_bShareReject))
                     )
                 {
                     Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} can,t find user,play no user music]");
@@ -491,7 +506,12 @@ namespace CenoFsSharp
                 }
                 #endregion
 
-                if (m_bStar) m_sEndPointStrB = $"user/{m_sCalleeNumberStr}";
+                if (m_bMultiCall)
+                {
+                    ///如果是批量外呼,直接user/xxxx即可,兼容来电弹屏
+                    m_sEndPointStrB = $"user/{m_mAgent.ChInfo.channel_number}";
+                }
+                else if (m_bStar) m_sEndPointStrB = $"user/{m_sCalleeNumberStr}";
                 else
                 {
                     ///<![CDATA[
@@ -502,7 +522,7 @@ namespace CenoFsSharp
                 }
 
                 #region ***进入共享号码逻辑
-                if (m_uShare > 0)
+                if (!m_bMultiCall && m_uShare > 0)
                 {
                     ///<![CDATA[
                     /// <4>加入共享号码来电逻辑
@@ -521,7 +541,16 @@ namespace CenoFsSharp
                 //录音中真实号码赋值
                 m_mRecord.tnumber = m_stNumberStr;
 
-                if (m_bTransfer)
+                if (m_bMultiCall)
+                {
+                    ///如果是批量外呼,还想保留该记录的ID,方便关联
+                    m_bStar = false;
+                    m_mRecord.PhoneAddress = $"批量外呼 {m_lStrings[3]}";
+                    m_mRecord.LocalNum = m_sLocalNum;
+                    m_mRecord.T_PhoneNum = m_sRealCallerNumberStr;
+                    m_mRecord.C_PhoneNum = m_sRealCallerNumberStr;
+                }
+                else if (m_bTransfer)
                 {
                     m_bStar = false;
                     m_mRecord.PhoneAddress = $"{m_lStrings[3]} IVR";
@@ -575,7 +604,7 @@ namespace CenoFsSharp
                 m_mInlimit_2 _m_mInlimit_2 = null;
                 ///是否内转
                 bool m_bInlimit = true;
-                if (!m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
+                if (!m_bMultiCall && !m_cInlimit_2.m_bInitInlimit_2 && m_cInlimit_2.m_lInlimit_2 != null && m_cInlimit_2.m_lInlimit_2.Count > 0)
                 {
                     ///时间、星期的判断
                     DateTime m_pDateTime = DateTime.Now;
