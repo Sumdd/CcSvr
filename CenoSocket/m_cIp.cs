@@ -481,6 +481,11 @@ namespace CenoSocket
                         ///兼容可以直接*4位分机号本机内呼
                         if (m_sDealWithPhoneNumberStr.Length != 5 && m_sContinue != null)
                         {
+                            ///状态回发
+                            m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_other_uuid = null;
+
                             Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} inrule callee:{m_sDealWithPhoneNumberStr},way:{m_sContinue}]");
                             m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, m_sContinue);
                             return;
@@ -587,6 +592,15 @@ namespace CenoSocket
                     try
                     {
                         m_bIsDispose = true;
+
+                        ///状态回发
+                        if (m_mChannel != null)
+                        {
+                            m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_other_uuid = null;
+                        }
+
                         Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} socket client dispose]");
                         if (m_eEventChannelPark != null)
                         {

@@ -864,6 +864,15 @@ namespace CenoSocket
                     try
                     {
                         m_bIsDispose = true;
+
+                        ///状态回发
+                        if (m_mChannel != null)
+                        {
+                            m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                            m_mChannel.channel_call_uuid = null;
+                            m_mChannel.channel_call_other_uuid = null;
+                        }
+
                         Log.Instance.Warn($"[CenoSocket][m_fDialClass][m_fDial][{m_uAgentID} socket client dispose]");
                         if (m_eEventChannelPark != null)
                         {
