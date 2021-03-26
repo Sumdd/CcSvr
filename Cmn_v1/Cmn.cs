@@ -17,7 +17,9 @@ namespace Cmn_v1
         {
             if (dtNow == null) dtNow = DateTime.Now;
             ///不能加这么多,催收数据库也要调整,前八位即可
-            return dtNow.Value.ToString("yyyyMMddHHmmss") + m_fRandom(8);
+            return dtNow.Value.ToString("yyyyMMddHHmmss")
+                //+ m_fRandom(8)
+                ;
         }
         /// <summary>
         /// 将数字转化成字符串
