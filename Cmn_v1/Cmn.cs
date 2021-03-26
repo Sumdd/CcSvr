@@ -13,12 +13,10 @@ namespace Cmn_v1
         /// <summary>
         /// 生成唯一ID
         /// </summary>
-        public static string UniqueID
+        public static string UniqueID(DateTime? dtNow = null)
         {
-            get
-            {
-                return DateTime.Now.ToString("yyyyMMddHHmmssffffff_") + Guid.NewGuid();
-            }
+            if (dtNow == null) dtNow = DateTime.Now;
+            return dtNow.Value.ToString("yyyyMMddHHmmss") + Guid.NewGuid().ToString().Replace("-", "");
         }
         /// <summary>
         /// Marshal.StringToHGlobalAnsi简写得到句柄

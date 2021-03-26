@@ -833,7 +833,7 @@ WHERE
                     ///保存录音内容,创建真实文件
                     DateTime m_dtFailTime = DateTime.Now;
 
-                    string m_sRecSub = $"{{0}}\\{m_dtFailTime.ToString("yyyy")}\\{m_dtFailTime.ToString("yyyyMM")}\\{m_dtFailTime.ToString("yyyyMMdd")}\\Rec_{m_dtFailTime.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}Q{((m_uBridgeFailAudio & 2) > 0 ? "D" : "")}_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
+                    string m_sRecSub = $"{{0}}\\{m_dtFailTime.ToString("yyyy")}\\{m_dtFailTime.ToString("yyyyMM")}\\{m_dtFailTime.ToString("yyyyMMdd")}\\Rec_{Cmn_v1.Cmn.UniqueID(m_dtFailTime)}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}Q{((m_uBridgeFailAudio & 2) > 0 ? "D" : "")}_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
                     string m_sRecordingFile = string.Format(m_sRecSub, Call_ParamUtil.RecordFilePath);
                     string m_sRecordingFolder = Path.GetDirectoryName(m_sRecordingFile);
                     if (!Directory.Exists(m_sRecordingFolder)) Directory.CreateDirectory(m_sRecordingFolder);

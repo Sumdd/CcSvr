@@ -1207,7 +1207,7 @@ namespace CenoFsSharp
                 DateTime m_dtNow = DateTime.Now;
                 //录音中来电主叫或去掉被叫的真实号码获取
                 string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
-                string m_sRecSub = $"{{0}}\\{m_dtNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtNow.ToString("yyyyMMdd")}\\Rec_{m_dtNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}L_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
+                string m_sRecSub = $"{{0}}\\{m_dtNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtNow.ToString("yyyyMMdd")}\\Rec_{Cmn.UniqueID(m_dtNow)}_{m_sRectNumberStr.Replace("*", "X")}_{(m_bStar ? "N" : "")}L_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
                 string m_sRecordingFile = string.Format(m_sRecSub, ParamLib.RecordFilePath);
                 string m_sRecordingFolder = Path.GetDirectoryName(m_sRecordingFile);
                 if (!Directory.Exists(m_sRecordingFolder)) Directory.CreateDirectory(m_sRecordingFolder);
@@ -2486,7 +2486,7 @@ WHERE
                 DateTime m_dtNow = DateTime.Now;
                 //录音中来电主叫或去掉被叫的真实号码获取
                 string m_sRectNumberStr = (!string.IsNullOrWhiteSpace(m_stNumberStr) ? m_stNumberStr : m_mRecord.LocalNum);
-                string m_sRecSub = $"{{0}}\\{m_dtNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtNow.ToString("yyyyMMdd")}\\Rec_{m_dtNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr}_{(m_bStar ? "N" : "")}L_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
+                string m_sRecSub = $"{{0}}\\{m_dtNow.ToString("yyyy")}\\{m_dtStartTimeNow.ToString("yyyyMM")}\\{m_dtNow.ToString("yyyyMMdd")}\\Rec_{Cmn.UniqueID(m_dtNow)}_{m_sRectNumberStr}_{(m_bStar ? "N" : "")}L_{m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
                 string m_sRecordingFile = string.Format(m_sRecSub, ParamLib.RecordFilePath);
                 string m_sRecordingFolder = Path.GetDirectoryName(m_sRecordingFile);
                 if (!Directory.Exists(m_sRecordingFolder)) Directory.CreateDirectory(m_sRecordingFolder);

@@ -455,12 +455,12 @@ namespace CenoFsSharp
                     string m_sRecSub = string.Empty;
                     if (!string.IsNullOrWhiteSpace(m_sDialTaskRecPath))
                     {
-                        m_sRecSub = $"{{0}}{m_dtNow.ToString("yyyy")}/{m_dtNow.ToString("yyyyMM")}/{m_dtNow.ToString("yyyyMMdd")}/Rec_{m_dtNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_Z_{_m_mThread.m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
+                        m_sRecSub = $"{{0}}{m_dtNow.ToString("yyyy")}/{m_dtNow.ToString("yyyyMM")}/{m_dtNow.ToString("yyyyMMdd")}/Rec_{Cmn.UniqueID(m_dtNow)}_{m_sRectNumberStr.Replace("*", "X")}_Z_{_m_mThread.m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
                         m_sRecordingFile = string.Format(m_sRecSub, m_sDialTaskRecPath);
                     }
                     else
                     {
-                        m_sRecSub = $"{{0}}\\{m_dtNow.ToString("yyyy")}\\{m_dtNow.ToString("yyyyMM")}\\{m_dtNow.ToString("yyyyMMdd")}\\Rec_{m_dtNow.ToString("yyyyMMddHHmmss")}_{m_sRectNumberStr.Replace("*", "X")}_Z_{_m_mThread.m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
+                        m_sRecSub = $"{{0}}\\{m_dtNow.ToString("yyyy")}\\{m_dtNow.ToString("yyyyMM")}\\{m_dtNow.ToString("yyyyMMdd")}\\Rec_{Cmn.UniqueID(m_dtNow)}_{m_sRectNumberStr.Replace("*", "X")}_Z_{_m_mThread.m_mRecord.T_PhoneNum.Replace("*", "X")}{m_sExtensionStr}";
                         m_sRecordingFile = string.Format(m_sRecSub, ParamLib.RecordFilePath);
                     }
                     string m_sRecordingFolder = Path.GetDirectoryName(m_sRecordingFile);
