@@ -16,8 +16,34 @@ namespace Cmn_v1
         public static string UniqueID(DateTime? dtNow = null)
         {
             if (dtNow == null) dtNow = DateTime.Now;
-            return dtNow.Value.ToString("yyyyMMddHHmmss") + Guid.NewGuid().ToString().Replace("-", "");
+            ///不能加这么多,催收数据库也要调整,前八位即可
+            return dtNow.Value.ToString("yyyyMMddHHmmss") + m_fRandom(8);
         }
+        /// <summary>
+        /// 将数字转化成字符串
+        /// </summary>
+        /// <param name="len">长度</param>
+        /// <returns></returns>
+        private static string m_fRandom(int len)
+        {
+            byte[] r = new byte[8];
+            Random rand = new Random((int)(DateTime.Now.Ticks % 1000000));
+            int ran;
+            //生成8字节原始数据
+            for (int i = 0; i < len; i++)
+            {
+                //while循环剔除非字母和数字的随机数
+                do
+                {
+                    //数字范围是ASCII码中字母数字和一些符号
+                    ran = rand.Next(48, 90);
+                    r[i] = Convert.ToByte(ran);
+                } while ((ran >= 58 && ran <= 64));
+            }
+            //转换成8位String类型               
+            return Encoding.ASCII.GetString(r);
+        }
+
         /// <summary>
         /// Marshal.StringToHGlobalAnsi简写得到句柄
         /// </summary>
