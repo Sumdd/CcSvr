@@ -506,7 +506,11 @@ namespace CenoSipBusiness {
                         ///每坐席设置的同号码限呼
                         limitthedial = cam.limitthedial,
                         ///拨号首发设定
-                        f99d999 = cam.f99d999
+                        f99d999 = cam.f99d999,
+                        ///超时放音配置
+                        no_answer_timeout = cam.no_answer_timeout,
+                        no_answer_music = cam.no_answer_music,
+                        no_answer_api = cam.no_answer_api,
                     });
                     _Ilog.Info("initilizate agent(" + cam.UniqueID + ") info");
 

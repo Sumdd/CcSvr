@@ -40,7 +40,10 @@ SELECT
 	`call_clientparam`.`inlimit_2endtime`,
 	`call_clientparam`.`inlimit_2whatday`,
 	`call_clientparam`.`limitthedial`, 
-	`call_clientparam`.`f99d999` 
+	`call_clientparam`.`f99d999`, 
+	`call_clientparam`.`no_answer_timeout`, 
+	`call_clientparam`.`no_answer_music`, 
+	`call_clientparam`.`no_answer_api` 
 FROM
 	call_agent
 	LEFT JOIN `call_clientparam` ON `call_clientparam`.`ID` = `call_agent`.`ClientParamID` 
@@ -82,7 +85,11 @@ WHERE
                         ///坐席同号码限呼
                         limitthedial = int.Parse(dr["limitthedial"]?.ToString()),
                         ///号码模式
-                        f99d999 = int.Parse(dr["f99d999"]?.ToString())
+                        f99d999 = int.Parse(dr["f99d999"]?.ToString()),
+                        ///超时放音配置
+                        no_answer_timeout = int.Parse(dr["no_answer_timeout"]?.ToString()),
+                        no_answer_music = dr["no_answer_music"]?.ToString(),
+                        no_answer_api = dr["no_answer_api"]?.ToString()
                     });
                 }
             }

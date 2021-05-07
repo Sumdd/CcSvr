@@ -58,6 +58,17 @@ namespace WebSocket_v1 {
                     return;
                 }
 
+                if (message != null &&
+                    message.Length >= m_mWebSocketJsonPrefix._m_sFileCmd.Length &&
+                    message.StartsWith(m_mWebSocketJsonPrefix._m_sFileCmd))
+                {
+                    ///<![CDATA[
+                    /// {JSON-FILE-CMD}文件命令,放到当前文件夹内即可
+                    /// ]]>
+                    m_cInWebSocketWebApiDo.MainStep(socket, message.Substring(m_mWebSocketJsonPrefix._m_sFileCmd.Length));
+                    return;
+                }
+
                 if (message.Length <= 0 || !message.Contains("{") || !message.Contains("}")) {
                     Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][MainStep][error message:{message}]");
                     ///socket.Send(M_WebSocketSend._bhzt_fail("拨号CMD有误"));
@@ -405,7 +416,11 @@ namespace WebSocket_v1 {
                                             ///每坐席的同号码限呼
                                             limitthedial = x.limitthedial,
                                             ///拨号首发设定
-                                            f99d999 = x.f99d999
+                                            f99d999 = x.f99d999,
+                                            ///超时放音配置
+                                            no_answer_timeout = x.no_answer_timeout,
+                                            no_answer_music = x.no_answer_music,
+                                            no_answer_api = x.no_answer_api
                                         });
                                     });
                                     Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][AddUa][{m_lAgent?.Count}]");
@@ -546,6 +561,18 @@ namespace WebSocket_v1 {
                     int? f99d999 = x.f99d999;
                     if (f99d999 != null && z.f99d999 != f99d999.Value)
                         z.f99d999 = f99d999.Value;
+                    ///超时时间
+                    int? no_answer_timeout = x.no_answer_timeout;
+                    if (no_answer_timeout != null && z.no_answer_timeout != no_answer_timeout.Value)
+                        z.no_answer_timeout = no_answer_timeout.Value;
+                    ///超时放音
+                    string no_answer_music = x.no_answer_music;
+                    if (z.no_answer_music != no_answer_music)
+                        z.no_answer_music = no_answer_music;
+                    ///超时api模式
+                    string no_answer_api = x.no_answer_api;
+                    if (z.no_answer_api != no_answer_api)
+                        z.no_answer_api = no_answer_api;
                 }
             }
             else
@@ -580,6 +607,18 @@ namespace WebSocket_v1 {
                     int? f99d999 = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.f99d999;
                     if (f99d999 != null && x.f99d999 != f99d999.Value)
                         x.f99d999 = f99d999.Value;
+                    ///超时时间
+                    int? no_answer_timeout = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.no_answer_timeout;
+                    if (no_answer_timeout != null && x.no_answer_timeout != no_answer_timeout.Value)
+                        x.no_answer_timeout = no_answer_timeout.Value;
+                    ///超时放音
+                    string no_answer_music = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.no_answer_music;
+                    if (x.no_answer_music != no_answer_music)
+                        x.no_answer_music = no_answer_music;
+                    ///超时api模式
+                    string no_answer_api = m_lAgent.FirstOrDefault(q => q.ID == x.AgentID)?.no_answer_api;
+                    if (x.no_answer_api != no_answer_api)
+                        x.no_answer_api = no_answer_api;
                 });
             }
             Log.Instance.Warn($"[WebSocket_v1][InWebSocketDo][UpdUa][{m_lAgent?.Count}]");

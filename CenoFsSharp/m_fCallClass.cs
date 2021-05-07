@@ -534,6 +534,18 @@ namespace CenoFsSharp
                 }
                 #endregion
 
+                #region ***迭代超时放音逻辑
+                int no_answer_timeout = m_mAgent.no_answer_timeout;
+                string no_answer_music = m_mAgent.no_answer_music;
+                string no_answer_api = m_mAgent.no_answer_api;
+                bool m_bNoAnswerPlay = false;
+                if (!string.IsNullOrWhiteSpace(no_answer_music))
+                {
+                    no_answer_music = Cmn_v1.Cmn.PathFmt($"{Cmn_v1.Cmn.m_fMPath}/{m_cFileCmdType._m_sFilePath}/{no_answer_music}.wav", "/");
+                    m_bNoAnswerPlay = true;
+                }
+                #endregion
+
                 m_sLoginName = m_mAgent.LoginName;
                 m_uAgentID = m_mAgent.AgentID;
                 Log.Instance.Success($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} -> {m_uAgentID}]");
@@ -1067,6 +1079,10 @@ namespace CenoFsSharp
                 m_mChannel.channel_call_uuid = uuid;
                 string m_sApplicationStr = Call_ParamUtil._application;
                 int m_uTimeoutSeconds = Call_ParamUtil.__timeout_seconds;
+
+                ///迭代超时时间
+                if (m_bNoAnswerPlay) m_uTimeoutSeconds = no_answer_timeout;
+
                 bool m_bIgnoreEarlyMedia = Call_ParamUtil.__ignore_early_media;
                 string m_sExtensionStr = Call_ParamUtil._rec_t;
                 string m_sWhoHangUpStr = string.Empty;
@@ -1450,7 +1466,7 @@ namespace CenoFsSharp
                     #endregion
 
                     #region 播放提示音
-                    if (!string.IsNullOrWhiteSpace(m_sPlayMusic))
+                    if (!m_bNoAnswerPlay && !string.IsNullOrWhiteSpace(m_sPlayMusic))
                     {
                         #region ***应答尝试放音,目前只有这种方式可以
                         if (!m_bMultiCall && m_uPlayLoops > 0)
@@ -1490,6 +1506,43 @@ namespace CenoFsSharp
                             }
                         }
                         #endregion
+                    }
+                    #endregion
+
+                    #region ***迭代超时放音逻辑
+                    if (m_bNoAnswerPlay)
+                    {
+                        int _m_uPlayLoops = m_uPlayLoops <= 0 ? 1 : m_uPlayLoops;
+                        if (m_bIsDispose) return;
+                        await m_pOutboundSocket.SendApi($"{no_answer_api} {uuid}").ContinueWith(task =>
+                        {
+                            try
+                            {
+                                if (m_bIsDispose) return;
+                                if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {no_answer_api} cancel]");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} {no_answer_api} error:{ex.Message}]");
+                            }
+                        });
+
+                        for (int i = 0; i < _m_uPlayLoops; i++)
+                        {
+                            if (m_bIsDispose) return;
+                            await m_pOutboundSocket.Play(uuid, no_answer_music).ContinueWith(task =>
+                            {
+                                try
+                                {
+                                    if (m_bIsDispose) return;
+                                    if (task.IsCanceled) Log.Instance.Fail($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play no_answer_music music cancel]");
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[CenoFsSharp][m_fCallClass][m_fCall][{uuid} Play no_answer_music music error:{ex.Message}]");
+                                }
+                            });
+                        }
                     }
                     #endregion
 

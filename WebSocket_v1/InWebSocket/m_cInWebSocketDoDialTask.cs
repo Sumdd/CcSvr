@@ -671,6 +671,89 @@ namespace WebSocket_v1
                         }
                         #endregion
                         break;
+                    case m_cFileCmdType._m_sFileCreate:
+                        #region ***文件创建
+                        {
+                            int m_sStatus = -1;
+                            string m_sResultMessage = "-ERR Unknown Error";
+                            string m_sUUID = m_pJObject["m_oObject"]["m_sUUID"].ToString();
+
+                            try
+                            {
+                                string m_sSendMessage = m_pJObject["m_oObject"]["m_sSendMessage"].ToString();
+                                ///解析对应参数
+                                JObject m_oObject = JObject.Parse(m_sSendMessage);
+                                string m_sName = m_oObject["m_sName"].ToString();
+                                string m_sExt = m_oObject["m_sExt"].ToString();
+                                string m_sBase64 = m_oObject["m_sBase64"].ToString();
+
+                                ///System.IO.File.c
+                                string m_sPath = $"{Cmn_v1.Cmn.m_fMPath}/{m_cFileCmdType._m_sFilePath}";
+                                if (!System.IO.Directory.Exists(m_sPath)) System.IO.Directory.CreateDirectory(m_sPath);
+
+                                string m_sFile = $"{m_sPath}/{m_sName}{m_sExt}";
+                                if (System.IO.File.Exists(m_sFile))
+                                {
+                                    m_sStatus = 1;
+                                    m_sResultMessage = $"-ERR 文件已存在";
+                                }
+                                else
+                                {
+                                    using (System.IO.MemoryStream stream = new System.IO.MemoryStream(Convert.FromBase64String(m_sBase64)))
+                                    {
+                                        using (System.IO.FileStream fs = new System.IO.FileStream(m_sFile, System.IO.FileMode.Create))
+                                        {
+                                            byte[] b = stream.ToArray();
+                                            fs.Write(b, 0, b.Length);
+                                            fs.Close();
+                                        }
+                                    }
+                                    m_sStatus = 0;
+                                    m_sResultMessage = $"+OK 超时放音[{m_sName}]绑定成功";
+                                }
+                                ///将消息直接回复即可
+                                m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
+                                _m_mWebSocketJson.m_sUse = m_sUse;
+                                _m_mWebSocketJson.m_oObject = new
+                                {
+                                    m_sStatus = m_sStatus,
+                                    m_sUUID = m_sUUID,
+                                    m_sResultMessage = m_sResultMessage
+                                };
+                                m_pWebSocket?.Send($"{m_mWebSocketJsonPrefix._m_sFileCmd}{JsonConvert.SerializeObject(_m_mWebSocketJson)}");
+                                Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][{m_sResultMessage}]");
+                            }
+                            catch (Exception ex)
+                            {
+                                ///将错误消息直接回复即可
+                                m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
+                                _m_mWebSocketJson.m_sUse = m_sUse;
+                                _m_mWebSocketJson.m_oObject = new
+                                {
+                                    m_sStatus = -1,
+                                    m_sUUID = m_sUUID,
+                                    m_sResultMessage = $"-ERR {ex.Message}"
+                                };
+                                m_pWebSocket?.Send($"{m_mWebSocketJsonPrefix._m_sFileCmd}{JsonConvert.SerializeObject(_m_mWebSocketJson)}");
+                                Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Exception][{m_sMessage}:{ex.Message}]");
+                            }
+                        }
+                        #endregion
+                        break;
+                    case m_cFileCmdType._m_sFileDelete:
+                        #region ***文件删除
+                        {
+                            try
+                            {
+
+                            }
+                            catch (Exception ex)
+                            {
+
+                            }
+                        }
+                        #endregion
+                        break;
                     default:
                         #region 默认
                         Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][unknown,{m_pWebSocket.ConnectionInfo.ClientIpAddress},{m_pWebSocket.ConnectionInfo.ClientPort},{m_sMessage}]");
@@ -692,6 +775,7 @@ namespace WebSocket_v1
         public const string _m_sHttpCmd = "{JSON-HTTP-CMD}";
         public const string _m_sP2PMsgCmd = "{JSON-P2PMSG-CMD}";
         public const string _m_sFSCmd = "{JSON-FS-CMD}";
+        public const string _m_sFileCmd = "{JSON-FILE-CMD}";
     }
 
     internal class m_cFSCmd

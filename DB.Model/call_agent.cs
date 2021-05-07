@@ -67,5 +67,11 @@ namespace DB.Model
         /// 拨号首发设定
         /// </summary>
         public int f99d999 { get; set; }
+        /// <summary>
+        /// 超时放音配置
+        /// </summary>
+        public int no_answer_timeout { get; set; }
+        public string no_answer_music { get; set; }
+        public string no_answer_api { get; set; }
     }
 }
