@@ -120,7 +120,7 @@ namespace CenoSipBusiness {
                         }
                         catch (Exception ex)
                         {
-                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][Exception][{ex.Message}]");
+                            Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][Exception][{ex.Message},或call_agent、call_channel、call_clientparam不匹配]");
                             Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_tSeeUseStatus][Elapsed][InnerException][{ex?.InnerException?.Message}]");
                         }
                     };
