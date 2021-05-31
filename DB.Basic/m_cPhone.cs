@@ -15,7 +15,7 @@ namespace DB.Basic
         ///修改规则,如果尾缀有*1000等格式则判断为内呼,并兼容内呼规则
         public static Regex m_rRegex = new Regex("(.*)[*](\\d{4,})$");
         public static Regex m_rRegex2 = new Regex("^(\\*?)[7][0178][\\*](\\d*)$");
-        public static List<string> m_fGetPhoneNumberMemo(string m_sPhoneNumber)
+        public static List<string> m_fGetPhoneNumberMemo(string m_sPhoneNumber, int m_uPhoneNumberValidMode = 0)
         {
             /*
              * 精简一下
@@ -32,6 +32,31 @@ namespace DB.Basic
             string m_sPhoneAddressStr = string.Empty;
             string m_sCityCodeStr = string.Empty;
             string m_sDealWithStr = string.Empty;
+
+            #region ***号码验证模式
+            switch (m_uPhoneNumberValidMode)
+            {
+                case 1:
+                    //信修等特殊模式略过验证
+
+                    //0 处理
+                    m_lStrings.Add(m_sPhoneNumber);
+                    //1 原号
+                    m_lStrings.Add(m_sPhoneNumber);
+                    //2 内呼外呼
+                    m_lStrings.Add(Special.Zero);
+                    //3 归属地
+                    m_lStrings.Add("略过");
+                    //4 区号
+                    m_lStrings.Add(string.Empty);
+                    //5 是否需要继续处理的代码
+                    m_lStrings.Add(Special.Complete);
+                    return m_lStrings;
+                default:
+                    //继续验证归属地
+                    break;
+            }
+            #endregion
 
             try
             {

@@ -24,11 +24,11 @@ namespace CenoSocket
 {
     public class m_cIp
     {
-        public static async void m_fExecuteDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0)
+        public static async void m_fExecuteDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0, int m_uPhoneNumberValidMode = 0)
         {
             try
             {
-                await m_fDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode);
+                await m_fDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode, m_uPhoneNumberValidMode);
             }
             catch (Exception ex)
             {
@@ -36,7 +36,7 @@ namespace CenoSocket
             }
         }
 
-        public static async Task m_fDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0)
+        public static async Task m_fDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0, int m_uPhoneNumberValidMode = 0)
         {
             int m_uAgentID = -1;
             ChannelInfo m_mChannel = null;
@@ -91,19 +91,30 @@ namespace CenoSocket
                     return;
                 }
 
-                //继续处理,防止号码有误
-                Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
-                Regex m_rIsMatchRegex = new Regex("^[0-9*#]{3,20}$");
-                string m_sDealWithPhoneNumberStr = m_rReplaceRegex.Replace(m_sPhoneNumber, string.Empty);
-                if (!m_rIsMatchRegex.IsMatch(m_sDealWithPhoneNumberStr))
+                //兼容被叫号码验证模式
+                string m_sDealWithPhoneNumberStr = m_sPhoneNumber;
+                switch (m_uPhoneNumberValidMode)
                 {
-                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} invalid phone]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err号码有误");
-                    return;
+                    case 1:
+                        //信修等特殊模式略过验证
+                        Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} ignore invalid phone]");
+                        break;
+                    default:
+                        //继续处理,防止号码有误
+                        Regex m_rReplaceRegex = new Regex("[^(0-9*#)]+");
+                        Regex m_rIsMatchRegex = new Regex("^[0-9*#]{3,20}$");
+                        m_sDealWithPhoneNumberStr = m_rReplaceRegex.Replace(m_sPhoneNumber, string.Empty);
+                        if (!m_rIsMatchRegex.IsMatch(m_sDealWithPhoneNumberStr))
+                        {
+                            Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} invalid phone]");
+                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err号码有误");
+                            return;
+                        }
+                        break;
                 }
 
                 #region ***呼出只判断是否是黑名单,黑名单直接限制呼叫即可,如果更新中则暂时失效即可
-                if (!m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
+                if (m_uPhoneNumberValidMode == 0 && !m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
                 {
                     ///判断所有的黑名单即可
                     foreach (m_mWblist item in m_cWblist.m_lWblist)
@@ -138,10 +149,10 @@ namespace CenoSocket
                 #endregion
 
                 #region ***是否需要查询联系人姓名
-                if (Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sDealWithPhoneNumberStr);
+                if (m_uPhoneNumberValidMode == 0 && Call_ParamUtil.m_bUseHomeSearch) m_cEsySQL.m_fSetExpc(m_sDealWithPhoneNumberStr);
                 #endregion
 
-                List<string> m_lStrings = m_cPhone.m_fGetPhoneNumberMemo(m_sDealWithPhoneNumberStr);
+                List<string> m_lStrings = m_cPhone.m_fGetPhoneNumberMemo(m_sDealWithPhoneNumberStr, m_uPhoneNumberValidMode);
                 string m_sDealWithRealPhoneNumberStr = m_lStrings[0];
                 bool m_bStar = m_lStrings[2] == Special.Star;
                 string m_sPhoneAddressStr = m_lStrings[3];
@@ -1348,6 +1359,11 @@ namespace CenoSocket
         /// 6.m_uDecryptMode,解密模式(0,正常;1,交行解密)
         /// </summary>
         public const string _m_sIpDialv3 = "IpDialv3";
+        /// <summary>
+        /// 基于IP话机拨号版本3延申
+        /// 7.m_uPhoneNumberValidMode,号码验证模式(0,正常;1,略过)
+        /// </summary>
+        public const string _m_sIpDialv4 = "IpDialv4";
         /// <summary>
         /// 获取共享号码
         /// </summary>

@@ -115,7 +115,8 @@ namespace WebSocket_v1
                         break;
                     case m_cIpCmd._m_sIpDialv2://后续将此内容直接整合入拨号,因为都是同一个逻辑,维护俩份过于麻烦
                     case m_cIpCmd._m_sIpDialv3:
-                        #region ***IP话机拨号版本2,IP话机拨号版本3
+                    case m_cIpCmd._m_sIpDialv4:
+                        #region ***IP话机拨号版本2,IP话机拨号版本3,IP话机拨号版本4
                         {
                             //交互唯一标识
                             string m_sUUID = m_pJObject["m_oObject"]["m_sUUID"].ToString();
@@ -178,8 +179,26 @@ namespace WebSocket_v1
                             }
                             #endregion
 
+                            #region IP话机拨号版本4
+                            int m_uPhoneNumberValidMode = 0;///号码验证模式
+                            if (m_sUse == m_cIpCmd._m_sIpDialv4)
+                            {
+                                try
+                                {
+                                    if (_m_pJObject.ContainsKey("m_uPhoneNumberValidMode"))
+                                    {
+                                        m_uPhoneNumberValidMode = Convert.ToInt32(_m_pJObject.GetValue("m_uPhoneNumberValidMode").ToString());
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Exception][Get m_uPhoneNumberValidMode:{ex.Message}]");
+                                }
+                            }
+                            #endregion
+
                             //执行IP话机拨号
-                            CenoSocket.m_cIp.m_fExecuteDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode);
+                            CenoSocket.m_cIp.m_fExecuteDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode, m_uPhoneNumberValidMode);
                         }
                         #endregion
                         break;
