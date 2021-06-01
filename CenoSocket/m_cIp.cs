@@ -770,9 +770,8 @@ namespace CenoSocket
                     m_mChannel.channel_call_other_uuid = bridgeUUID;
                     m_mRecord.C_RingTime = Cmn.m_fDateTimeString();
 
-                    //桥接被叫
-                    if (m_bIsDispose) return;
-                    BridgeResult m_pBridgeResult = await m_sClient.Bridge(uuid, m_sEndPointStrB, new BridgeOptions()
+                    //自动接听参数
+                    BridgeOptions CheeVariables = new BridgeOptions()
                     {
                         UUID = bridgeUUID,
                         CallerIdNumber = m_mRecord.LocalNum,
@@ -781,8 +780,12 @@ namespace CenoSocket
                         ContinueOnFail = true,
                         TimeoutSeconds = m_uTimeoutSeconds,
                         IgnoreEarlyMedia = m_bIgnoreEarlyMedia
+                    };
+                    if (CheeVariables.ChannelVariables.ContainsKey("sip_h_X_ALegAutoAccept")) CheeVariables.ChannelVariables["sip_h_X_ALegAutoAccept"] = "N";
 
-                    }).ContinueWith(task =>
+                    //桥接被叫
+                    if (m_bIsDispose) return;
+                    BridgeResult m_pBridgeResult = await m_sClient.Bridge(uuid, m_sEndPointStrB, CheeVariables).ContinueWith(task =>
                     {
                         try
                         {
@@ -1187,6 +1190,10 @@ namespace CenoSocket
                     }
                 }
 
+                //自动接听参数
+                Dictionary<string, string> CherVariables = new Dictionary<string, string>();
+                CherVariables.Add("sip_h_X_ALegAutoAccept", "Y");
+
                 if (m_bIsDispose) return;
                 OriginateResult m_pOriginateResult = await m_sClient.Originate(m_sEndPointStrA, new OriginateOptions()
                 {
@@ -1196,7 +1203,8 @@ namespace CenoSocket
                     CallerIdName = string.IsNullOrWhiteSpace(_m_sPhoneAddressStr) ? m_sCalleeRemove0000 : _m_sPhoneAddressStr,
                     HangupAfterBridge = false,
                     TimeoutSeconds = m_uALegTimeoutSeconds,
-                    IgnoreEarlyMedia = m_bIgnoreEarlyMedia
+                    IgnoreEarlyMedia = m_bIgnoreEarlyMedia,
+                    ChannelVariables = CherVariables
 
                 }, m_sApplicationStr).ContinueWith(task =>
                 {
