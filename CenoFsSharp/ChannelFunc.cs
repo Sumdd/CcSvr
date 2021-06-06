@@ -101,7 +101,15 @@ namespace CenoFsSharp {
                     default:
                         Log.Instance.Warn($"[CenoFsSharp][ChannelFunc][m_fDoCall][{profile}][{uuid} a-leg-number:{m_sALegPhoneNumberStr};a-leg-ip:{m_sALegIPStr}]");
                         Log.Instance.Warn($"[CenoFsSharp][ChannelFunc][m_fDoCall][{profile}][{uuid} b-leg-number:{m_sBLegPhoneNumberStr};b-leg-ip:{m_sBLegIPStr}]");
-                        CenoFsSharp.m_fCallClass.m_fCall(_Socket);
+
+                        if (m_sALegPhoneNumberStr.Length == 4 || profile.IndexOf("internal", StringComparison.OrdinalIgnoreCase) > -1)
+                        {
+                            CenoFsSharp.m_fDialClass.m_fDial(_Socket);
+                        }
+                        else
+                        {
+                            CenoFsSharp.m_fCallClass.m_fCall(_Socket);
+                        }
                         //_call_do(_Socket);
                         break;
                 }
