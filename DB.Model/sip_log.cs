@@ -22,5 +22,9 @@ namespace DB.Model
         public string host { get; set; }
 
         public DateTime addtime { get; set; }
+
+        public string network_ip { get; set; }
+
+        public string network_port { get; set; }
     }
 }

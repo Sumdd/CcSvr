@@ -11,7 +11,7 @@ namespace DB.Basic
     {
         public static bool Insert(sip_log_model model)
         {
-            string sql = "INSERT INTO `sip_log` (`sip_auth_user`,`sip_auth_realm`,`contact`,`status`,`agent`,`host`,`addtime`) VALUES (?sip_auth_user, ?sip_auth_realm, ?contact, ?status, ?agent, ?host, ?addtime);";
+            string sql = "INSERT INTO `sip_log` (`sip_auth_user`,`sip_auth_realm`,`contact`,`status`,`agent`,`host`,`addtime`,`network_ip`,`network_port`) VALUES (?sip_auth_user, ?sip_auth_realm, ?contact, ?status, ?agent, ?host, ?addtime, ?network_ip, ?network_port);";
             MySqlParameter[] parameters = {
      new MySqlParameter("?sip_auth_user", MySqlDbType.VarChar,50),
      new MySqlParameter("?sip_auth_realm", MySqlDbType.VarChar,50),
@@ -19,7 +19,9 @@ namespace DB.Basic
      new MySqlParameter("?status", MySqlDbType.VarChar,1000),
      new MySqlParameter("?agent", MySqlDbType.VarChar,100),
      new MySqlParameter("?host", MySqlDbType.VarChar,100),
-     new MySqlParameter("?addtime", MySqlDbType.DateTime)
+     new MySqlParameter("?addtime", MySqlDbType.DateTime),
+     new MySqlParameter("?network_ip", MySqlDbType.VarChar,50),
+     new MySqlParameter("?network_port", MySqlDbType.VarChar,50),
                 };
             parameters[0].Value = model.sip_auth_user;
             parameters[1].Value = model.sip_auth_realm;
@@ -28,6 +30,8 @@ namespace DB.Basic
             parameters[4].Value = model.agent;
             parameters[5].Value = model.host;
             parameters[6].Value = model.addtime;
+            parameters[7].Value = model.network_ip;
+            parameters[8].Value = model.network_port;
             return MySQL_Method.ExecuteNonQuery(sql, parameters) > 0;
         }
 

@@ -448,7 +448,9 @@ namespace CenoSipBusiness {
                                         status = x.Element("status").Value,
                                         agent = x.Element("agent").Value,
                                         host = x.Element("host").Value,
-                                        addtime = m_dtNow
+                                        addtime = m_dtNow,
+                                        network_ip = x.Element("network-ip").Value,
+                                        network_port = x.Element("network-port").Value
 
                                     }).ToList();
                                 }
