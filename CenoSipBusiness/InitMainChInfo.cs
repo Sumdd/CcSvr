@@ -19,6 +19,8 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Reflection;
+using System.IO;
+using System.Xml.Linq;
 
 namespace CenoSipBusiness {
     public class intilizate_services {
@@ -30,6 +32,9 @@ namespace CenoSipBusiness {
         private static Timer m_tSeeUseStatus;
         private static Timer m_tEnqueueTaskTimer;
         private static Timer m_tTaskUpdPhone;
+
+        //记录Sip注册
+        private static Timer m_tSipTimer;
 
         public static bool IsExit;
         public static bool m_bIsLoadedShare = false;
@@ -387,7 +392,168 @@ namespace CenoSipBusiness {
             }
             #endregion
 
+            m_fReStartSipTimer();
+
+            setTaskAtFixedTime();
+
             return true;
+        }
+
+        //控制单进行
+        public static object m_oSipLock = new object();
+        public static bool m_bSipDoing = false;
+        public static void m_fReStartSipTimer()
+        {
+            #region ***记录Sip注册
+            if (m_tSipTimer == null)
+            {
+                //停止
+                if (Call_ParamUtil.m_uUaRegHeart <= 0) return;
+
+                m_tSipTimer = new Timer();
+                m_tSipTimer.Interval = 1000 * Call_ParamUtil.m_uUaRegHeart;
+                m_tSipTimer.AutoReset = false;
+                m_tSipTimer.Elapsed += (a, b) =>
+                {
+                    //单进行
+                    lock (m_oSipLock)
+                    {
+                        if (m_bSipDoing) return;
+
+                        m_bSipDoing = true;
+                        m_tSipTimer.Stop();
+                    }
+
+                    #region ***函数
+                    {
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                string m_sEslResult = await InboundMain.m_fCmnEsl("sofia xmlstatus profile internal reg");
+
+                                List<sip_log_model> m_lSiplog = new List<sip_log_model>();
+
+                                using (StringReader m_pTextReader = new StringReader(m_sEslResult))
+                                {
+                                    ///XML稳定处理得到对应的信息
+                                    XDocument m_pXDocument = XDocument.Load(m_pTextReader);
+                                    DateTime m_dtNow = DateTime.Now;
+                                    m_lSiplog = m_pXDocument.Descendants("registration").Select(x =>
+                                    new sip_log_model
+                                    {
+                                        sip_auth_user = x.Element("sip-auth-user").Value,
+                                        sip_auth_realm = x.Element("sip-auth-realm").Value,
+                                        contact = x.Element("contact").Value,
+                                        status = x.Element("status").Value,
+                                        agent = x.Element("agent").Value,
+                                        host = x.Element("host").Value,
+                                        addtime = m_dtNow
+
+                                    }).ToList();
+                                }
+
+                                //保存进数据库
+                                foreach (sip_log_model item in m_lSiplog)
+                                {
+                                    try
+                                    {
+                                        sip_log.Insert(item);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_fReStartSipTimer][foreach][Exception][{ex.Message}]");
+                                    }
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Debug(ex);
+                                Log.Instance.Error($"[CenoSipBusiness][intilizate_services][m_fReStartSipTimer][Exception][{ex.Message}]");
+                            }
+
+                        }).Wait();
+
+                        #region ***只保留一天的数据
+
+                        #endregion
+                    }
+                    #endregion
+
+                    lock (m_oSipLock)
+                    {
+                        m_bSipDoing = false;
+
+                        //大于0
+                        if (Call_ParamUtil.m_uUaRegHeart > 0)
+                        {
+                            m_tSipTimer.Start();
+                        }
+                        else
+                        {
+                            Log.Instance.Warn($"[CenoSipBusiness][intilizate_services][m_fReStartSipTimer][do end and sip timer stop]");
+                        }
+                    }
+                };
+                m_tSipTimer.Start();
+            }
+            else
+            {
+                lock (m_oSipLock)
+                {
+                    if (m_bSipDoing)
+                    {
+                        if (Call_ParamUtil.m_uUaRegHeart > 0) m_tSipTimer.Interval = 1000 * Call_ParamUtil.m_uUaRegHeart;
+                    }
+                    else
+                    {
+                        //大于0
+                        if (Call_ParamUtil.m_uUaRegHeart > 0)
+                        {
+                            m_tSipTimer.Stop();
+                            m_tSipTimer.Interval = 1000 * Call_ParamUtil.m_uUaRegHeart;
+                            m_tSipTimer.Start();
+                        }
+                        else
+                        {
+                            m_tSipTimer.Stop();
+                            Log.Instance.Warn($"[CenoSipBusiness][intilizate_services][m_fReStartSipTimer][sip timer stop]");
+                        }
+                    }
+                }
+            }
+            #endregion
+        }
+
+        //控制单进行
+        public static object m_oClearingSipLock = new object();
+        //每日凌晨,删除sip_log1天前的记录即可
+        private static void setTaskAtFixedTime()
+        {
+            DateTime now = DateTime.Now;
+            DateTime zeroOClock = DateTime.Today.AddHours(0.0); //凌晨00:00:00
+            if (now > zeroOClock)
+            {
+                zeroOClock = zeroOClock.AddDays(1.0);
+            }
+            int msUntilFour = (int)((zeroOClock - now).TotalMilliseconds);
+
+            var t = new System.Threading.Timer(doAt0AM);
+            t.Change(msUntilFour, System.Threading.Timeout.Infinite);
+        }
+
+        private static void doAt0AM(object state)
+        {
+            //调用数据备份功能
+            lock (m_oClearingSipLock)
+            {
+                sip_log.Clear();
+                Log.Instance.Warn($"[CenoSipBusiness][intilizate_services][doAt0AM][clear sip log]");
+            }
+
+            //再次设定
+            setTaskAtFixedTime();
         }
 
         #region 自动外呼起止时间,设定开关变量

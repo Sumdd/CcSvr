@@ -1583,5 +1583,35 @@ namespace DB.Basic {
             }
         }
         #endregion
+        #region ***坐席注册状态心跳秒,0为不启用
+        public static int? _m_uUaRegHeart;
+        public static int m_uUaRegHeart
+        {
+            get
+            {
+                try
+                {
+                    if (_m_uUaRegHeart == null)
+                    {
+                        Call_ParamUtil._m_uUaRegHeart = Convert.ToInt32(Call_ParamUtil.GetParamValueByName("_m_uUaRegHeart".Replace("_m_u", "").Replace("m_u", "")));
+                    }
+                    return _m_uUaRegHeart.Value;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_uUaRegHeart".Replace("_m_u", "").Replace("m_u", ""), value.ToString());
+                    _m_uUaRegHeart = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
     }
 }

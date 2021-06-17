@@ -117,6 +117,7 @@
     <Compile Include="call_phoneaddress.cs" />
     <Compile Include="call_phonenum_list.cs" />
     <Compile Include="call_record.cs" />
+    <Compile Include="sip_log.cs" />
     <Compile Include="call_role.cs" />
     <Compile Include="call_serverlist.cs" />
     <Compile Include="call_socketcommand.cs" />

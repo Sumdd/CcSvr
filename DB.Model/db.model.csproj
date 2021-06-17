@@ -92,6 +92,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="sip_log.cs" />
     <Compile Include="PhoneAutoCall.cs" />
     <Compile Include="call_agent.cs" />
     <Compile Include="call_channel.cs" />

@@ -132,6 +132,8 @@ namespace CenoServer
 
   auto call start `自动外呼启动`
 
+  sip second [0|>=60] `坐席注册状态心跳秒,0为不启用`
+
   exit `退出服务端`
 
 ";
@@ -705,6 +707,26 @@ namespace CenoServer
                         string m_sCmd = yaStr.Substring(m_sTempPrefixCmd.Length);
                         Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][{m_sCmd}]");
                         Redis2.m_fCmdRedis(m_sCmd);
+                    }
+                    #endregion
+
+                    #region 自动更新号码池信息时间
+                    m_sTempPrefixCmd = "sip second ";
+                    if (readStr.StartsWith(m_sTempPrefixCmd))
+                    {
+                        int m_uInt = 0;
+                        string m_sInt = readStr.Substring(m_sTempPrefixCmd.Length);
+                        int.TryParse(m_sInt, out m_uInt);
+                        if (m_uInt >= 60 || m_uInt == 0)
+                        {
+                            Call_ParamUtil.m_uUaRegHeart = m_uInt;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][sip second is {m_uInt},restart sip timer]");
+                            intilizate_services.m_fReStartSipTimer();
+                        }
+                        else
+                        {
+                            Log.Instance.Fail($"[CenoServer][MainWhileDo][MainStep]sip second must bigger or 0]");
+                        }
                     }
                     #endregion
                 }
