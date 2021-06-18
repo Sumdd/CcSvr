@@ -425,6 +425,59 @@ namespace WebSocket_v1
                         }
                         #endregion
                         break;
+                    case m_cIpCmd._m_sIpKill:
+                        #region ***强断
+                        {
+                            string m_sUUID = string.Empty;
+                            try
+                            {
+                                ///记录一下时间
+                                DateTime m_dtNow = DateTime.Now;
+                                //交互唯一标识
+                                m_sUUID = m_pJObject["m_oObject"]["m_sUUID"].ToString();
+                                //字符串转对象
+                                JObject _m_pJObject = JObject.Parse(m_pJObject["m_oObject"]["m_sSendMessage"].ToString());
+                                ///登录名
+                                string m_sLoginName = _m_pJObject.GetValue("m_sLoginName").ToString();
+
+                                //缓存状态码及状态信息
+                                int m_sStatus = -1;
+                                string m_sErrMsg = "Err未知";
+
+                                //调用委托,挂断即可
+                                m_cIp.m_fIpKill(m_sLoginName, ref m_sStatus, ref m_sErrMsg);
+
+                                m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
+                                _m_mWebSocketJson.m_sUse = m_cIpCmd._m_sIpKill;
+                                _m_mWebSocketJson.m_oObject = new
+                                {
+                                    m_sStatus = m_sStatus,
+                                    m_sUUID = m_sUUID,
+                                    //参数字符串
+                                    m_sResultMessage = m_sErrMsg
+                                };
+                                //回复消息
+                                m_pWebSocket.Send(JsonConvert.SerializeObject(_m_mWebSocketJson));
+                            }
+                            catch (Exception ex)
+                            {
+                                if (!string.IsNullOrWhiteSpace(m_sUUID))
+                                {
+                                    m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
+                                    _m_mWebSocketJson.m_sUse = m_cIpCmd._m_sIpKill;
+                                    _m_mWebSocketJson.m_oObject = new
+                                    {
+                                        m_sStatus = -1,
+                                        m_sUUID = m_sUUID,
+                                        m_sResultMessage = $"Err{ex.Message}"
+                                    };
+                                    //回复消息
+                                    m_pWebSocket.Send(JsonConvert.SerializeObject(_m_mWebSocketJson));
+                                }
+                            }
+                        }
+                        #endregion
+                        break;
                     case m_cFSCmdType._m_sFSCmd:
                         #region ***发送并执行freeswitch命令,服务端处理事宜
                         {

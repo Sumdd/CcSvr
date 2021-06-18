@@ -65,7 +65,7 @@ namespace CenoSocket
                 AGENT_INFO m_mAgent = call_factory.agent_list.Find(x => x.LoginName == m_sLoginName);
                 if (m_mAgent == null)
                 {
-                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} miss a leg info]");
+                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_sLoginName} miss a leg info]");
                     m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err账户有误");
                     return;
                 }
@@ -1194,6 +1194,9 @@ namespace CenoSocket
                 Dictionary<string, string> CherVariables = new Dictionary<string, string>();
                 CherVariables.Add("sip_h_X_ALegAutoAccept", "Y");
 
+                //拨打之前记录uuid
+                m_mChannel.channel_call_uuid = uuid;
+
                 if (m_bIsDispose) return;
                 OriginateResult m_pOriginateResult = await m_sClient.Originate(m_sEndPointStrA, new OriginateOptions()
                 {
@@ -1346,6 +1349,54 @@ namespace CenoSocket
             }
         }
         #endregion
+
+        public static void m_fIpKill(string m_sLoginName, ref int m_sStatus, ref string m_sErrMsg)
+        {
+            try
+            {
+                int m_uAgentID = -1;
+                ChannelInfo m_mChannel = null;
+
+                AGENT_INFO m_mAgent = call_factory.agent_list.Find(x => x.LoginName == m_sLoginName);
+                if (m_mAgent == null)
+                {
+                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fIpKill][{m_sLoginName} miss a leg info]");
+                    m_sStatus = -1;
+                    m_sErrMsg = "Err账户有误";
+                    return;
+                }
+
+                m_uAgentID = m_mAgent.AgentID;
+                int m_uCh = m_mAgent.ChInfo.nCh;
+                m_mChannel = call_factory.channel_list[m_uCh];
+
+                if (m_uCh == -1 || m_mChannel == null || m_mChannel?.channel_type != Special.SIP
+                    ///接触模式限制,都接受API调用即可
+                    ///|| (m_mChannel?.IsRegister != 0 && m_mChannel?.IsRegister != -1)
+                    )
+                {
+                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fIpKill][{m_uAgentID} miss channel or not sip channel]");
+                    m_sStatus = -1;
+                    m_sErrMsg = "Err通道有误";
+                    return;
+                }
+
+                //强断
+                SocketMain.m_fKill(m_uAgentID, m_mChannel.channel_call_uuid);
+                m_mChannel.channel_call_uuid = null;
+                SocketMain.m_fKill(m_uAgentID, m_mChannel.channel_call_other_uuid);
+                m_mChannel.channel_call_other_uuid = null;
+                m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+
+                m_sStatus = 0;
+                m_sErrMsg = "OK强断";
+            }
+            catch (Exception ex)
+            {
+                m_sStatus = -1;
+                m_sErrMsg = $"Err{ex.Message}";
+            }
+        }
     }
 
     public class m_cIpCmd
@@ -1380,6 +1431,10 @@ namespace CenoSocket
         /// 获取申请式线路
         /// </summary>
         public const string _m_sGetApply = "GetApply";
+        /// <summary>
+        /// 强断
+        /// </summary>
+        public const string _m_sIpKill = "IpKill";
     }
 
     public class m_mIpCmd
