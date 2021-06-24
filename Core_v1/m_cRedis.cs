@@ -327,6 +327,8 @@ namespace Core_v1
                     dial_area m_pDialArea = m_lDialArea.Where(x => x.id == m_pShareNumber.areaid)?.FirstOrDefault();
                     if (m_pDialArea != null)
                     {
+                        //发现共享号码并未做持久化
+
                         if (Cmn_v1.Cmn.m_fEqualsDate(m_pShareNumber.usethetime))
                         {
                             m_pShareNumber.usecount++;
@@ -471,7 +473,7 @@ namespace Core_v1
 
                         ///增加一个参数,如果拨打中,返回
                         if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE
-                            ///如果拨号中,此处也需要状态回发
+                            ///非延时时,这里如果还是SHARE_NUM_STATUS.CALL、SHARE_NUM_STATUS.DIAL说明有问题,不能直接返回而是回发
                             ///|| _m_pShareNumber.state == SHARE_NUM_STATUS.CALL
                             ) return;
                     }
@@ -616,8 +618,13 @@ namespace Core_v1
                         ///方便判断何种操作,为下步做准备
                         m_uAddCode = (m_pShareNumber.isshare - 1) * 10;
 
+                        if (m_uAddCode == 20)
+                        {
+                            //没有回呼,直接返回
+                            return 0;
+                        }
                         ///这里追加分支,如果号码为申请式
-                        if (m_uAddCode == 10)
+                        else if (m_uAddCode == 10)
                         {
                             ///如果未加锁呼入,直接挂断即可
                             string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
@@ -899,14 +906,32 @@ namespace Core_v1
         #endregion
 
         #region ***获取申请式号码,并载入申请者信息(出现Redis的错误,这里有可能需要直接使用内存,待定)
-        public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, bool m_bBind, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg)
+        public static share_number m_fApplyXx(string m_sIP, string m_sChannelNumber, int m_uAgentID, int m_uChannelID, int m_uShareSetting, bool m_bBind, List<string> m_lNumber, out int m_sStatus, out string m_sErrMsg, int isshare, string m_sUUID)
         {
+            m_sStatus = -1;
+
+            #region ***新呼出式续联配置UUID
+            if (isshare == 3)
+            {
+                if (string.IsNullOrWhiteSpace(m_sUUID))
+                {
+                    m_sStatus = -1;
+                    m_sErrMsg = "Err无唯一ID";
+                    return null;
+                }
+            }
+            else
+            {
+                m_sUUID = $"{m_sIP}:{m_sChannelNumber}";
+            }
+            #endregion
+
             string _m_sJSONStr = string.Empty;
             try
             {
                 ///容错判断,看看什么情况
                 DateTime m_dt = DateTime.Now;
-                Log.Instance.Warn($"{m_dt.ToLongTimeString()};m_sIP:{m_sIP};m_sChannelNumber:{m_sChannelNumber};m_uAgentID:{m_uAgentID};m_uChannelID:{m_uChannelID};m_uShareSetting:{m_uShareSetting};m_bBind:{m_bBind}");
+                Log.Instance.Warn($"{m_dt.ToLongTimeString()};m_sIP:{m_sIP};m_sChannelNumber:{m_sChannelNumber};m_uAgentID:{m_uAgentID};m_uChannelID:{m_uChannelID};m_uShareSetting:{m_uShareSetting};m_bBind:{m_bBind},isshare:{isshare}");
                 ///然后锁定资源的时候,可以加个锁,防止意外情况的发生
             }
             catch (Exception ex)
@@ -915,7 +940,6 @@ namespace Core_v1
                 Log.Instance.Error(ex.StackTrace);
             }
 
-            m_sStatus = -1;
             try
             {
                 if (Redis2.use)
@@ -996,9 +1020,9 @@ namespace Core_v1
                                                                  //没有锁
                                                                  &&
                                                                  !m_lLockKeys.Contains($"{Redis2.m_sLockPrefix}:{r.uuid}")
-                                                                 //申请式号码
+                                                                 //申请式号码,兼容新生代续联2
                                                                  &&
-                                                                 r.isshare == 2
+                                                                 r.isshare == isshare
                                                                  &&
                                                                  (
                                                                     //永久可调用且非绑定
@@ -1022,29 +1046,40 @@ namespace Core_v1
                                 ///如果多条则取第一条,而且要返回坐席号码
                                 share_number m_pShareNumber = m_lShareNumber.FirstOrDefault();
 
-                                ///做提示给调用方,方便发现问题
-                                if (string.IsNullOrWhiteSpace(m_pShareNumber.xxUa) || string.IsNullOrWhiteSpace(m_pShareNumber.xxPwd))
+                                if (isshare == 2)
                                 {
-                                    m_sErrMsg = "Err无资源登录信息";
-                                    return null;
-                                }
+                                    ///做提示给调用方,方便发现问题
+                                    if (string.IsNullOrWhiteSpace(m_pShareNumber.xxUa) || string.IsNullOrWhiteSpace(m_pShareNumber.xxPwd))
+                                    {
+                                        m_sErrMsg = "Err无资源登录信息";
+                                        return null;
+                                    }
 
-                                if (m_pShareNumber.xxLogin != 1)
-                                {
-                                    m_sErrMsg = "Err资源未登录";
-                                    return null;
+                                    if (m_pShareNumber.xxLogin != 1)
+                                    {
+                                        m_sErrMsg = "Err资源未登录";
+                                        return null;
+                                    }
                                 }
 
                                 string m_sLockKey = $"{Redis2.m_sLockPrefix}:{m_pShareNumber.uuid}";
                                 string m_sDataKey = $"{Redis2.m_sJSONPrefix}:{m_pShareNumber.uuid}";
                                 ///设置由呼叫中心服务器IP和呼叫中心Ua拼接的信息加锁,后续可以强制解锁
-                                if (Redis2.Instance.SetNX(m_sLockKey, $"{m_sIP}:{m_sChannelNumber}", 60 * 60) == 1)
+                                if (Redis2.Instance.SetNX(m_sLockKey, m_sUUID, 60 * 60) == 1)
                                 ///if (Redis2.Instance.SetNX(m_sLockKey, Encoding.UTF8.GetBytes($"{m_sIP}:{m_sChannelNumber}")) == 1)
                                 {
                                     //1小时自动解锁即可
                                     ///Redis2.Instance.Expire(m_sLockKey, 60 * 60);
                                     ///号码状态修改,追加IP与Ua
-                                    m_pShareNumber.state = SHARE_NUM_STATUS.CALL;
+                                    switch (isshare)
+                                    {
+                                        case 2:
+                                            m_pShareNumber.state = SHARE_NUM_STATUS.CALL;
+                                            break;
+                                        case 3:
+                                            m_pShareNumber.state = SHARE_NUM_STATUS.DIAL;
+                                            break;
+                                    }
                                     m_pShareNumber.fs_ip = m_sIP;
                                     m_pShareNumber.fs_num = m_sChannelNumber;
                                     m_pShareNumber.agentID = m_uAgentID;

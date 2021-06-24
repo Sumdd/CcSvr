@@ -98,6 +98,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CenoCommon\common.csproj">
+      <Project>{417DE917-F66A-48A0-BE05-22F0EA18B403}</Project>
+      <Name>common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CenoFsSharp\fs_sharp_core.csproj">
       <Project>{3f74237a-1596-4623-931e-1e648e53f266}</Project>
       <Name>fs_sharp_core</Name>

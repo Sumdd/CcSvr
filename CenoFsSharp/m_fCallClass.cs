@@ -388,6 +388,7 @@ namespace CenoFsSharp
                                         }
                                         break;
                                     default:
+                                        //虽然有新呼出式续联,但此处其没有呼入,暂时略过即可
                                         break;
                                 }
                             }

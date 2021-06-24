@@ -1230,6 +1230,7 @@ namespace CenoSocket
                         m_bIsLinked = true;
                         m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_TALKING;
 
+                        //此处增加状态变化的可行性原因:并没有新线程10秒回发机制,不必担心共享线路状态会被回发,这种上锁模式即可
                         if (m_bShare) m_pShareNumber.state = SHARE_NUM_STATUS.TALKING;
 
                         DateTime m_dtAnswerTimeNow = DateTime.Now;

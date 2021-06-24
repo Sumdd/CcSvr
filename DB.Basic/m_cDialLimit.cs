@@ -357,7 +357,7 @@ FROM
 WHERE
 	`dial_limit`.`isdel` = 0 
 	AND `dial_limit`.`isuse` = 1 
-	AND `dial_limit`.`isshare` IN ( 1, 2 );
+	AND `dial_limit`.`isshare` IN ( 1, 2, 3 );
 ";
                     string m_sXxHttp = Call_ParamUtil.m_sXxHttp;
 

@@ -24,11 +24,11 @@ namespace CenoSocket
 {
     public class m_cIp
     {
-        public static async void m_fExecuteDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0, int m_uPhoneNumberValidMode = 0)
+        public static async void m_fExecuteDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0, int m_uPhoneNumberValidMode = 0, share_number m_pXxShareNumber = null, int m_uALegTimeoutSeconds = 0)
         {
             try
             {
-                await m_fDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode, m_uPhoneNumberValidMode);
+                await m_fDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_sCaller, m_sNumberType, m_uMustNbr, m_uDescMode, m_uDecryptMode, m_uPhoneNumberValidMode, m_pXxShareNumber, m_uALegTimeoutSeconds);
             }
             catch (Exception ex)
             {
@@ -36,12 +36,12 @@ namespace CenoSocket
             }
         }
 
-        public static async Task m_fDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0, int m_uPhoneNumberValidMode = 0)
+        public static async Task m_fDial(IWebSocketConnection m_pWebSocket, string m_sUUID, string m_sLoginName, string m_sPhoneNumber, string m_sCaller, string m_sNumberType, int m_uMustNbr = 0, int m_uDescMode = 0, int m_uDecryptMode = 0, int m_uPhoneNumberValidMode = 0, share_number m_pXxShareNumber = null, int m_uALegTimeoutSeconds = 0)
         {
             int m_uAgentID = -1;
             ChannelInfo m_mChannel = null;
             share_number m_pShareNumber = null;
-            bool m_bShare = false;//是否使用了共享号码
+            bool m_bShare = m_sNumberType == Special.Share;//是否使用了共享号码
             string uuid = Guid.NewGuid().ToString();
             //Caller-Caller-ID-Number
             string m_sUAID = string.Empty;
@@ -59,6 +59,12 @@ namespace CenoSocket
             string _m_sPhoneAddressStr = string.Empty;
             ///白名单不受同号码限呼,0非1白名单
             int m_uWhiteList = 0;
+            //判断是否需要回发,如果为共享线路、且类型为新呼出式续联时需要回发
+            bool m_bNeedReset = (m_bShare && m_pXxShareNumber != null);
+            //是否执行了续联的Redis锁删除
+            bool m_bXxDeleteRedisLock = false;
+            //桥接主叫超时时间
+            if (m_uALegTimeoutSeconds <= 0) m_uALegTimeoutSeconds = Call_ParamUtil.ALegTimeoutSeconds;
 
             try
             {
@@ -66,7 +72,14 @@ namespace CenoSocket
                 if (m_mAgent == null)
                 {
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_sLoginName} miss a leg info]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err账户有误");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err账户有误", m_pXxShareNumber);
+
+                    if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                    {
+                        m_bXxDeleteRedisLock = true;
+                        Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                    }
+
                     return;
                 }
                 m_uAgentID = m_mAgent.AgentID;
@@ -77,17 +90,23 @@ namespace CenoSocket
                 if (m_uUseStatus > 0)
                 {
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID},error code:{m_uUseStatus}]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"ErrCode{m_uUseStatus}");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"ErrCode{m_uUseStatus}", m_pXxShareNumber);
+
+                    if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                    {
+                        m_bXxDeleteRedisLock = true;
+                        Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                    }
+
                     return;
                 }
                 #endregion
 
                 //使用共享号码必须填写外显号码
-                m_bShare = m_sNumberType == Special.Share;
-                if (m_bShare && string.IsNullOrWhiteSpace(m_sCaller))
+                if (m_bShare && !m_bNeedReset && string.IsNullOrWhiteSpace(m_sCaller))
                 {
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} miss share number]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err共享号码");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err共享号码", m_pXxShareNumber);
                     return;
                 }
 
@@ -107,14 +126,21 @@ namespace CenoSocket
                         if (!m_rIsMatchRegex.IsMatch(m_sDealWithPhoneNumberStr))
                         {
                             Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} invalid phone]");
-                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err号码有误");
+                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err号码有误", m_pXxShareNumber);
+
+                            if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                            {
+                                m_bXxDeleteRedisLock = true;
+                                Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                            }
+
                             return;
                         }
                         break;
                 }
 
                 #region ***呼出只判断是否是黑名单,黑名单直接限制呼叫即可,如果更新中则暂时失效即可
-                if (m_uPhoneNumberValidMode == 0 && !m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
+                if (!m_bNeedReset && m_uPhoneNumberValidMode == 0 && !m_cWblist.m_bInitWblist && m_cWblist.m_lWblist?.Count > 0)
                 {
                     ///判断所有的黑名单即可
                     foreach (m_mWblist item in m_cWblist.m_lWblist)
@@ -125,7 +151,7 @@ namespace CenoSocket
                             if (item.regex.IsMatch(m_sDealWithPhoneNumberStr))
                             {
                                 Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} black list:{m_sDealWithPhoneNumberStr}]");
-                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err黑名单");
+                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err黑名单", m_pXxShareNumber);
                                 return;
                             }
                         }
@@ -179,7 +205,14 @@ namespace CenoSocket
                     )
                 {
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} miss channel or not sip channel]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err通道有误");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err通道有误", m_pXxShareNumber);
+
+                    if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                    {
+                        m_bXxDeleteRedisLock = true;
+                        Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                    }
+
                     return;
                 }
 
@@ -191,7 +224,14 @@ namespace CenoSocket
                     )
                 {
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} channel busy]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err通道繁忙");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err通道繁忙", m_pXxShareNumber);
+
+                    if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                    {
+                        m_bXxDeleteRedisLock = true;
+                        Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                    }
+
                     return;
                 }
 
@@ -220,31 +260,58 @@ namespace CenoSocket
                             }
                         case Special.Share:
                             {
-                                //跳转至号码池逻辑,需要持久化至数据库,录音记录都进行保存
-                                string m_sErrMsg = string.Empty;
-                                m_pShareNumber = Redis2.m_fGetTheShareNumber(uuid, m_uAgentID, m_sCaller, m_sDealWithRealPhoneNumberStr, DB.Basic.Call_ParamUtil.m_uShareNumSetting, out m_sErrMsg);
-                                _m_mDialLimit = m_fDialLimit.m_fGetDialLimitByShare(m_pShareNumber);
-                                if (_m_mDialLimit == null)
+                                switch (m_bNeedReset)
                                 {
-                                    Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} get share error]");
-                                    if (string.IsNullOrWhiteSpace(m_sErrMsg)) m_sErrMsg = "Err获取号码";
-                                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"{m_sErrMsg}");
+                                    case true:
+                                        {
+                                            //号码转换为普通拨号限制的模式来做兼容
+                                            _m_mDialLimit = m_fDialLimit.m_fGetDialLimitByShare(m_pXxShareNumber);
+                                        }
+                                        break;
+                                    case false:
+                                        {
+                                            #region ***普通共享号码
+                                            //跳转至号码池逻辑,需要持久化至数据库,录音记录都进行保存
+                                            string m_sErrMsg = string.Empty;
+                                            m_pShareNumber = Redis2.m_fGetTheShareNumber(uuid, m_uAgentID, m_sCaller, m_sDealWithRealPhoneNumberStr, DB.Basic.Call_ParamUtil.m_uShareNumSetting, out m_sErrMsg);
+                                            _m_mDialLimit = m_fDialLimit.m_fGetDialLimitByShare(m_pShareNumber);
+                                            if (_m_mDialLimit == null)
+                                            {
+                                                Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} get share error]");
+                                                if (string.IsNullOrWhiteSpace(m_sErrMsg)) m_sErrMsg = "Err获取号码";
+                                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"{m_sErrMsg}", m_pXxShareNumber);
 
-                                    m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
-                                    m_mChannel.channel_call_uuid = null;
-                                    m_mChannel.channel_call_other_uuid = null;
+                                                if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                                                {
+                                                    m_bXxDeleteRedisLock = true;
+                                                    Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                                                }
 
-                                    return;
+                                                m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
+                                                m_mChannel.channel_call_uuid = null;
+                                                m_mChannel.channel_call_other_uuid = null;
+
+                                                return;
+                                            }
+                                            //如果可以出来,任何需要解锁的地方都要加逻辑
+                                            m_mRecord.isshare = 1;
+                                            m_mRecord.FreeSWITCHIPv4 = m_sFreeSWITCHIPv4;
+                                            #endregion
+                                        }
+                                        break;
                                 }
-                                //如果可以出来,任何需要解锁的地方都要加逻辑
-                                m_mRecord.isshare = 1;
-                                m_mRecord.FreeSWITCHIPv4 = m_sFreeSWITCHIPv4;
                                 break;
                             }
                         default:
                             {
                                 Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} unknown number type]");
-                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err号码类别");
+                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err号码类别", m_pXxShareNumber);
+
+                                if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                                {
+                                    m_bXxDeleteRedisLock = true;
+                                    Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                                }
 
                                 m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                                 m_mChannel.channel_call_uuid = null;
@@ -263,12 +330,18 @@ namespace CenoSocket
                             m_mChannel.channel_call_uuid = null;
                             m_mChannel.channel_call_other_uuid = null;
                             Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} gateway fail]");
-                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err网关有误");
+                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err网关有误", m_pXxShareNumber);
 
-                            if (m_bShare && !m_bDeleteRedisLock)
+                            if (m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                             {
                                 m_bDeleteRedisLock = true;
                                 Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                            }
+
+                            if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                            {
+                                m_bXxDeleteRedisLock = true;
+                                Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
                             }
 
                             return;
@@ -373,12 +446,18 @@ namespace CenoSocket
                         m_mChannel.channel_call_uuid = null;
                         m_mChannel.channel_call_other_uuid = null;
                         Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} no phone number]");
-                        m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err拨号限制");
+                        m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err拨号限制", m_pXxShareNumber);
 
-                        if (m_bShare && !m_bDeleteRedisLock)
+                        if (m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                         {
                             m_bDeleteRedisLock = true;
                             Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                        }
+
+                        if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                        {
+                            m_bXxDeleteRedisLock = true;
+                            Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
                         }
 
                         return;
@@ -498,7 +577,7 @@ namespace CenoSocket
                             m_mChannel.channel_call_other_uuid = null;
 
                             Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} inrule callee:{m_sDealWithPhoneNumberStr},way:{m_sContinue}]");
-                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, m_sContinue);
+                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, m_sContinue, m_pXxShareNumber);
                             return;
                         }
                     }
@@ -551,7 +630,6 @@ namespace CenoSocket
 
                 string m_sApplicationStr = Call_ParamUtil._application;
                 int m_uTimeoutSeconds = Call_ParamUtil.__timeout_seconds;
-                int m_uALegTimeoutSeconds = Call_ParamUtil.ALegTimeoutSeconds;
                 bool m_bIgnoreEarlyMedia = Call_ParamUtil.__ignore_early_media;
                 bool m_bIsLinked = false;
                 string m_sExtensionStr = Call_ParamUtil._rec_t;
@@ -584,12 +662,18 @@ namespace CenoSocket
                     m_mChannel.channel_call_uuid = null;
                     m_mChannel.channel_call_other_uuid = null;
                     Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} miss InboundSocket]");
-                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "ErrESL");
+                    m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "ErrESL", m_pXxShareNumber);
 
-                    if (m_bShare && !m_bDeleteRedisLock)
+                    if (m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                     {
                         m_bDeleteRedisLock = true;
                         Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                    }
+
+                    if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                    {
+                        m_bXxDeleteRedisLock = true;
+                        Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
                     }
 
                     return;
@@ -625,11 +709,18 @@ namespace CenoSocket
                             Log.Instance.Warn($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} event ChannelAnswer dispose]");
                         }
 
-                        if (m_bShare && !m_bDeleteRedisLock)
+                        if (m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                         {
                             m_bDeleteRedisLock = true;
                             Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
                         }
+
+                        if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                        {
+                            m_bXxDeleteRedisLock = true;
+                            Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
+                        }
+
                     }
                     catch (Exception ex)
                     {
@@ -725,18 +816,26 @@ namespace CenoSocket
                                 m_mRecord.CallResultID = m_bStar ? 37 : 10;
 
                                 //未接通主叫挂断
-                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "主叫挂断,取消呼叫");
+                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "主叫挂断,取消呼叫", m_pXxShareNumber, true, "Err主叫挂断取消呼叫");
                             }
 
                             dial_area m_pDialArea = null;
-                            if (!m_bStar && m_bShare && !m_bDeleteRedisLock)
+                            if (!m_bStar && m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                             {
                                 m_bDeleteRedisLock = true;
                                 m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, uuid, m_pShareNumber, m_mRecord.C_SpeakTime);
                             }
 
+                            if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                            {
+                                m_bXxDeleteRedisLock = true;
+                                //Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, uuid);
+                                //编辑
+                                m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, m_sUUID, m_pXxShareNumber, m_mRecord.C_SpeakTime);
+                            }
+
                             Log.Instance.Success($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} insert record]");
-                            call_record.Insert(m_mRecord, !m_bStar && m_bShare, m_pDialArea);
+                            call_record.Insert(m_mRecord, !m_bStar && m_bShare && !m_bNeedReset, m_pDialArea);
 
                             if (!m_bStar)
                             {
@@ -874,19 +973,27 @@ namespace CenoSocket
 
                             //发送呼叫失败具体原因
                             if (string.IsNullOrWhiteSpace(m_sWebSendMsgStr)) m_sWebSendMsgStr = m_sSendMsgStr;
-                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"{m_sWebSendMsgStr}");
+                            m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, $"{m_sWebSendMsgStr}", m_pXxShareNumber);
 
                             m_mRecord.Remark = m_sMsgStr;
 
                             dial_area m_pDialArea = null;
-                            if (!m_bStar && m_bShare && !m_bDeleteRedisLock)
+                            if (!m_bStar && m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                             {
                                 m_bDeleteRedisLock = true;
                                 m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, uuid, m_pShareNumber, 0);
                             }
 
+                            if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                            {
+                                m_bXxDeleteRedisLock = true;
+                                //Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, uuid);
+                                //编辑
+                                m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, m_sUUID, m_pXxShareNumber, 0);
+                            }
+
                             Log.Instance.Success($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} insert record]");
-                            call_record.Insert(m_mRecord, !m_bStar && m_bShare, m_pDialArea);
+                            call_record.Insert(m_mRecord, !m_bStar && m_bShare && !m_bNeedReset, m_pDialArea);
 
                             if (!m_bStar)
                             {
@@ -938,6 +1045,10 @@ namespace CenoSocket
                     {
                         m_bIsLinked = true;
                         m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_TALKING;
+
+                        if (m_bShare && !m_bNeedReset) m_pShareNumber.state = SHARE_NUM_STATUS.TALKING;
+                        else if (m_bNeedReset) m_pXxShareNumber.state = SHARE_NUM_STATUS.TALKING;
+
                         DateTime m_dtAnswerTimeNow = DateTime.Now;
                         #region ***计算接通时间和等待时间
                         //如果比200快,这里应该不可能,而且如果接通,一定会有200消息
@@ -1038,14 +1149,14 @@ namespace CenoSocket
                                 Log.Instance.Success($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} record ID:{m_sRecordingID} send]");
 
                                 //录音成功
-                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, 0, $"{m_sRecordingID}");
+                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, 0, $"{m_sRecordingID}", m_pXxShareNumber, true);
                             }
                             else
                             {
                                 Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} record fail]");
 
                                 //录音失败
-                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, 0, $"");
+                                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, 0, $"", m_pXxShareNumber, true, "Err拨号成功录音失败");
                             }
                         }
 
@@ -1120,14 +1231,22 @@ namespace CenoSocket
                                 }
 
                                 dial_area m_pDialArea = null;
-                                if (!m_bStar && m_bShare && !m_bDeleteRedisLock)
+                                if (!m_bStar && m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                                 {
                                     m_bDeleteRedisLock = true;
                                     m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, uuid, m_pShareNumber, m_mRecord.C_SpeakTime);
                                 }
 
+                                if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                                {
+                                    m_bXxDeleteRedisLock = true;
+                                    //Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, uuid);
+                                    //编辑
+                                    m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, m_sUUID, m_pXxShareNumber, m_mRecord.C_SpeakTime);
+                                }
+
                                 Log.Instance.Success($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} insert record]");
-                                call_record.Insert(m_mRecord, !m_bStar && m_bShare, m_pDialArea);
+                                call_record.Insert(m_mRecord, !m_bStar && m_bShare && !m_bNeedReset, m_pDialArea);
 
                                 if (!m_bStar)
                                 {
@@ -1246,7 +1365,7 @@ namespace CenoSocket
                         Log.Instance.Fail($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} {m_sMsgStr}]");
 
                         //呼叫失败
-                        m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err呼叫主叫");
+                        m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err呼叫主叫", m_pXxShareNumber);
 
                         DateTime m_dtEndTimeNow = DateTime.Now;
                         string m_sEndTimeNowString = Cmn.m_fDateTimeString(m_dtEndTimeNow);
@@ -1256,14 +1375,23 @@ namespace CenoSocket
                         m_mRecord.Remark = m_sMsgStr;
 
                         dial_area m_pDialArea = null;
-                        if (!m_bStar && m_bShare && !m_bDeleteRedisLock)
+                        if (!m_bStar && m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                         {
                             m_bDeleteRedisLock = true;
                             m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, uuid, m_pShareNumber, m_mRecord.C_SpeakTime);
                         }
 
+                        if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                        {
+                            m_bXxDeleteRedisLock = true;
+                            //Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, uuid);
+                            //编辑
+                            m_pDialArea = Redis2.m_fEditShareNumber(m_uAgentID, m_sUUID, m_pXxShareNumber, m_mRecord.C_SpeakTime);
+                        }
+
                         Log.Instance.Success($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} insert record]");
-                        call_record.Insert(m_mRecord);
+                        //修正此处如果为共享号码也肌肉共享记录中
+                        call_record.Insert(m_mRecord, !m_bStar && m_bShare && !m_bNeedReset, m_pDialArea);
 
                         m_mChannel.channel_call_status = APP_USER_STATUS.FS_USER_IDLE;
                         m_mChannel.channel_call_uuid = null;
@@ -1294,12 +1422,18 @@ namespace CenoSocket
                 m_mChannel.channel_call_uuid = null;
                 m_mChannel.channel_call_other_uuid = null;
                 Log.Instance.Error($"[CenoSocket][m_cIp][m_fDial][{m_uAgentID} unfinished error:{ex.Message}]");
-                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err未完成");
+                m_cIp.m_fIpDialSend(m_pWebSocket, m_sUUID, -1, "Err未完成", m_pXxShareNumber);
 
-                if (m_bShare && !m_bDeleteRedisLock)
+                if (m_bShare && !m_bNeedReset && !m_bDeleteRedisLock)
                 {
                     m_bDeleteRedisLock = true;
                     Redis2.m_fResetShareNumber(m_uAgentID, m_pShareNumber, uuid);
+                }
+
+                if (m_bNeedReset && !m_bXxDeleteRedisLock)
+                {
+                    m_bXxDeleteRedisLock = true;
+                    Redis2.m_fResetShareNumber(m_uAgentID, m_pXxShareNumber, m_sUUID);
                 }
             }
         }
@@ -1329,17 +1463,44 @@ namespace CenoSocket
             }
         }
 
-        private static void m_fIpDialSend(IWebSocketConnection m_pWebSocket, string m_sUUID, int m_sStatus, string m_sResultMessage)
+        private static void m_fIpDialSend(IWebSocketConnection m_pWebSocket, string m_sUUID, int m_sStatus, string m_sResultMessage, share_number m_pXxShareNumber
+            //是否发送
+            , bool m_bSend = true
+            //替换结果表达
+            , string m_sReResultMessage = null
+            )
         {
             try
             {
                 m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
-                _m_mWebSocketJson.m_sUse = m_mWebSocketJsonCmd._m_sDialTask;
+
+
+                object m_oObject = null;
+                if (m_pXxShareNumber != null)
+                {
+                    //不发送,不需要,有移除逻辑
+                    if (!m_bSend) return;
+
+                    //新呼出式续联
+                    _m_mWebSocketJson.m_sUse = m_cIpCmd._m_sGetApply2;
+                    m_oObject = new
+                    {
+                        //替换
+                        m_sErrMsg = string.IsNullOrWhiteSpace(m_sReResultMessage) ? m_sResultMessage : m_sReResultMessage,
+                        m_pShareNumber = m_pXxShareNumber == null ? null : JsonConvert.SerializeObject(m_pXxShareNumber)
+                    };
+                }
+                else
+                {
+                    _m_mWebSocketJson.m_sUse = m_mWebSocketJsonCmd._m_sDialTask;
+                    m_oObject = m_sResultMessage;
+                }
+
                 _m_mWebSocketJson.m_oObject = new
                 {
                     m_sUUID = m_sUUID,
                     m_sStatus = m_sStatus,
-                    m_sResultMessage = m_sResultMessage
+                    m_sResultMessage = m_oObject
                 };
                 m_cIp.m_fSendObject(m_pWebSocket, _m_mWebSocketJson);
             }
@@ -1431,6 +1592,10 @@ namespace CenoSocket
         /// 获取申请式线路
         /// </summary>
         public const string _m_sGetApply = "GetApply";
+        /// <summary>
+        /// 获取申请式线路2,新呼出式续联
+        /// </summary>
+        public const string _m_sGetApply2 = "GetApply2";
         /// <summary>
         /// 强断
         /// </summary>

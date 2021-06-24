@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using Model_v1;
 using CenoSocket;
 using CenoFsSharp;
+using CenoCommon;
 
 namespace WebSocket_v1
 {
@@ -224,6 +225,7 @@ namespace WebSocket_v1
                         #endregion
                         break;
                     case m_cIpCmd._m_sGetApply:
+                    case m_cIpCmd._m_sGetApply2:
                         #region ***获取申请式号码
                         {
                             string m_sUUID = string.Empty;
@@ -243,6 +245,25 @@ namespace WebSocket_v1
                                 string m_sPhoneNumber = _m_pJObject.GetValue("m_sPhoneNumber").ToString();
                                 ///MD5
                                 string m_sMD5 = _m_pJObject.GetValue("m_sMD5").ToString();
+
+                                #region 新呼出式续联
+                                int m_uStartGetApply2ResetThread = 0;//是否开启新呼出式续联的重置线程
+                                if (m_sUse == m_cIpCmd._m_sGetApply2)
+                                {
+                                    try
+                                    {
+                                        if (_m_pJObject.ContainsKey("m_uStartGetApply2ResetThread"))
+                                        {
+                                            m_uStartGetApply2ResetThread = Convert.ToInt32(_m_pJObject.GetValue("m_uStartGetApply2ResetThread").ToString());
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Exception][Get m_uStartGetApply2ResetThread:{ex.Message}]");
+                                    }
+                                }
+                                #endregion
+
                                 ///支持跨服务器拨打,可固定号码
                                 Model_v1.AddRecByRec m_pAddRecByRec = DB.Basic.m_fDialLimit.m_fGetAgentByLoginName(m_sIP, m_sLoginName);
 
@@ -274,141 +295,212 @@ namespace WebSocket_v1
                                     m_lNumber = DB.Basic.m_fDialLimit.m_fXxUse(m_sIP, m_sLoginName);
                                 }
 
-                                ///申请号码
-                                share_number m_pShareNumber = Redis2.m_fApplyXx(m_sIP, m_pAddRecByRec.UAID, m_pAddRecByRec.m_uAgentID, m_pAddRecByRec.m_uChannelID, DB.Basic.Call_ParamUtil.m_uShareNumSetting, m_bBind, m_lNumber, out m_sStatus, out m_sErrMsg);
-
-                                ///优先使用个性化的续联接口
-                                string m_sXxHttp = DB.Basic.Call_ParamUtil.m_sXxHttp;
-                                if (!string.IsNullOrWhiteSpace(m_pShareNumber?.XxHttp))
+                                #region ***申请式类型兼容
+                                int isshare = 2;
+                                switch (m_sUse)
                                 {
-                                    m_sXxHttp = m_pShareNumber?.XxHttp;
-                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][special XxHttp:{m_sXxHttp}]");
-                                }
-                                else if (!string.IsNullOrWhiteSpace(m_sXxHttp))
-                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][default XxHttp:{m_sXxHttp}]");
-                                else
-                                    throw new Exception("未配置续联接口");
-
-                                #region ***续联电话呼出
-                                ///直接拨号,如果提示成功即可返回成功
-                                bool m_bResetNow = false;
-                                if (m_pShareNumber != null)
-                                {
-                                    try
-                                    {
-                                        string m_sQueryString = $"queryString={{\"agentId\":\"{m_pShareNumber.xxUa}\",\"number\":\"{m_sPhoneNumber}\"}}";
-                                        string m_sResult = string.Empty;
-
-                                        ///走MD5方式
-                                        if (m_sMD5 == "MD5")
-                                        {
-                                            m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_5MD5CALL", m_sQueryString);
-                                        }
-                                        else
-                                        {
-                                            m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_5CALL", m_sQueryString);
-                                        }
-
-                                        Log.Instance.Debug(m_sResult);
-                                        Newtonsoft.Json.Linq.JObject m_pJObj = Newtonsoft.Json.Linq.JObject.Parse(m_sResult);
-                                        int m_uStatus = Convert.ToInt32(m_pJObj.GetValue("status")?.ToString());
-                                        if (m_uStatus == 0)
-                                        {
-                                            m_bResetNow = false;
-                                            m_sStatus = 0;
-                                        }
-                                        else
-                                        {
-                                            ///判断代码是否为未登录,如果是,则先登录再拨打
-                                            if (m_pJObj.ContainsKey("data") && m_pJObj["data"].ToString() == "010")
-                                            {
-                                                ///首先登录
-                                                string m_sLoginMsg = string.Empty;
-                                                if (DB.Basic.m_fDialLimit.m_fXxLogin(m_sXxHttp, m_pShareNumber.xxUa, m_pShareNumber.xxPwd, out m_sLoginMsg))
-                                                {
-                                                    m_bResetNow = true;
-                                                    m_uStatus = -1;
-                                                    m_sErrMsg = $"ErrApi:未登录;已自动登录,请重拨!";
-                                                }
-                                                else
-                                                {
-                                                    m_bResetNow = true;
-                                                    m_uStatus = -1;
-                                                    m_sErrMsg = $"ErrApi:未登录;自动登录失败:{m_sLoginMsg};请重试!";
-                                                }
-                                            }
-                                            else
-                                            {
-                                                m_bResetNow = true;
-                                                m_uStatus = -1;
-                                                m_sErrMsg = $"ErrApi:{m_pJObj.GetValue("msg")?.ToString()}";
-                                            }
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        m_bResetNow = true;
-                                        Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][m_fPOST][Exception][{ex.Message}]");
-                                        m_sStatus = -1;
-                                        m_sErrMsg = $"Err{ex.Message}";
-                                    }
-
-                                    ///是否需要延时回发
-                                    if (m_bResetNow)
-                                    {
-                                        Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, string.Empty, string.Empty, m_bResetNow);
-                                    }
-                                    else
-                                    {
-                                        ///线程
-                                        new System.Threading.Thread(new System.Threading.ThreadStart(() =>
-                                        {
-                                            try
-                                            {
-                                                while (true)
-                                                {
-                                                    ///10秒钟后无变化可以直接开放即可
-                                                    if (((TimeSpan)(DateTime.Now - m_dtNow)).TotalSeconds > 10)
-                                                    {
-                                                        ///查看状态,如果不是TALKING,直接回发即可,逻辑已经呈现
-                                                        Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, string.Empty, string.Empty, m_bResetNow);
-                                                        break;
-                                                    }
-                                                    System.Threading.Thread.Sleep(100);
-                                                }
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Thread][Exception][{ex.Message}]");
-                                            }
-
-                                        })).Start();
-                                    }
+                                    case m_cIpCmd._m_sGetApply:
+                                        isshare = 2;
+                                        break;
+                                    case m_cIpCmd._m_sGetApply2:
+                                        isshare = 3;
+                                        break;
                                 }
                                 #endregion
 
-                                m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
-                                _m_mWebSocketJson.m_sUse = m_cIpCmd._m_sGetApply;
-                                _m_mWebSocketJson.m_oObject = new
+                                ///申请号码
+                                share_number m_pShareNumber = Redis2.m_fApplyXx(m_sIP, m_pAddRecByRec.UAID, m_pAddRecByRec.m_uAgentID, m_pAddRecByRec.m_uChannelID, DB.Basic.Call_ParamUtil.m_uShareNumSetting, m_bBind, m_lNumber, out m_sStatus, out m_sErrMsg, isshare, m_sUUID);
+
+                                //由于新呼出式续联里面有通讯结果,此处写开关做判断
+                                bool m_bExecuteDial = false;
+
+                                ///优先使用个性化的续联接口
+                                string m_sXxHttp = string.Empty;
+                                switch (m_sUse)
                                 {
-                                    m_sStatus = m_sStatus,
-                                    m_sUUID = m_sUUID,
-                                    //参数字符串
-                                    m_sResultMessage = new
+                                    case m_cIpCmd._m_sGetApply:
+                                        {
+                                            m_sXxHttp = DB.Basic.Call_ParamUtil.m_sXxHttp;
+                                            if (!string.IsNullOrWhiteSpace(m_pShareNumber?.XxHttp))
+                                            {
+                                                m_sXxHttp = m_pShareNumber?.XxHttp;
+                                                Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][special XxHttp:{m_sXxHttp}]");
+                                            }
+                                            else if (!string.IsNullOrWhiteSpace(m_sXxHttp))
+                                                Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][default XxHttp:{m_sXxHttp}]");
+                                            else
+                                                throw new Exception("未配置续联接口");
+
+                                            #region ***续联电话呼出
+                                            ///直接拨号,如果提示成功即可返回成功
+                                            bool m_bResetNow = false;
+                                            if (m_pShareNumber != null)
+                                            {
+                                                try
+                                                {
+                                                    string m_sQueryString = $"queryString={{\"agentId\":\"{m_pShareNumber.xxUa}\",\"number\":\"{m_sPhoneNumber}\"}}";
+                                                    string m_sResult = string.Empty;
+
+                                                    ///走MD5方式
+                                                    if (m_sMD5 == "MD5")
+                                                    {
+                                                        m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_5MD5CALL", m_sQueryString);
+                                                    }
+                                                    else
+                                                    {
+                                                        m_sResult = m_cHttp.m_fPOST($"{m_sXxHttp}/Home/F_5CALL", m_sQueryString);
+                                                    }
+
+                                                    Log.Instance.Debug(m_sResult);
+                                                    Newtonsoft.Json.Linq.JObject m_pJObj = Newtonsoft.Json.Linq.JObject.Parse(m_sResult);
+                                                    int m_uStatus = Convert.ToInt32(m_pJObj.GetValue("status")?.ToString());
+                                                    if (m_uStatus == 0)
+                                                    {
+                                                        m_bResetNow = false;
+                                                        m_sStatus = 0;
+                                                    }
+                                                    else
+                                                    {
+                                                        ///判断代码是否为未登录,如果是,则先登录再拨打
+                                                        if (m_pJObj.ContainsKey("data") && m_pJObj["data"].ToString() == "010")
+                                                        {
+                                                            ///首先登录
+                                                            string m_sLoginMsg = string.Empty;
+                                                            if (DB.Basic.m_fDialLimit.m_fXxLogin(m_sXxHttp, m_pShareNumber.xxUa, m_pShareNumber.xxPwd, out m_sLoginMsg))
+                                                            {
+                                                                m_bResetNow = true;
+                                                                m_uStatus = -1;
+                                                                m_sErrMsg = $"ErrApi:未登录;已自动登录,请重拨!";
+                                                            }
+                                                            else
+                                                            {
+                                                                m_bResetNow = true;
+                                                                m_uStatus = -1;
+                                                                m_sErrMsg = $"ErrApi:未登录;自动登录失败:{m_sLoginMsg};请重试!";
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            m_bResetNow = true;
+                                                            m_uStatus = -1;
+                                                            m_sErrMsg = $"ErrApi:{m_pJObj.GetValue("msg")?.ToString()}";
+                                                        }
+                                                    }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    m_bResetNow = true;
+                                                    Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][m_fPOST][Exception][{ex.Message}]");
+                                                    m_sStatus = -1;
+                                                    m_sErrMsg = $"Err{ex.Message}";
+                                                }
+
+                                                ///是否需要延时回发
+                                                if (m_bResetNow)
+                                                {
+                                                    Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, string.Empty, string.Empty, m_bResetNow);
+                                                }
+                                                else
+                                                {
+                                                    ///线程
+                                                    new System.Threading.Thread(new System.Threading.ThreadStart(() =>
+                                                    {
+                                                        try
+                                                        {
+                                                            while (true)
+                                                            {
+                                                                ///10秒钟后无变化可以直接开放即可
+                                                                if (((TimeSpan)(DateTime.Now - m_dtNow)).TotalSeconds > 10)
+                                                                {
+                                                                    ///查看状态,如果不是TALKING,直接回发即可,逻辑已经呈现
+                                                                    Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, string.Empty, string.Empty, m_bResetNow);
+                                                                    break;
+                                                                }
+                                                                System.Threading.Thread.Sleep(100);
+                                                            }
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Thread][Exception][{ex.Message}]");
+                                                        }
+
+                                                    })).Start();
+                                                }
+                                            }
+                                            #endregion
+                                        }
+                                        break;
+                                    case m_cIpCmd._m_sGetApply2:
+                                        #region ***新呼出式续联
+                                        {
+                                            if (m_pShareNumber != null)
+                                            {
+                                                int m_uALegTimeoutSeconds = DB.Basic.Call_ParamUtil.ALegTimeoutSeconds;
+                                                //直接调用拨号,里面会有结果返回,在里面调整成格式一致的消息,无需判断是否会报错、回发,都在内部完成即可
+                                                m_cIp.m_fExecuteDial(m_pWebSocket, m_sUUID, m_sLoginName, m_sPhoneNumber, m_pShareNumber.number, Special.Share, 0, 0, 0, 1, m_pShareNumber, m_uALegTimeoutSeconds);
+                                                m_bExecuteDial = true;
+
+                                                //增加一个状态复原的操作,这里等待可能等待过久,改为参数形式吧,一般不会出现此错误
+                                                if (m_uStartGetApply2ResetThread == 1)
+                                                {
+                                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Thread][wait reset:{m_sUUID}]");
+                                                    new System.Threading.Thread(new System.Threading.ThreadStart(() =>
+                                                    {
+                                                        try
+                                                        {
+                                                            while (true)
+                                                            {
+                                                                ///10秒钟后无变化可以直接开放即可
+                                                                if (((TimeSpan)(DateTime.Now - m_dtNow)).TotalSeconds > m_uALegTimeoutSeconds)
+                                                                {
+                                                                    ///查看状态,如果不是TALKING,直接回发即可,逻辑已经呈现
+                                                                    Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, string.Empty, string.Empty, false);
+                                                                    break;
+                                                                }
+                                                                System.Threading.Thread.Sleep(1000);
+
+                                                                //如果程序退出,此处直接跳出即可,无需再等待
+                                                                if (CmnParam.IsExit) break;
+                                                            }
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            Log.Instance.Error($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Thread][Exception][{ex.Message}]");
+                                                        }
+
+                                                    })).Start();
+                                                }
+                                            }
+                                        }
+                                        #endregion
+                                        break;
+                                }
+
+                                if (!m_bExecuteDial)
+                                {
+                                    m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
+                                    _m_mWebSocketJson.m_sUse = m_sUse;
+                                    _m_mWebSocketJson.m_oObject = new
                                     {
-                                        m_sErrMsg = m_sErrMsg,
-                                        m_pShareNumber = m_pShareNumber == null ? null : JsonConvert.SerializeObject(m_pShareNumber)
-                                    }
-                                };
-                                //回复消息
-                                m_pWebSocket.Send(JsonConvert.SerializeObject(_m_mWebSocketJson));
+                                        m_sStatus = m_sStatus,
+                                        m_sUUID = m_sUUID,
+                                        //参数字符串
+                                        m_sResultMessage = new
+                                        {
+                                            m_sErrMsg = m_sErrMsg,
+                                            m_pShareNumber = m_pShareNumber == null ? null : JsonConvert.SerializeObject(m_pShareNumber)
+                                        }
+                                    };
+                                    //回复消息
+                                    m_pWebSocket.Send(JsonConvert.SerializeObject(_m_mWebSocketJson));
+                                }
                             }
                             catch (Exception ex)
                             {
                                 if (!string.IsNullOrWhiteSpace(m_sUUID))
                                 {
                                     m_mWebSocketJson _m_mWebSocketJson = new m_mWebSocketJson();
-                                    _m_mWebSocketJson.m_sUse = m_cIpCmd._m_sGetApply;
+                                    _m_mWebSocketJson.m_sUse = m_sUse;
                                     _m_mWebSocketJson.m_oObject = new
                                     {
                                         m_sStatus = -1,
