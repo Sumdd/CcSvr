@@ -443,7 +443,7 @@ namespace WebSocket_v1
                                                 //增加一个状态复原的操作,这里等待可能等待过久,改为参数形式吧,一般不会出现此错误
                                                 if (m_uStartGetApply2ResetThread == 1)
                                                 {
-                                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Thread][wait reset:{m_sUUID}]");
+                                                    Log.Instance.Warn($"[WebSocket_v1][m_cInWebSocketWebApiDo][MainStep][{m_sUse}][Thread][wait {m_uALegTimeoutSeconds} sec,reset:{m_sUUID}]");
                                                     new System.Threading.Thread(new System.Threading.ThreadStart(() =>
                                                     {
                                                         try

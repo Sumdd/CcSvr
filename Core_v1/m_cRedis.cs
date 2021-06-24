@@ -463,21 +463,37 @@ namespace Core_v1
                 ///判断是否需要查看状态
                 if (!m_bResetNow)
                 {
-                    ///查看号码状态,如不是通话中,继续,否则跳过
-                    string m_sData = Redis2.Instance.Get<string>(m_sDataKey);
-                    if (!string.IsNullOrWhiteSpace(m_sData))
+                    if (m_pShareNumber != null && m_pShareNumber.isshare == 3)
                     {
-                        ///赋值,如果有误写日志,下次判断
-                        e = m_sData;
-                        share_number _m_pShareNumber = JsonConvert.DeserializeObject<share_number>(m_sData);
+                        if (m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || m_pShareNumber.state == SHARE_NUM_STATUS.IDLE)
+                        {
+                            Log.Instance.Warn($"[Core_v1][Redis2][m_fResetShareNumber][wait reset:{m_sUUID},ignore reset:{m_pShareNumber.state}]");
+                            return;
+                        }
+                        else
+                        {
+                            Log.Instance.Warn($"[Core_v1][Redis2][m_fResetShareNumber][wait reset:{m_sUUID},need reset]");
+                            //回发
+                        }
+                    }
+                    else
+                    {
+                        ///查看号码状态,如不是通话中,继续,否则跳过
+                        string m_sData = Redis2.Instance.Get<string>(m_sDataKey);
+                        if (!string.IsNullOrWhiteSpace(m_sData))
+                        {
+                            ///赋值,如果有误写日志,下次判断
+                            e = m_sData;
+                            share_number _m_pShareNumber = JsonConvert.DeserializeObject<share_number>(m_sData);
 
-                        ///增加一个参数,如果拨打中,返回
-                        if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE
+                            ///增加一个参数,如果拨打中,返回
+                            if (_m_pShareNumber.state == SHARE_NUM_STATUS.TALKING || _m_pShareNumber.state == SHARE_NUM_STATUS.IDLE
                             ///非延时时,这里如果还是SHARE_NUM_STATUS.CALL、SHARE_NUM_STATUS.DIAL说明有问题,不能直接返回而是回发
                             ///|| _m_pShareNumber.state == SHARE_NUM_STATUS.CALL
                             ) return;
+                        }
+                        else return;
                     }
-                    else return;
                 }
 
                 ///日志,需要
