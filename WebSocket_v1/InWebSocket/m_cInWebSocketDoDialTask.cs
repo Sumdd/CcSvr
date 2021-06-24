@@ -454,7 +454,7 @@ namespace WebSocket_v1
                                                                 if (((TimeSpan)(DateTime.Now - m_dtNow)).TotalSeconds > m_uALegTimeoutSeconds)
                                                                 {
                                                                     ///查看状态,如果不是TALKING,直接回发即可,逻辑已经呈现
-                                                                    Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, string.Empty, string.Empty, false);
+                                                                    Redis2.m_fResetShareNumber(m_pShareNumber.agentID, m_pShareNumber, m_sUUID, string.Empty, false);
                                                                     break;
                                                                 }
                                                                 System.Threading.Thread.Sleep(1000);
