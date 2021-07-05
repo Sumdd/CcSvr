@@ -134,6 +134,8 @@ namespace CenoServer
 
   sip second [0|>=60] `坐席注册状态心跳秒,0为不启用`
 
+  ringback [on|off] `是否开启180回铃`
+
   exit `退出服务端`
 
 ";
@@ -475,6 +477,17 @@ namespace CenoServer
                             break;
                         case "auto call start":
                             CenoFsSharp.m_fQueueTask.m_fActivate();
+                            break;
+                        #endregion
+
+                        #region 180回铃
+                        case "ringback on":
+                            Call_ParamUtil.m_uUseRingBack = 1;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][ringback on]");
+                            break;
+                        case "ringback off":
+                            Call_ParamUtil.m_uUseRingBack = 0;
+                            Log.Instance.Success($"[CenoServer][MainWhileDo][MainStep][ringback off]");
                             break;
                         #endregion
 

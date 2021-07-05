@@ -1613,5 +1613,35 @@ namespace DB.Basic {
             }
         }
         #endregion
+        #region ***180回铃:0关闭,1开启
+        public static int? _m_uUseRingBack;
+        public static int m_uUseRingBack
+        {
+            get
+            {
+                try
+                {
+                    if (_m_uUseRingBack == null)
+                    {
+                        Call_ParamUtil._m_uUseRingBack = Convert.ToInt32(Call_ParamUtil.GetParamValueByName("_m_uUseRingBack".Replace("_m_u", "").Replace("m_u", "")));
+                    }
+                    return Call_ParamUtil._m_uUseRingBack.Value;
+                }
+                catch
+                {
+                    return 0;
+                }
+            }
+            set
+            {
+                try
+                {
+                    Call_ParamUtil.Update("_m_uUseRingBack".Replace("_m_u", "").Replace("m_u", ""), value.ToString());
+                    _m_uUseRingBack = value;
+                }
+                catch { }
+            }
+        }
+        #endregion
     }
 }

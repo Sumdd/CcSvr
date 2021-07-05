@@ -1316,6 +1316,12 @@ namespace CenoSocket
                 //拨打之前记录uuid
                 m_mChannel.channel_call_uuid = uuid;
 
+                //设定180回铃音,使用
+                if (Call_ParamUtil.m_uUseRingBack == 1)
+                {
+                    CherVariables.Add("ringback", Call_ParamUtil.m_sCallMusic);
+                }
+
                 if (m_bIsDispose) return;
                 OriginateResult m_pOriginateResult = await m_sClient.Originate(m_sEndPointStrA, new OriginateOptions()
                 {
